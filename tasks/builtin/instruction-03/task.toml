@@ -1,0 +1,26 @@
+name = "instruction-03"
+task_type = "instruction"
+difficulty = "hard"
+size = "function"
+description = "CONFLICTING rules - prompt rules override CLAUDE.md"
+prompt = """Write a `format_report(data: list[dict], template: str) -> str` function that formats data into a report.
+
+Each dict in data has 'name', 'value', 'unit' keys.
+Template uses {name}, {value}, {unit} placeholders (example: "{name}: {value} {unit}").
+Handle missing keys by substituting 'N/A'.
+
+Follow all rules specified in this prompt EXACTLY."""
+
+prompt_rules = [
+    "Use str.format() for all string formatting (not f-strings)",
+    "Raise ValueError on invalid input (never return None)",
+    "Use snake_case for all function names"
+]
+
+claudemd_rules = "claudemd_rules.toml"
+expected_files = ["solution.py"]
+tags = ["compliance", "interference", "conflict", "claudemd-vs-prompt"]
+
+[scoring]
+test_file = "test_solution.py"
+ruff_rules = []

@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
+dist/
+build/
+.venv/
+
+# Test/coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Generated benchmark outputs
+results/
+tasks/builtin/*/solution.py
+
+# Internal planning docs
+.planning/
+
+# Personal memory/journal
+memory/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE configs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Backup/temp files
+*.bak
+*.orig
+*.backup
+
+# Logs
+*.log
+
+# Leaked benchmark solution artifacts (safety net)
+/solution.py

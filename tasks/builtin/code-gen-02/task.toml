@@ -1,0 +1,32 @@
+name = "code-gen-02"
+task_type = "code-gen"
+difficulty = "medium"
+size = "function"
+description = "Implement a text statistics analyzer with word counting and frequency analysis"
+
+prompt = """
+Write a function `analyze_text(text: str) -> dict` that analyzes text and returns statistics.
+
+The returned dictionary must contain:
+- word_count: total number of words (int)
+- sentence_count: number of sentences (int) - sentences end with '.', '!', or '?'
+- average_word_length: average length of words (float, rounded to 2 decimals)
+- most_common_words: list of top 5 most common words as (word, count) tuples
+  - Case-insensitive comparison
+  - Alphabetical order for ties
+- unique_word_count: number of unique words (int, case-insensitive)
+
+Requirements:
+- Strip punctuation from words before counting
+- Handle empty strings (return zeros/empty lists appropriately)
+- Consider only alphabetic characters as part of words
+
+Your solution should be in a file called `solution.py`.
+"""
+
+tags = ["text-processing", "data-structures", "stdlib"]
+
+[scoring]
+test_file = "test_solution.py"
+reference_solution = "reference.py"
+ruff_rules = ["E501", "F841", "I001"]

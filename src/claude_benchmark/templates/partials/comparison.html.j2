@@ -1,0 +1,138 @@
+<h2>Side-by-Side Comparison</h2>
+
+{% if profiles | length < 2 %}
+<div class="info-note">
+  Only one profile was tested. Side-by-side comparison requires at least two profiles.
+</div>
+{% else %}
+<div class="section-guide">Compare two profiles' code for the same task. Green deltas = Profile B better; red = worse.</div>
+
+<div class="comparison-controls">
+  <div class="control-group">
+    <label for="profile-a">Profile A</label>
+    <select id="profile-a" onchange="updateComparison()">
+      {% for profile in profiles %}
+      <option value="{{ profile }}"{% if loop.index0 == 0 %} selected{% endif %}>{{ profile }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="control-group">
+    <label for="profile-b">Profile B</label>
+    <select id="profile-b" onchange="updateComparison()">
+      {% for profile in profiles %}
+      <option value="{{ profile }}"{% if loop.index0 == 1 %} selected{% endif %}>{{ profile }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="control-group">
+    <label for="task-selector">Task</label>
+    <select id="task-selector" onchange="updateComparison()">
+      {% for task in tasks %}
+      <option value="{{ task }}"{% if loop.index0 == 0 %} selected{% endif %}>{{ task }}{% if task_descriptions and task in task_descriptions %} — {{ task_descriptions[task] }}{% endif %}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% if task_descriptions %}
+  <div id="task-description-display" class="task-description" style="flex-basis: 100%;"></div>
+  {% endif %}
+  <div class="control-group">
+    <label for="model-selector">Model</label>
+    <select id="model-selector" onchange="updateComparison()">
+      {% for model in models %}
+      <option value="{{ model }}"{% if loop.index0 == 0 %} selected{% endif %}>{{ model }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+<div id="comparison-scores"></div>
+<div id="comparison-diff" class="diff-container"></div>
+
+<script>
+const COMPARISON_DATA = {{ comparison_data_json | safe }};
+const TASK_DESCRIPTIONS = {{ task_descriptions | tojson_safe | safe }};
+
+function updateTaskDescription() {
+  var el = document.getElementById("task-description-display");
+  if (!el) return;
+  var task = document.getElementById("task-selector").value;
+  el.textContent = TASK_DESCRIPTIONS[task] || "";
+}
+
+function scoreTierBadge(val) {
+  if (val === null || val === undefined) return "";
+  if (val >= 90) return ' <span class="score-tier tier-excellent">Excellent</span>';
+  if (val >= 70) return ' <span class="score-tier tier-good">Good</span>';
+  if (val >= 50) return ' <span class="score-tier tier-fair">Fair</span>';
+  return ' <span class="score-tier tier-poor">Poor</span>';
+}
+
+function updateComparison() {
+  updateTaskDescription();
+  var profileA = document.getElementById("profile-a").value;
+  var profileB = document.getElementById("profile-b").value;
+  var task = document.getElementById("task-selector").value;
+  var model = document.getElementById("model-selector").value;
+
+  var scoresEl = document.getElementById("comparison-scores");
+  var diffEl = document.getElementById("comparison-diff");
+
+  // Look up scores
+  var key = model + "/" + task;
+  var entry = COMPARISON_DATA[key] || {};
+
+  var scoresA = (entry.scores || {})[profileA] || {};
+  var scoresB = (entry.scores || {})[profileB] || {};
+
+  scoresEl.innerHTML = renderScoreComparison(profileA, scoresA, profileB, scoresB);
+
+  // Look up pre-rendered diff HTML
+  // Diffs are stored by sorted pair key
+  var pairKeys = [profileA + "_vs_" + profileB, profileB + "_vs_" + profileA];
+  var diffHtml = "";
+  for (var i = 0; i < pairKeys.length; i++) {
+    var diffKey = key + "/" + pairKeys[i];
+    if (entry.diffs && entry.diffs[pairKeys[i]]) {
+      diffHtml = entry.diffs[pairKeys[i]];
+      break;
+    }
+  }
+  diffEl.innerHTML = diffHtml || '<p style="color: #718096;">No diff available for this combination.</p>';
+}
+
+function renderScoreComparison(nameA, scoresA, nameB, scoresB) {
+  var dims = Object.keys(Object.assign({}, scoresA, scoresB));
+  if (dims.length === 0) return '<p style="color: #718096;">No score data available.</p>';
+
+  var html = '<table class="score-table"><thead><tr><th>Dimension</th><th>' +
+    nameA + '</th><th>' + nameB + '</th><th>Delta</th></tr></thead><tbody>';
+
+  for (var i = 0; i < dims.length; i++) {
+    var dim = dims[i];
+    var a = scoresA[dim] !== undefined ? scoresA[dim] : null;
+    var b = scoresB[dim] !== undefined ? scoresB[dim] : null;
+    var delta = (a !== null && b !== null) ? (b - a).toFixed(1) : "-";
+    var deltaColor = "";
+    if (typeof delta === "string" && delta !== "-") {
+      var deltaNum = parseFloat(delta);
+      if (deltaNum > 0) deltaColor = ' style="color: #16a34a; font-weight: 600;"';
+      else if (deltaNum < 0) deltaColor = ' style="color: #dc2626; font-weight: 600;"';
+    }
+    html += '<tr><td>' + dim + '</td><td>' +
+      (a !== null ? a.toFixed(1) : '-') + scoreTierBadge(a) + '</td><td>' +
+      (b !== null ? b.toFixed(1) : '-') + scoreTierBadge(b) + '</td><td' +
+      deltaColor + '>' + (delta !== "-" ? (parseFloat(delta) > 0 ? "+" : "") + delta : delta) +
+      '</td></tr>';
+  }
+  html += '</tbody></table>';
+  return html;
+}
+
+// Initialize comparison on load
+document.addEventListener("DOMContentLoaded", function() {
+  if (document.getElementById("profile-a")) {
+    updateComparison();
+  }
+});
+</script>
+{% endif %}

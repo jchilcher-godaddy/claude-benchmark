@@ -1,0 +1,108 @@
+<section id="guide" class="guide-section">
+  <h2>How to Read This Report</h2>
+  <p>
+    This benchmark tests how different <strong>CLAUDE.md instruction profiles</strong> affect the quality of AI-generated code.
+    Each profile contains a set of instructions given to Claude before it writes code. The <strong>"empty"</strong> profile is the
+    baseline — no custom instructions — so you can see whether your instructions actually help or hurt.
+  </p>
+
+  <details>
+    <summary>What do the scores mean?</summary>
+    <table class="guide-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Range</th>
+          <th>What It Measures</th>
+          <th>How It's Calculated</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>composite</strong></td>
+          <td>0–100</td>
+          <td>Overall code quality — a single number summarizing all dimensions</td>
+          <td>Average of all other scoring dimensions</td>
+        </tr>
+        <tr>
+          <td><strong>test_pass_rate</strong></td>
+          <td>0–100</td>
+          <td>Whether the generated code actually works (passes test cases)</td>
+          <td>Percentage of test assertions that pass</td>
+        </tr>
+        <tr>
+          <td><strong>lint_score</strong></td>
+          <td>0–100</td>
+          <td>Code style and formatting quality</td>
+          <td>Based on linter results — fewer warnings = higher score</td>
+        </tr>
+        <tr>
+          <td><strong>complexity_score</strong></td>
+          <td>0–100</td>
+          <td>How simple and readable the code is</td>
+          <td>
+            Uses <em>radon</em> cyclomatic complexity grades per function, averaged across all functions:
+            <br><strong>A</strong> (1–5) = 80–100 &nbsp;
+            <strong>B</strong> (6–10) = 60–80 &nbsp;
+            <strong>C</strong> (11–20) = 40–60 &nbsp;
+            <strong>D</strong> (21–30) = 20–40 &nbsp;
+            <strong>E</strong> (31–40) = 5–20 &nbsp;
+            <strong>F</strong> (41+) = 0–5
+          </td>
+        </tr>
+        <tr>
+          <td><strong>llm_quality</strong></td>
+          <td>0–100</td>
+          <td>Subjective code quality judged by an AI reviewer</td>
+          <td>LLM evaluates readability, design, and correctness</td>
+        </tr>
+        <tr>
+          <td><strong>token_efficiency</strong></td>
+          <td>0–100</td>
+          <td>How much quality you get per token spent</td>
+          <td>Quality score normalized by token usage</td>
+        </tr>
+      </tbody>
+    </table>
+  </details>
+
+  <details>
+    <summary>What do the score ranges mean?</summary>
+    <div class="score-legend">
+      <span><span class="score-tier tier-excellent">Excellent</span> 90–100 — Outstanding quality, hard to improve</span>
+      <span><span class="score-tier tier-good">Good</span> 70–89 — Solid results, minor improvements possible</span>
+      <span><span class="score-tier tier-fair">Fair</span> 50–69 — Acceptable but room for improvement</span>
+      <span><span class="score-tier tier-poor">Poor</span> 0–49 — Below expectations, needs attention</span>
+    </div>
+  </details>
+
+  <details>
+    <summary>What is a regression?</summary>
+    <p>
+      A <strong>regression</strong> means a profile performed <em>significantly worse</em> than the empty baseline on a specific task
+      and metric. "Significantly" requires two conditions: the score dropped by more than 5%, <em>and</em> a statistical test
+      confirmed the difference wasn't just random noise (p-value &lt; 0.05). If you see a
+      <span class="badge-regression">REGRESSION</span> badge, it means your instructions actively made the output worse
+      on that dimension — worth investigating.
+    </p>
+  </details>
+
+  <details>
+    <summary>What is an exception?</summary>
+    <p>
+      An <span class="badge-regression" style="background:#ea580c;">EXCEPTION</span> flags a subset of the data where the winning
+      profile differs from the <em>overall</em> best profile. They appear in two places:
+    </p>
+    <ul style="margin: 0.5rem 0 0.5rem 1.5rem;">
+      <li><strong>Category breakdown</strong> — each task category (e.g. bug-fix, refactor) is scored independently.
+        If a category's best profile isn't the same as the overall winner, it gets an exception badge.</li>
+      <li><strong>Model preferences</strong> — each model (haiku, sonnet, opus) may prefer a different profile.
+        If a model's top-performing profile isn't the overall winner, it's flagged.</li>
+    </ul>
+    <p>
+      Exceptions are not errors — they highlight where the "best overall" conclusion doesn't hold for a particular
+      slice of the data. A report with many exceptions suggests no single profile dominates everywhere, and you may
+      want to tailor your instructions per task type or model.
+    </p>
+  </details>
+</section>

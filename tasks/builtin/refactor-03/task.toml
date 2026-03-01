@@ -1,0 +1,24 @@
+name = "refactor-03"
+task_type = "refactor"
+difficulty = "hard"
+size = "module"
+description = "Convert procedural code to classes"
+prompt = """Refactor `starter.py` into a class-based design with separation of concerns.
+
+The code currently processes CSV-like data procedurally with functions that share state
+through long argument chains. The logic mixes parsing, validation, transformation, and formatting.
+
+Requirements:
+- Maintain the `process_data(raw_input: str) -> str` top-level API
+- All tests must pass
+- Create classes with clear separation of concerns (parsing, validation, transformation, formatting)
+- Eliminate long argument chains by using instance attributes"""
+
+starter_code = "starter.py"
+expected_files = ["solution.py"]
+tags = ["refactoring", "oop", "separation-of-concerns", "design"]
+
+[scoring]
+test_file = "test_solution.py"
+reference_solution = "reference.py"
+ruff_rules = ["E501", "F841", "I001"]

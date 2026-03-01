@@ -1,0 +1,29 @@
+name = "instruction-02"
+task_type = "instruction"
+difficulty = "medium"
+size = "function"
+description = "Follow CLAUDE.md + prompt rules"
+prompt = """Write a `calculate_shipping(order: dict) -> dict` function that computes shipping cost based on these rules:
+
+Shipping types:
+- Standard: $5 base + $0.50/kg + $0.01/km
+- Express: 2x standard cost
+- Overnight: 3x standard cost
+
+Special offer: Orders over $100 get free standard shipping (express/overnight still charged)
+
+The order dict has: weight_kg, distance_km, order_total, shipping_type
+Return dict with: base_cost, weight_cost, distance_cost, total_cost, free_shipping (bool)"""
+
+prompt_rules = [
+    "Function must accept and return JSON-serializable dicts",
+    "Include input validation that raises ValueError with descriptive messages"
+]
+
+claudemd_rules = "claudemd_rules.toml"
+expected_files = ["solution.py"]
+tags = ["compliance", "claudemd", "prompt-rules", "mixed"]
+
+[scoring]
+test_file = "test_solution.py"
+ruff_rules = []

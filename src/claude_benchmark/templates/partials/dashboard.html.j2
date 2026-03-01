@@ -1,0 +1,60 @@
+<h2>Overview Dashboard</h2>
+<div class="section-guide">Radar charts show strengths/weaknesses per dimension. Hover for exact values. Scatter plot: upper-left = high quality, low cost.</div>
+
+<div class="chart-grid">
+  {% for model in models %}
+  <div class="chart-card">
+    <h3>{{ model }} - Scoring Overview</h3>
+    <div style="position: relative; height: 400px;">
+      <canvas id="radar-{{ model }}"></canvas>
+    </div>
+    <p class="chart-annotation">Each axis is a scoring dimension (scale adjusts to data). Wider shape = better. If one polygon fully contains another, that profile is better on every dimension.</p>
+    {% if comparison_tables.get(model) %}
+    <table class="dashboard-comparison">
+      <thead>
+        <tr>
+          <th title="Profile">Profile</th>
+          {% for dim in dimensions %}<th title="{{ dim_labels.get(dim, dim.replace('_', ' ')|title) }}">{{ dim_labels.get(dim, dim.replace("_", " ")|title) }}</th>{% endfor %}
+          <th title="Average">Avg</th>
+          <th title="Rank">#</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in comparison_tables[model] %}
+        <tr>
+          <td class="cmp-profile" title="{{ row.profile }}">{{ row.profile }}</td>
+          {% for cell in row.scores %}
+          <td class="{{ 'cell-best' if cell.is_best else '' }}">
+            {{ cell.value }}{% if not cell.is_best %}<span class="delta"> ({{ cell.delta }})</span>{% endif %}
+          </td>
+          {% endfor %}
+          <td><strong>{{ row.avg }}</strong></td>
+          <td>{{ row.rank }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  {% if multi_model %}
+  {% for model in models %}
+  <div class="chart-card">
+    <h3>{{ model }} - Token Efficiency</h3>
+    <div style="position: relative; height: 400px;">
+      <canvas id="scatter-efficiency-{{ model }}"></canvas>
+    </div>
+    <p class="chart-annotation">Each dot is a profile. Upper-left = most efficient. Dashed line = efficient frontier (best quality for token cost).</p>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="chart-card">
+    <h3>Token Efficiency</h3>
+    <div style="position: relative; height: 400px;">
+      <canvas id="scatter-efficiency"></canvas>
+    </div>
+    <p class="chart-annotation">Each dot is a profile. Upper-left = most efficient. Dashed line = efficient frontier (best quality for token cost).</p>
+  </div>
+  {% endif %}
+</div>

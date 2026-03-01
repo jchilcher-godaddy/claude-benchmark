@@ -1,0 +1,24 @@
+name = "refactor-02"
+task_type = "refactor"
+difficulty = "medium"
+size = "function"
+description = "Replace nested conditionals with early returns"
+prompt = """Refactor `starter.py` to use early returns and guard clauses instead of deeply nested conditionals.
+
+The code currently has 5-6 levels of nested if/else statements that are correct but hard to read.
+Refactor to use a flat structure with early returns for error cases.
+
+Requirements:
+- Function signature and return values must remain identical
+- All tests must pass
+- Use guard clauses and early returns
+- Maximum nesting depth of 2 levels"""
+
+starter_code = "starter.py"
+expected_files = ["solution.py"]
+tags = ["refactoring", "conditionals", "readability"]
+
+[scoring]
+test_file = "test_solution.py"
+reference_solution = "reference.py"
+ruff_rules = ["E501", "F841", "I001"]

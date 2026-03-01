@@ -1,0 +1,24 @@
+name = "bug-fix-01"
+task_type = "bug-fix"
+difficulty = "easy"
+size = "function"
+description = "Fix off-by-one error in binary search implementation"
+starter_code = "starter.py"
+
+prompt = """
+The file `starter.py` contains a `binary_search(arr: list[int], target: int) -> int` function with a bug.
+
+The function should:
+- Return the index of target in the sorted array arr
+- Return -1 if target is not found
+- Work correctly for all edge cases (empty list, single element, first/last element, etc.)
+
+Find and fix the bug. Save your corrected solution as `solution.py`.
+"""
+
+tags = ["algorithms", "debugging", "search"]
+
+[scoring]
+test_file = "test_solution.py"
+reference_solution = "reference.py"
+ruff_rules = ["E501", "F841", "I001"]

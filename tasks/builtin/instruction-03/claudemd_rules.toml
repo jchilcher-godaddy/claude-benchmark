@@ -1,0 +1,11 @@
+[[rules]]
+name = "string_formatting"
+description = "Always use f-strings for string formatting, never .format() or % formatting"
+
+[[rules]]
+name = "error_style"
+description = "Return None on errors instead of raising exceptions"
+
+[[rules]]
+name = "naming"
+description = "Use camelCase for all function names"

@@ -1,0 +1,33 @@
+name = "code-gen-03"
+task_type = "code-gen"
+difficulty = "hard"
+size = "module"
+expected_files = ["lru_cache.py"]
+description = "Implement a fully-featured LRU Cache with O(1) operations"
+
+prompt = """
+Implement a class `LRUCache` in a file called `lru_cache.py` with the following interface:
+
+- `__init__(capacity: int)`: Initialize with given capacity. Raise ValueError if capacity < 1.
+- `get(key: str) -> Any`: Get value for key. Raise KeyError if not found. Mark key as recently used.
+- `put(key: str, value: Any)`: Store key-value pair. If at capacity, evict least recently used item first.
+- `delete(key: str) -> bool`: Delete key if exists, return True. Return False if key doesn't exist.
+- `__len__()`: Return number of items in cache.
+- `__contains__(key: str)`: Return True if key exists in cache.
+- `keys() -> list[str]`: Return list of keys in most-recently-used order (most recent first).
+
+Requirements:
+- get() and put() must be O(1) average time complexity
+- Getting a key marks it as recently used
+- Putting an existing key updates its value and marks it as recently used
+- LRU eviction means the key that was least recently accessed (via get or put) is removed
+
+Your solution should be in a file called `lru_cache.py`.
+"""
+
+tags = ["data-structures", "oop", "caching", "algorithms"]
+
+[scoring]
+test_file = "test_solution.py"
+reference_solution = "reference.py"
+ruff_rules = ["E501", "F841", "I001"]

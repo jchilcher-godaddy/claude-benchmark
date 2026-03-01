@@ -1,0 +1,27 @@
+name = "bug-fix-03"
+task_type = "bug-fix"
+difficulty = "hard"
+size = "module"
+description = "Fix race conditions in thread-safe counter implementation"
+starter_code = "starter.py"
+expected_files = ["solution.py"]
+
+prompt = """
+The file `starter.py` contains a `ThreadSafeCounter` class intended for concurrent use. It has threading bugs that cause incorrect counts under concurrent access.
+
+Fix the threading issues. The class should have:
+- `increment()` -- atomically increase the counter by 1
+- `decrement()` -- atomically decrease the counter by 1
+- `get() -> int` -- return the current value
+- `reset()` -- atomically reset the counter to 0
+- `increment_by(n: int)` -- atomically increase the counter by n
+
+All operations must be thread-safe. Save your corrected solution as `solution.py`.
+"""
+
+tags = ["concurrency", "debugging", "threading", "oop"]
+
+[scoring]
+test_file = "test_solution.py"
+reference_solution = "reference.py"
+ruff_rules = ["E501", "F841", "I001"]

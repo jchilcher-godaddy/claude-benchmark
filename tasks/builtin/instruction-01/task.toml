@@ -1,0 +1,26 @@
+name = "instruction-01"
+task_type = "instruction"
+difficulty = "easy"
+size = "function"
+description = "Follow naming conventions and docstring format"
+prompt = """Write a utility module with three functions:
+1. validate_email(email: str) -> bool - checks if email has valid format
+2. sanitize_html(text: str) -> str - strips all HTML tags from text
+3. generate_token(length: int = 32) -> str - generates random hex string of specified length
+
+Follow ALL rules below exactly."""
+
+prompt_rules = [
+    "All function names must use snake_case",
+    "All functions must have Google-style docstrings with Args and Returns sections",
+    "All functions must have type hints on all parameters and return values",
+    "Module must have a module-level docstring",
+    "No function may exceed 20 lines"
+]
+
+expected_files = ["solution.py"]
+tags = ["style", "conventions", "compliance", "docstrings"]
+
+[scoring]
+test_file = "test_solution.py"
+ruff_rules = ["D100", "D103", "ANN001", "ANN201"]

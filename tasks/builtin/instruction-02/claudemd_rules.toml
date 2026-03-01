@@ -1,0 +1,11 @@
+[[rules]]
+name = "error_handling"
+description = "Always use custom exception classes, never bare except or except Exception"
+
+[[rules]]
+name = "logging"
+description = "Use logging module with __name__ logger, never print()"
+
+[[rules]]
+name = "constants"
+description = "Define all magic numbers as module-level UPPER_CASE constants"

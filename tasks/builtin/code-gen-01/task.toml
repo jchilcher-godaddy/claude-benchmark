@@ -1,0 +1,25 @@
+name = "code-gen-01"
+task_type = "code-gen"
+difficulty = "easy"
+size = "function"
+description = "Implement an iterative Fibonacci function with edge case handling"
+
+prompt = """
+Write a Python function `fibonacci(n: int) -> int` that returns the nth Fibonacci number using an iterative approach (not recursive).
+
+Requirements:
+- n=0 should return 0
+- n=1 should return 1
+- For n >= 2, return the nth Fibonacci number
+- For negative n, raise ValueError
+- Use an iterative (loop-based) approach, not recursion
+
+Your solution should be in a file called `solution.py`.
+"""
+
+tags = ["algorithms", "functions", "iterative"]
+
+[scoring]
+test_file = "test_solution.py"
+reference_solution = "reference.py"
+ruff_rules = ["E501", "F841", "I001"]

@@ -1,0 +1,19 @@
+name = "$name"
+task_type = "$task_type"
+difficulty = "$difficulty"
+size = "function"
+description = "TODO: Describe this benchmark task"
+
+prompt = """
+TODO: Write the prompt Claude will receive.
+Be specific about expected input/output, constraints, and quality expectations.
+"""
+
+tags = []
+
+[scoring]
+test_file = "test_solution.py"
+# Uncomment and customize as needed:
+# ruff_rules = ["E501", "F841"]
+# reference_solution = "reference.py"
+# judge_rubric = "rubric.toml"

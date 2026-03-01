@@ -1,0 +1,106 @@
+{% macro score_tier_badge(score) -%}
+{% if score >= 90 %}<span class="score-tier tier-excellent">Excellent</span>
+{%- elif score >= 70 %}<span class="score-tier tier-good">Good</span>
+{%- elif score >= 50 %}<span class="score-tier tier-fair">Fair</span>
+{%- else %}<span class="score-tier tier-poor">Poor</span>
+{%- endif %}
+{%- endmacro %}
+
+{% set dim_explainers = {
+  "composite": "Overall code quality — average of all other scoring dimensions (0–100).",
+  "test_pass_rate": "Whether the code works — percentage of test assertions that pass (0–100).",
+  "lint_score": "Code style quality — fewer linter warnings means a higher score (0–100).",
+  "complexity_score": "Code simplicity — uses radon cyclomatic complexity grades (A=simple through F=untestable). Lower average complexity maps to a higher score: A(1-5)=80-100, B(6-10)=60-80, C(11-20)=40-60, D(21-30)=20-40, E/F(31+)=0-20.",
+  "llm_quality": "Subjective quality — an AI reviewer evaluates readability, design, and correctness (0–100).",
+  "token_efficiency": "Cost effectiveness — quality score normalized by token usage (0–100)."
+} %}
+
+<h2>Detailed Scores</h2>
+<div class="section-guide">Per-dimension deep dive. Mean &plusmn; stdev across runs. Click any score cell to see the full breakdown. Look for consistent winners and <span class="badge-regression">REGRESSION</span> badges.</div>
+<div class="score-legend">
+  <span><span class="score-tier tier-excellent">Excellent</span> 90–100</span>
+  <span><span class="score-tier tier-good">Good</span> 70–89</span>
+  <span><span class="score-tier tier-fair">Fair</span> 50–69</span>
+  <span><span class="score-tier tier-poor">Poor</span> 0–49</span>
+</div>
+
+{% set model_loop = models if multi_model else [none] %}
+{% for current_model in model_loop %}
+{% if current_model is not none %}
+<h2 class="model-heading">{{ current_model }}</h2>
+{% endif %}
+
+{% for dimension in dimensions %}
+<div class="chart-card" style="margin-bottom: 1.5rem;">
+  <h3>
+    {% if dimension in dim_explainers %}
+    <span class="metric-def">{{ dimension }}<span class="def-popup">{{ dim_explainers[dimension] }}</span></span>
+    {% else %}
+    {{ dimension }}
+    {% endif %}
+  </h3>
+  <div style="position: relative; height: 350px;">
+    <canvas id="{% if current_model is not none %}bar-{{ current_model }}-{{ dimension }}{% else %}bar-{{ dimension }}{% endif %}"></canvas>
+  </div>
+  <p class="chart-annotation">Taller bars = better. Compare bar heights across profiles for the same task.</p>
+
+  <!-- Per-task breakdown table -->
+  <table class="score-table">
+    <thead>
+      <tr>
+        <th>Task</th>
+        {% for profile in profiles %}
+        <th>{{ profile }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for task in tasks %}
+      <tr data-task="{{ task }}" data-dimension="{{ dimension }}">
+        <td>
+          {{ task }}
+          {% if task_descriptions and task in task_descriptions %}
+          <div class="task-description">{{ task_descriptions[task] }}</div>
+          {% endif %}
+        </td>
+        {% for profile in profiles %}
+        <td class="score-cell-clickable" data-task="{{ task }}" data-profile="{{ profile }}" data-dimension="{{ dimension }}">
+          {% if current_model is not none %}
+            {% set score_key = dimension + "/" + task + "/" + profile + "/" + current_model %}
+          {% else %}
+            {% set score_key = dimension + "/" + task + "/" + profile %}
+          {% endif %}
+          {% if score_detail and score_key in score_detail %}
+            {{ "%.1f"|format(score_detail[score_key].mean) }}
+            &plusmn; {{ "%.1f"|format(score_detail[score_key].std) }}
+            {{ score_tier_badge(score_detail[score_key].mean) }}
+            {% if score_detail[score_key].regression %}
+              <span class="badge-regression">REGRESSION</span>
+            {% endif %}
+          {% else %}
+            {% if current_model is not none %}
+              {% set dim_scores = scores_by_dim_by_model.get(current_model, {}).get(dimension, {}).get(profile, {}) if scores_by_dim_by_model else {} %}
+            {% else %}
+              {% set dim_scores = scores_by_dimension.get(dimension, {}).get(profile, {}) if scores_by_dimension else {} %}
+            {% endif %}
+            {% if dim_scores and task in dim_scores %}
+              {{ "%.1f"|format(dim_scores[task]) }}
+              {{ score_tier_badge(dim_scores[task]) }}
+            {% else %}
+              -
+            {% endif %}
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      <tr class="drilldown-row" data-drilldown-task="{{ task }}" data-drilldown-profile="" data-drilldown-dimension="{{ dimension }}" style="display: none;">
+        <td colspan="{{ profiles|length + 1 }}">
+          <div class="drilldown-panel"></div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+{% endfor %}

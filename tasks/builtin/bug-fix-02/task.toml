@@ -1,0 +1,24 @@
+name = "bug-fix-02"
+task_type = "bug-fix"
+difficulty = "medium"
+size = "function"
+description = "Fix stability and indexing bugs in merge sort implementation"
+starter_code = "starter.py"
+
+prompt = """
+The file `starter.py` contains a `merge_sort(arr: list) -> list` function with multiple bugs.
+
+The function should:
+- Return a new sorted list (not modify the original)
+- Be stable (preserve relative order of equal elements)
+- Work correctly for all inputs (empty, single element, duplicates, etc.)
+
+Find and fix all bugs. Save your corrected solution as `solution.py`.
+"""
+
+tags = ["algorithms", "debugging", "sorting", "stability"]
+
+[scoring]
+test_file = "test_solution.py"
+reference_solution = "reference.py"
+ruff_rules = ["E501", "F841", "I001"]

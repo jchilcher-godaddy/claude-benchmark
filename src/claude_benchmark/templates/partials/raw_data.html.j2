@@ -1,0 +1,35 @@
+<h2>Raw Data</h2>
+<div class="section-guide">Download complete data for your own analysis. JSON = structured; CSV = spreadsheet-ready.</div>
+
+<p>Benchmark results are available for download. Files were also saved to disk alongside this report.</p>
+
+<button class="download-btn" onclick="downloadJSON()">Download JSON</button>
+<button class="download-btn" onclick="downloadCSV()">Download CSV</button>
+
+<script>
+const CSV_CONTENT = {{ raw_csv | tojson | safe }};
+
+function downloadFile(content, filename, mimeType) {
+  var blob = new Blob([content], { type: mimeType });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function downloadJSON() {
+  downloadFile(
+    JSON.stringify(BENCHMARK_DATA, null, 2),
+    "benchmark-results.json",
+    "application/json"
+  );
+}
+
+function downloadCSV() {
+  downloadFile(CSV_CONTENT, "benchmark-results.csv", "text/csv");
+}
+</script>

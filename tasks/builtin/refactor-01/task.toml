@@ -1,0 +1,23 @@
+name = "refactor-01"
+task_type = "refactor"
+difficulty = "easy"
+size = "function"
+description = "Extract repeated logic into helper functions"
+prompt = """Refactor `starter.py` to eliminate duplication by extracting helper functions.
+
+The code currently has significant duplication in processing different record fields.
+Extract the repeated patterns into reusable helper functions.
+
+Requirements:
+- External API must not change (process_records function signature stays the same)
+- All tests must pass
+- Eliminate duplicated filter/transform/aggregate logic"""
+
+starter_code = "starter.py"
+expected_files = ["solution.py"]
+tags = ["refactoring", "duplication", "functions"]
+
+[scoring]
+test_file = "test_solution.py"
+reference_solution = "reference.py"
+ruff_rules = ["E501", "F841", "I001"]

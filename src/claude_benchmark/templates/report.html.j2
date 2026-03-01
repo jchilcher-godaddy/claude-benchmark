@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Benchmark Report - {{ metadata.date }}</title>
+<style>
+/* CSS Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+  color: #1a202c;
+  background: #f7fafc;
+}
+h2 { margin-bottom: 1rem; color: #2d3748; }
+h3 { margin-bottom: 0.5rem; color: #4a5568; }
+section { scroll-margin-top: 1rem; }
+
+/* Sidebar */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 220px;
+  height: 100vh;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  padding: 1rem;
+  overflow-y: auto;
+  z-index: 100;
+}
+.sidebar h1 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  color: #ffffff;
+  font-weight: 600;
+}
+.sidebar a {
+  color: #a0d2ff;
+  text-decoration: none;
+  display: block;
+  padding: 0.4rem 0;
+  font-size: 0.9rem;
+}
+.sidebar a:hover { color: #ffffff; }
+
+/* Main content */
+.main {
+  margin-left: 220px;
+  padding: 1.5rem;
+}
+
+/* Metadata banner */
+.metadata-banner {
+  background: #f0f4f8;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e2e8f0;
+}
+.metadata-banner .meta-item {
+  display: flex;
+  flex-direction: column;
+}
+.metadata-banner .meta-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.metadata-banner .meta-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+/* Regression callout */
+.regression-callout {
+  background: #fef2f2;
+  border: 2px solid #dc2626;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.regression-callout h3 { color: #dc2626; }
+.regression-callout ul { margin-left: 1.5rem; margin-top: 0.5rem; }
+.regression-callout li { color: #991b1b; margin-bottom: 0.25rem; }
+
+/* Success callout */
+.success-callout {
+  background: #f0fdf4;
+  border: 2px solid #16a34a;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.success-callout h3 { color: #16a34a; }
+
+/* Chart grid */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.chart-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Badges */
+.badge-regression {
+  display: inline-block;
+  background: #dc2626;
+  color: #ffffff;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+  margin-left: 0.25rem;
+}
+
+/* Score table */
+.score-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+.score-table th, .score-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+.score-table th {
+  background: #f7fafc;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+/* Diff */
+.diff-container {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.85rem;
+  overflow-x: auto;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+.diff-add { background: #dcfce7; }
+.diff-remove { background: #fee2e2; }
+
+/* Download buttons */
+.download-btn {
+  display: inline-block;
+  background: #3b82f6;
+  color: #ffffff;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  margin-right: 0.75rem;
+  margin-top: 0.5rem;
+}
+.download-btn:hover { background: #2563eb; }
+
+/* Comparison controls */
+.comparison-controls {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.comparison-controls label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+.comparison-controls select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: #ffffff;
+}
+.comparison-controls .control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Executive summary highlights */
+.summary-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.summary-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+.summary-card .card-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.summary-card .card-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2d3748;
+}
+
+/* Single profile note */
+.info-note {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  color: #1e40af;
+  margin-bottom: 1rem;
+}
+
+/* Guide section */
+.guide-section {
+  background: #fefce8;
+  border: 1px solid #facc15;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.guide-section h2 { color: #854d0e; }
+.guide-section p { margin-bottom: 0.75rem; color: #713f12; }
+
+/* Metric tooltip */
+.metric-def {
+  position: relative;
+  cursor: help;
+  border-bottom: 1px dotted #94a3b8;
+}
+.def-popup {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #f1f5f9;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  white-space: nowrap;
+  max-width: 320px;
+  white-space: normal;
+  z-index: 50;
+  margin-bottom: 4px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+}
+.metric-def:hover .def-popup { display: block; }
+
+/* Section guide banner */
+.section-guide {
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: #1e40af;
+  border-radius: 0 6px 6px 0;
+}
+
+/* Insight callout */
+.insight-callout {
+  background: #f0fdf4;
+  border-left: 4px solid #16a34a;
+  padding: 0.6rem 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #166534;
+  border-radius: 0 6px 6px 0;
+}
+
+/* LLM summary callout (purple to distinguish AI-generated from rule-based) */
+.llm-summary-callout { background: #f5f3ff; border-left: 4px solid #7c3aed; padding: 1rem 1.25rem; margin-bottom: 1rem; border-radius: 0 6px 6px 0; }
+.llm-summary-callout p { font-size: 0.9rem; color: #3b0764; margin-bottom: 0.75rem; line-height: 1.7; }
+.llm-summary-callout p:last-of-type { margin-bottom: 0.5rem; }
+.llm-summary-attribution { font-size: 0.75rem; color: #9ca3af; font-style: italic; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e5e7eb; }
+
+/* Score tier badges */
+.score-tier {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+  margin-left: 0.25rem;
+}
+.tier-excellent { background: #dcfce7; color: #166534; }
+.tier-good { background: #dbeafe; color: #1e40af; }
+.tier-fair { background: #fef9c3; color: #854d0e; }
+.tier-poor { background: #fee2e2; color: #991b1b; }
+
+/* Score legend */
+.score-legend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+}
+.score-legend .score-tier { cursor: default; }
+
+/* Chart annotation */
+.chart-annotation {
+  font-size: 0.82rem;
+  color: #718096;
+  font-style: italic;
+  margin-top: 0.5rem;
+  padding: 0 0.25rem;
+}
+
+/* Dashboard comparison table */
+.dashboard-comparison {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  margin-top: 0.75rem;
+  table-layout: fixed;
+}
+.dashboard-comparison th,
+.dashboard-comparison td {
+  padding: 0.25rem 0.35rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dashboard-comparison th {
+  background: #f7fafc;
+  font-weight: 600;
+  color: #4a5568;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.dashboard-comparison td:first-child,
+.dashboard-comparison th:first-child {
+  text-align: left;
+  width: 22%;
+}
+.dashboard-comparison .cmp-profile {
+  font-weight: 600;
+  color: #2d3748;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-comparison .cell-best {
+  background: #dcfce7;
+  font-weight: 700;
+  color: #166534;
+}
+.dashboard-comparison .delta {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+
+
+/* Collapsible details */
+details {
+  margin-bottom: 0.75rem;
+}
+details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #854d0e;
+  padding: 0.4rem 0;
+  font-size: 0.95rem;
+}
+details summary:hover { color: #a16207; }
+details[open] summary { margin-bottom: 0.5rem; }
+details .guide-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+details .guide-table th,
+details .guide-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+details .guide-table th {
+  background: #fef9c3;
+  font-weight: 600;
+  color: #854d0e;
+}
+
+/* Drilldown: clickable score cells */
+.score-cell-clickable {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.score-cell-clickable:hover {
+  background: #edf2f7;
+}
+.score-cell-clickable.drilldown-active {
+  background: #dbeafe;
+  box-shadow: inset 0 -2px 0 #3b82f6;
+}
+
+/* Drilldown row and panel */
+.drilldown-row td {
+  padding: 0 !important;
+  border-bottom: 2px solid #3b82f6;
+}
+.drilldown-panel {
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  padding: 1rem 1.25rem;
+}
+.drilldown-header {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.75rem;
+}
+.drilldown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+.drilldown-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+.drilldown-card h4 {
+  font-size: 0.8rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem;
+}
+.drilldown-card .drilldown-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2d3748;
+}
+.drilldown-card .drilldown-sub {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-top: 0.25rem;
+}
+
+/* Criterion cards (LLM judge) */
+.criterion-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.criterion-card .crit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+.criterion-card .crit-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #2d3748;
+}
+.criterion-card .crit-score {
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+.criterion-card .crit-reasoning {
+  font-size: 0.8rem;
+  color: #4a5568;
+  line-height: 1.4;
+}
+
+/* Score bar for criterion */
+.score-bar {
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  margin: 0.3rem 0;
+  overflow: hidden;
+}
+.score-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+/* Complexity mini-table */
+.complexity-list {
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+}
+.complexity-list .cx-item {
+  display: flex;
+  align-items: center;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  gap: 0.5rem;
+}
+.complexity-list .cx-name {
+  color: #4a5568;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.complexity-list .cx-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+.complexity-list .cx-badge {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.complexity-list .cx-val {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  min-width: 1.5rem;
+  text-align: right;
+}
+.cx-grade-band {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  margin: 0.4rem 0;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Lint issues list */
+.lint-list {
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+}
+.lint-list .lint-item {
+  padding: 0.15rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  color: #4a5568;
+}
+.lint-list .lint-code {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* Formula bar */
+.formula-bar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.formula-bar .formula-title {
+  font-size: 0.8rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+}
+.formula-bar .formula-composite {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+.formula-bar .formula-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.82rem;
+}
+.formula-bar .formula-row-label {
+  min-width: 90px;
+  font-weight: 600;
+  color: #4a5568;
+}
+.formula-bar .formula-stacked-bar {
+  flex: 1;
+  display: flex;
+  height: 22px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+.formula-bar .formula-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+  min-width: 0;
+}
+.formula-bar .formula-equation {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-top: 0.35rem;
+  text-align: center;
+}
+
+/* Weakest-link highlight */
+.drilldown-card.weakest-link {
+  border-left: 3px solid #dc2626;
+}
+
+/* No-data message */
+.drilldown-no-data {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 0.25rem 0;
+}
+
+/* Test failure list */
+.test-failures-header {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #991b1b;
+  margin-top: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+.test-failure-item {
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.test-failure-name {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  color: #dc2626;
+  font-weight: 600;
+}
+.test-failure-error {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-top: 0.1rem;
+}
+.test-failure-traceback summary {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 400;
+  padding: 0.15rem 0;
+  cursor: pointer;
+}
+.test-failure-traceback summary:hover { color: #64748b; }
+.test-failure-traceback pre {
+  font-size: 0.72rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 0.5rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  color: #334155;
+}
+.test-failure-overflow {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-style: italic;
+  margin-top: 0.25rem;
+}
+
+/* No-output banner for zero-score runs */
+.no-output-banner {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.no-output-banner .no-output-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.no-output-banner .no-output-text {
+  font-size: 0.9rem;
+  color: #991b1b;
+  font-weight: 500;
+}
+.no-output-banner .no-output-hint {
+  font-size: 0.82rem;
+  color: #b91c1c;
+  font-weight: 400;
+}
+
+/* Task description subtitle */
+.task-description {
+  font-size: 0.8rem;
+  color: #718096;
+  font-weight: 400;
+  margin-top: 0.15rem;
+  line-height: 1.3;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .chart-grid { grid-template-columns: 1fr; }
+  .drilldown-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <h1>Benchmark Report</h1>
+  <a href="#guide">How to Read This Report</a>
+  <a href="#summary">Executive Summary</a>
+  <a href="#dashboard">Overview Dashboard</a>
+  <a href="#detailed">Detailed Scores</a>
+  <a href="#comparison">Comparison</a>
+  <a href="#raw-data">Raw Data</a>
+</nav>
+
+<main class="main">
+  <!-- Metadata Banner -->
+  <div class="metadata-banner">
+    <div class="meta-item">
+      <span class="meta-label">Date</span>
+      <span class="meta-value">{{ metadata.date }}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Models</span>
+      <span class="meta-value">{{ metadata.models_tested | join(", ") }}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Profiles</span>
+      <span class="meta-value">{{ metadata.profile_count }}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Total Runs</span>
+      <span class="meta-value">{{ metadata.total_runs }}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Wall Clock</span>
+      <span class="meta-value">{{ "%.1f"|format(metadata.wall_clock_seconds) }}s</span>
+    </div>
+  </div>
+
+  {% include "partials/guide.html.j2" %}
+
+  {% include "partials/executive_summary.html.j2" %}
+
+  <section id="dashboard">
+    {% include "partials/dashboard.html.j2" %}
+  </section>
+
+  <section id="detailed">
+    {% include "partials/detailed_scores.html.j2" %}
+  </section>
+
+  <section id="comparison">
+    {% include "partials/comparison.html.j2" %}
+  </section>
+
+  <section id="raw-data">
+    {% include "partials/raw_data.html.j2" %}
+  </section>
+</main>
+
+<!-- Chart.js (vendored, inlined) -->
+<script>
+{{ chartjs_source | safe }}
+</script>
+
+<!-- Benchmark Data -->
+<script>
+const BENCHMARK_DATA = {{ benchmark_data_json | safe }};
+const CHART_CONFIGS = {{ chart_configs_json | safe }};
+</script>
+
+<!-- Drilldown Data -->
+<script>
+const DRILLDOWN_DATA = {{ drilldown_data_json | safe }};
+</script>
+
+<!-- Chart Initialization -->
+<script>
+// Plugin: draw numeric score labels next to each radar data point
+const radarPointLabels = {
+  id: "radarPointLabels",
+  afterDatasetsDraw(chart) {
+    if (chart.config.type !== "radar") return;
+    const ctx = chart.ctx;
+    chart.data.datasets.forEach(function(dataset, dsIndex) {
+      const meta = chart.getDatasetMeta(dsIndex);
+      if (meta.hidden) return;
+      meta.data.forEach(function(point, index) {
+        const value = (dataset.originalData && dataset.originalData[index] != null)
+          ? dataset.originalData[index]
+          : dataset.data[index];
+        if (value == null) return;
+        ctx.save();
+        ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, sans-serif";
+        ctx.fillStyle = dataset.borderColor || "#333";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(
+          typeof value === "number" ? value.toFixed(1) : String(value),
+          point.x,
+          point.y - 8
+        );
+        ctx.restore();
+      });
+    });
+  }
+};
+Chart.register(radarPointLabels);
+
+document.addEventListener("DOMContentLoaded", function() {
+  for (const [canvasId, config] of Object.entries(CHART_CONFIGS)) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) continue;
+    // For normalized radar charts, override tooltip to show original scores
+    if (config.type === "radar" && config.data.datasets.some(function(ds) { return ds.originalData; })) {
+      config.options.plugins.tooltip.callbacks = {
+        label: function(ctx) {
+          var ds = ctx.dataset;
+          var orig = ds.originalData ? ds.originalData[ctx.dataIndex] : ctx.raw;
+          return ds.label + ": " + (typeof orig === "number" ? orig.toFixed(1) : orig);
+        }
+      };
+    }
+    new Chart(canvas.getContext("2d"), config);
+  }
+});
+</script>
+
+<!-- Drilldown Click Handler -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // Consistent 0-100 tier color used across all sub-scores
+  function tierColor(score) {
+    if (score >= 90) return "#16a34a";  // green
+    if (score >= 70) return "#2563eb";  // blue
+    if (score >= 50) return "#ca8a04";  // amber
+    return "#dc2626";                   // red
+  }
+
+  function tierBg(score) {
+    if (score >= 90) return "#dcfce7";
+    if (score >= 70) return "#dbeafe";
+    if (score >= 50) return "#fef9c3";
+    return "#fee2e2";
+  }
+
+  // Per-rank color helpers for radon complexity grades
+  var rankLabels = {
+    A: "Simple", B: "Moderate", C: "Complex",
+    D: "High", E: "Very High", F: "Untestable"
+  };
+
+  function rankColor(rank) {
+    switch ((rank || "").toUpperCase()) {
+      case "A": return "#16a34a"; // green
+      case "B": return "#2563eb"; // blue
+      case "C": return "#ca8a04"; // amber
+      case "D": return "#ea580c"; // orange
+      case "E": return "#dc2626"; // red
+      case "F": return "#991b1b"; // dark red
+      default: return "#718096";
+    }
+  }
+
+  function rankBg(rank) {
+    switch ((rank || "").toUpperCase()) {
+      case "A": return "#dcfce7";
+      case "B": return "#dbeafe";
+      case "C": return "#fef9c3";
+      case "D": return "#ffedd5";
+      case "E": return "#fee2e2";
+      case "F": return "#fee2e2";
+      default: return "#f1f5f9";
+    }
+  }
+
+  // Grade band: given avg complexity, return {rank, label, scoreRange}
+  function gradeBand(avg) {
+    if (avg <= 5)  return {rank: "A", label: "Simple",    range: "80–100"};
+    if (avg <= 10) return {rank: "B", label: "Moderate",  range: "60–80"};
+    if (avg <= 20) return {rank: "C", label: "Complex",   range: "40–60"};
+    if (avg <= 30) return {rank: "D", label: "High",      range: "20–40"};
+    if (avg <= 40) return {rank: "E", label: "Very High", range: "5–20"};
+    return              {rank: "F", label: "Untestable", range: "0–5"};
+  }
+
+  // LLM criterion: map 1-5 to 0-100 scale, then use tierColor
+  function formatCritScore(score) {
+    var norm = ((score - 1) / 4) * 100; // 5→100, 4→75, 3→50, 2→25, 1→0
+    var bg = tierBg(norm);
+    var color = tierColor(norm);
+    return '<span class="crit-score" style="background:' + bg + ';color:' + color + '">' + score + '/5</span>';
+  }
+
+  function esc(s) { return (s || "").replace(/</g, "&lt;"); }
+
+  function buildFormulaBar(data) {
+    var composite = data.composite_score;
+    var staticTotal = data.static_weighted_total;
+    var isStaticOnly = data.static_only;
+
+    if (composite == null) return "";
+
+    var html = '<div class="formula-bar">';
+    html += '<div class="formula-title">Composite Score Breakdown</div>';
+    html += '<div class="formula-composite" style="color:' + tierColor(composite) + '">' +
+      composite.toFixed(1) + ' / 100</div>';
+
+    // Static bar: tests + lint + complexity segments within weighted_total
+    var testScore = data.tests ? data.tests.pass_rate : 0;
+    var lintScore = data.lint ? data.lint.score : 0;
+    var cxScore = data.complexity ? data.complexity.score : 0;
+
+    // Weights from static scorer: tests 50%, lint 30%, complexity 20%
+    var testW = testScore * 0.5;
+    var lintW = lintScore * 0.3;
+    var cxW = cxScore * 0.2;
+
+    html += '<div class="formula-row">';
+    html += '<span class="formula-row-label">Static (' + staticTotal.toFixed(1) + ')</span>';
+    html += '<div class="formula-stacked-bar">';
+    if (staticTotal > 0) {
+      html += '<div class="formula-segment" style="width:' + (testW / staticTotal * 100).toFixed(1) +
+        '%;background:' + tierColor(testScore) + '">Tests ' + testW.toFixed(0) + '</div>';
+      html += '<div class="formula-segment" style="width:' + (lintW / staticTotal * 100).toFixed(1) +
+        '%;background:' + tierColor(lintScore) + '">Lint ' + lintW.toFixed(0) + '</div>';
+      html += '<div class="formula-segment" style="width:' + (cxW / staticTotal * 100).toFixed(1) +
+        '%;background:' + tierColor(cxScore) + '">CX ' + cxW.toFixed(0) + '</div>';
+    }
+    html += '</div></div>';
+
+    if (!isStaticOnly) {
+      var llmNorm = data.llm ? data.llm.normalized : 0;
+      html += '<div class="formula-row">';
+      html += '<span class="formula-row-label">LLM (' + llmNorm.toFixed(1) + ')</span>';
+      html += '<div class="formula-stacked-bar">';
+      html += '<div class="formula-segment" style="width:' + llmNorm.toFixed(1) +
+        '%;background:' + tierColor(llmNorm) + '">LLM ' + llmNorm.toFixed(0) + '</div>';
+      html += '</div></div>';
+
+      html += '<div class="formula-equation">Static ' + staticTotal.toFixed(1) +
+        ' &times; 50% + LLM ' + llmNorm.toFixed(1) +
+        ' &times; 50% = <strong>' + composite.toFixed(1) + '</strong></div>';
+    } else {
+      html += '<div class="formula-equation">Static-only mode: composite = static weighted total</div>';
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  function buildDrilldownHTML(data, task, profile) {
+    var html = '<div class="drilldown-header">Score Breakdown: ' +
+      esc(task) + ' / ' + esc(profile) + '</div>';
+
+    // Detect zero-output runs: no code was generated at all
+    if (data.has_output === false) {
+      html += '<div class="no-output-banner">' +
+        '<span class="no-output-icon">&#9888;</span>' +
+        '<div><div class="no-output-text">No code was generated for this run</div>' +
+        '<div class="no-output-hint">All scores are zero because no Python files were found in the output directory. ' +
+        'This may indicate the CLI failed to produce output or starter files were missing.</div>' +
+        '</div></div>';
+      return html;
+    }
+
+    // Formula bar
+    html += buildFormulaBar(data);
+
+    // Collect sub-scores to find weakest
+    var subScores = [];
+    if (data.tests) subScores.push({id: "tests", score: data.tests.pass_rate});
+    if (data.lint) subScores.push({id: "lint", score: data.lint.score});
+    if (data.complexity) subScores.push({id: "complexity", score: data.complexity.score});
+    if (data.llm) subScores.push({id: "llm", score: data.llm.normalized});
+    if (data.tokens) subScores.push({id: "tokens", score: data.tokens.points_per_1k});
+
+    var weakestId = null;
+    if (subScores.length > 0) {
+      // Exclude tokens from weakest-link calculation (it's informational)
+      var scorable = subScores.filter(function(s) { return s.id !== "tokens"; });
+      if (scorable.length > 0) {
+        weakestId = scorable.reduce(function(a, b) { return a.score <= b.score ? a : b; }).id;
+      }
+    }
+
+    function cardClass(id) {
+      return "drilldown-card" + (id === weakestId ? " weakest-link" : "");
+    }
+
+    html += '<div class="drilldown-grid">';
+
+    // Tests card
+    if (data.tests) {
+      var t = data.tests;
+      html += '<div class="' + cardClass("tests") + '"><h4>Tests</h4>';
+      if (t.total === 0) {
+        html += '<div class="drilldown-no-data">No tests ran</div>';
+        html += '<div class="drilldown-sub">Pass rate: N/A</div>';
+      } else {
+        html += '<div class="drilldown-value" style="color:' + tierColor(t.pass_rate) + '">' +
+          t.passed + ' / ' + t.total + ' passed</div>';
+        html += '<div class="drilldown-sub">Pass rate: ' + t.pass_rate.toFixed(1) + '%</div>';
+      // Failed test details
+      if (t.failures && t.failures.length > 0) {
+        html += '<div class="test-failures-header">Failed Tests</div>';
+        var maxShow = Math.min(t.failures.length, 10);
+        for (var fi = 0; fi < maxShow; fi++) {
+          var fail = t.failures[fi];
+          html += '<div class="test-failure-item">';
+          html += '<div class="test-failure-name">' + esc(fail.name) + '</div>';
+          if (fail.error) {
+            html += '<div class="test-failure-error">' + esc(fail.error) + '</div>';
+          }
+          if (fail.detail) {
+            html += '<details class="test-failure-traceback"><summary>Full traceback</summary>';
+            html += '<pre>' + esc(fail.detail) + '</pre></details>';
+          }
+          html += '</div>';
+        }
+        if (t.failures.length > 10) {
+          html += '<div class="test-failure-overflow">...and ' + (t.failures.length - 10) + ' more</div>';
+        }
+      }
+      }
+      html += '</div>';
+    }
+
+    // Lint card
+    if (data.lint) {
+      var l = data.lint;
+      html += '<div class="' + cardClass("lint") + '"><h4>Lint</h4>';
+      html += '<div class="drilldown-value" style="color:' + tierColor(l.score) + '">' +
+        l.score.toFixed(1) + '/100</div>';
+      html += '<div class="drilldown-sub">' + l.errors + ' error(s)</div>';
+      if (l.details && l.details.length > 0) {
+        html += '<div class="lint-list">';
+        var maxLint = Math.min(l.details.length, 5);
+        for (var i = 0; i < maxLint; i++) {
+          html += '<div class="lint-item"><span class="lint-code">' +
+            esc(l.details[i].code) + '</span> ' + esc(l.details[i].message) + '</div>';
+        }
+        if (l.details.length > 5) {
+          html += '<div class="lint-item" style="color:#718096">...and ' + (l.details.length - 5) + ' more</div>';
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    // Complexity card
+    if (data.complexity) {
+      var cx = data.complexity;
+      html += '<div class="' + cardClass("complexity") + '"><h4>Complexity</h4>';
+      if (cx.score === 0 && (!cx.details || cx.details.length === 0)) {
+        html += '<div class="drilldown-no-data">No code analyzed</div>';
+      } else {
+        html += '<div class="drilldown-value" style="color:' + tierColor(cx.score) + '">' +
+          cx.score.toFixed(1) + '/100</div>';
+        var avgVal = cx.avg != null ? cx.avg : 0;
+        html += '<div class="drilldown-sub">Avg complexity: ' + avgVal.toFixed(2) + '</div>';
+
+        // Grade band explanation
+        var band = gradeBand(avgVal);
+        html += '<div class="cx-grade-band" style="border-left:3px solid ' + rankColor(band.rank) + '">' +
+          '<span class="cx-badge" style="background:' + rankBg(band.rank) + ';color:' + rankColor(band.rank) + '">' +
+          band.rank + ' ' + band.label + '</span> ' +
+          '<span style="color:#4a5568">avg ' + avgVal.toFixed(1) + ' maps to score ' +
+          cx.score.toFixed(0) + '/100 (band ' + band.range + ')</span></div>';
+
+        if (cx.details && cx.details.length > 0) {
+          // Sort descending by complexity (worst offenders first)
+          var sorted = cx.details.slice().sort(function(a, b) { return b.complexity - a.complexity; });
+          html += '<div class="complexity-list">';
+          var maxCx = Math.min(sorted.length, 8);
+          for (var j = 0; j < maxCx; j++) {
+            var d = sorted[j];
+            var r = (d.rank || "").toUpperCase();
+            var lbl = rankLabels[r] || r;
+            html += '<div class="cx-item">' +
+              '<span class="cx-name">' + esc(d.name) + '</span>' +
+              '<span class="cx-right">' +
+              '<span class="cx-badge" style="background:' + rankBg(r) + ';color:' + rankColor(r) + '">' +
+              r + ' ' + lbl + '</span>' +
+              '<span class="cx-val">' + d.complexity + '</span>' +
+              '</span></div>';
+          }
+          if (sorted.length > 8) {
+            html += '<div class="cx-item" style="color:#718096">...and ' + (sorted.length - 8) + ' more</div>';
+          }
+          html += '</div>';
+        }
+      }
+      html += '</div>';
+    }
+
+    // Tokens card
+    if (data.tokens) {
+      var tk = data.tokens;
+      html += '<div class="' + cardClass("tokens") + '"><h4>Token Usage</h4>';
+      html += '<div class="drilldown-value">' + (tk.total || 0).toLocaleString() + ' tokens</div>';
+      html += '<div class="drilldown-sub">' + (tk.points_per_1k != null ? tk.points_per_1k.toFixed(1) : "0") + ' pts/1k tokens</div>';
+      html += '</div>';
+    }
+
+    html += '</div>'; // close drilldown-grid
+
+    // LLM Judge section (full width below the grid)
+    if (data.llm && data.llm.criteria && data.llm.criteria.length > 0) {
+      var llmColor = tierColor(data.llm.normalized);
+      html += '<div style="margin-top:0.75rem"><h4 style="font-size:0.8rem;color:#718096;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.4rem">LLM Judge (<span style="color:' + llmColor + '">' +
+        data.llm.normalized.toFixed(1) + '/100</span>)</h4>';
+      for (var k = 0; k < data.llm.criteria.length; k++) {
+        var c = data.llm.criteria[k];
+        var critNorm = ((c.score - 1) / 4) * 100;
+        var barPct = critNorm;
+        var barColor = tierColor(critNorm);
+        html += '<div class="criterion-card">';
+        html += '<div class="crit-header"><span class="crit-name">' +
+          esc(c.name).replace(/_/g, " ") + '</span>' +
+          formatCritScore(c.score) + '</div>';
+        html += '<div class="score-bar"><div class="score-bar-fill" style="width:' + barPct + '%;background:' + barColor + '"></div></div>';
+        html += '<div class="crit-reasoning">' + esc(c.reasoning) + '</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+    } else if (!data.llm) {
+      // LLM unavailable
+      html += '<div style="margin-top:0.75rem"><div class="drilldown-card">';
+      html += '<h4>LLM Judge</h4>';
+      html += '<div class="drilldown-no-data">LLM scoring unavailable (static-only mode)</div>';
+      html += '</div></div>';
+    }
+
+    return html;
+  }
+
+  document.querySelectorAll(".score-cell-clickable").forEach(function(cell) {
+    cell.addEventListener("click", function() {
+      var task = this.getAttribute("data-task");
+      var profile = this.getAttribute("data-profile");
+      var dimension = this.getAttribute("data-dimension");
+      var key = task + "/" + profile;
+      var data = DRILLDOWN_DATA[key];
+
+      // Find the drilldown row for this task/dimension
+      var row = this.closest("tr");
+      var drilldownRow = row.nextElementSibling;
+      while (drilldownRow && !drilldownRow.classList.contains("drilldown-row")) {
+        drilldownRow = drilldownRow.nextElementSibling;
+      }
+      if (!drilldownRow) return;
+
+      var panel = drilldownRow.querySelector(".drilldown-panel");
+
+      // Toggle: if clicking the same cell that's already active, collapse
+      if (this.classList.contains("drilldown-active")) {
+        this.classList.remove("drilldown-active");
+        drilldownRow.style.display = "none";
+        panel.innerHTML = "";
+        return;
+      }
+
+      // Deactivate any other active cells in the same table row
+      row.querySelectorAll(".drilldown-active").forEach(function(c) {
+        c.classList.remove("drilldown-active");
+      });
+
+      this.classList.add("drilldown-active");
+
+      if (!data) {
+        panel.innerHTML = '<div class="drilldown-header">No detailed scoring data available for this combination.</div>';
+        drilldownRow.style.display = "";
+        return;
+      }
+
+      panel.innerHTML = buildDrilldownHTML(data, task, profile);
+      drilldownRow.style.display = "";
+    });
+  });
+});
+</script>
+
+</body>
+</html>
