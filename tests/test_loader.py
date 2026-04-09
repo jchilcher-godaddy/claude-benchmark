@@ -13,6 +13,7 @@ from claude_benchmark.tasks import (
     discover_tasks,
     load_task,
 )
+from claude_benchmark.tasks.loader import load_judge_rubric
 
 
 def create_valid_task(task_dir: Path, task_type: str = "code-gen", include_files: bool = True):
@@ -180,3 +181,100 @@ def test_task_registry_from_directories(tmp_path):
     registry = TaskRegistry.from_directories(dir1)
 
     assert len(registry.all) == 2
+
+
+# ---------------------------------------------------------------------------
+# TestLoadJudgeRubric
+# ---------------------------------------------------------------------------
+
+
+class TestLoadJudgeRubric:
+    """Tests for load_judge_rubric()."""
+
+    def test_valid_rubric(self, tmp_path):
+        rubric_path = tmp_path / "rubric.toml"
+        data = {
+            "criteria": [
+                {"name": "tone", "description": "Tone adherence"},
+            ],
+        }
+        with open(rubric_path, "wb") as f:
+            tomli_w.dump(data, f)
+
+        result = load_judge_rubric(rubric_path)
+        assert len(result) == 1
+        assert result[0]["name"] == "tone"
+        assert result[0]["description"] == "Tone adherence"
+
+    def test_multiple_criteria(self, tmp_path):
+        rubric_path = tmp_path / "rubric.toml"
+        data = {
+            "criteria": [
+                {"name": "tone", "description": "Tone adherence"},
+                {"name": "accuracy", "description": "Factual accuracy"},
+                {"name": "style", "description": "Code style"},
+            ],
+        }
+        with open(rubric_path, "wb") as f:
+            tomli_w.dump(data, f)
+
+        result = load_judge_rubric(rubric_path)
+        assert len(result) == 3
+
+    def test_file_not_found(self, tmp_path):
+        with pytest.raises(TaskLoadError, match="Rubric file not found"):
+            load_judge_rubric(tmp_path / "nonexistent.toml")
+
+    def test_invalid_toml(self, tmp_path):
+        rubric_path = tmp_path / "rubric.toml"
+        rubric_path.write_text("invalid toml [[[syntax")
+
+        with pytest.raises(TaskLoadError, match="Invalid TOML syntax"):
+            load_judge_rubric(rubric_path)
+
+    def test_missing_criteria_array(self, tmp_path):
+        rubric_path = tmp_path / "rubric.toml"
+        data = {"other_key": "value"}
+        with open(rubric_path, "wb") as f:
+            tomli_w.dump(data, f)
+
+        with pytest.raises(TaskLoadError, match="criteria"):
+            load_judge_rubric(rubric_path)
+
+    def test_missing_name_description(self, tmp_path):
+        rubric_path = tmp_path / "rubric.toml"
+        data = {
+            "criteria": [
+                {"name": "tone"},  # missing description
+            ],
+        }
+        with open(rubric_path, "wb") as f:
+            tomli_w.dump(data, f)
+
+        with pytest.raises(TaskLoadError, match="missing 'name' or 'description'"):
+            load_judge_rubric(rubric_path)
+
+    def test_non_table_criterion(self, tmp_path):
+        rubric_path = tmp_path / "rubric.toml"
+        # Write manually since tomli_w won't let us put strings in [[criteria]]
+        rubric_path.write_text(
+            'criteria = ["not_a_table"]\n',
+            encoding="utf-8",
+        )
+
+        with pytest.raises(TaskLoadError, match="not a table"):
+            load_judge_rubric(rubric_path)
+
+    def test_returns_only_name_and_description(self, tmp_path):
+        """Extra keys like 'weight' are stripped from output."""
+        rubric_path = tmp_path / "rubric.toml"
+        data = {
+            "criteria": [
+                {"name": "tone", "description": "Tone adherence", "weight": 1.0},
+            ],
+        }
+        with open(rubric_path, "wb") as f:
+            tomli_w.dump(data, f)
+
+        result = load_judge_rubric(rubric_path)
+        assert set(result[0].keys()) == {"name", "description"}

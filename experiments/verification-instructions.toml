@@ -1,0 +1,41 @@
+name = "verification-instructions"
+description = """Hypothesis: Explicit verification instructions improve correctness, with concrete \
+'run tests and fix failures' outperforming vague 'verify your work'. Anthropic docs call this \
+'the single highest-leverage thing' for Claude Code quality. Tests verification as an isolated \
+variable, distinct from emotional-stakes (consequence framing) and constraint-formatting \
+(structural formatting)."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Bare baseline ---
+[[variants]]
+label = "bare"
+
+# --- Vague verification ---
+[[variants]]
+label = "verify-vague"
+system_prompt_extra = "After writing your code, verify that it is correct before finalizing."
+
+# --- Concrete verification: test-oriented ---
+[[variants]]
+label = "verify-run-tests"
+system_prompt_extra = "After writing your code, mentally run through the test cases to check correctness. If you find any failures, fix them before finalizing your answer."
+
+# --- Concrete verification with inline examples ---
+[[variants]]
+label = "verify-with-examples"
+system_prompt_extra = "After writing your code, trace through at least 3 concrete input/output examples including one edge case. If any example produces wrong output, fix your code before finalizing."
+
+# --- Iterative self-correction loop ---
+[[variants]]
+label = "verify-fix-loop"
+system_prompt_extra = "After writing your code, review it for bugs and edge cases. If you find any issue, fix it. Then review again. Repeat until you are confident the code is correct. Only finalize when you can find no remaining issues."

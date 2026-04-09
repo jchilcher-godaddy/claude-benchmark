@@ -113,6 +113,7 @@ def _make_parallel_run(
     total_tokens: int = 1500,
     status: str = "success",
     error: str | None = None,
+    variant_label: str | None = None,
 ) -> Path:
     """Create a parallel-format run file (``run-{N}.json``)."""
     run_dir = results_dir / model / profile / task
@@ -134,6 +135,8 @@ def _make_parallel_run(
         "duration_seconds": 1.5,
         "scores": scores,
     }
+    if variant_label is not None:
+        data["variant_label"] = variant_label
     path = run_dir / filename
     path.write_text(json.dumps(data), encoding="utf-8")
     return path
@@ -623,3 +626,134 @@ class TestAggregation:
         filtered = filter_results(results, task_names=["code-gen-01"])
         # 1 task out of 3 -> tokens should be 1/3
         assert filtered.profiles["empty"].total_tokens == original_tokens // 3
+
+
+# ---------------------------------------------------------------------------
+# Tests: load_results_dir -- parallel format with variants
+# ---------------------------------------------------------------------------
+
+
+class TestLoadParallelFormatWithVariants:
+    """Tests for loading parallel-format results with variant_label."""
+
+    def test_variant_label_extracted(self, tmp_path: Path) -> None:
+        """RunResult.variant_label is populated from JSON."""
+        results_dir = tmp_path / "var_results"
+        _write_manifest(results_dir, models=["sonnet"], tasks=["t1"])
+        _make_parallel_run(
+            results_dir, "sonnet", "test", "t1", 1,
+            scores={"x": 80.0}, variant_label="polite",
+        )
+        result = load_results_dir(results_dir)
+        # With variants, profile key is "profile:variant"
+        assert "test:polite" in result.profiles
+        runs = result.profiles["test:polite"].tasks["t1"].runs
+        assert runs[0].variant_label == "polite"
+
+    def test_composite_profile_variant_keys(self, tmp_path: Path) -> None:
+        """When variants exist, profile keys are 'profile:variant'."""
+        results_dir = tmp_path / "composite"
+        _write_manifest(results_dir, models=["sonnet"], tasks=["t1"])
+        _make_parallel_run(
+            results_dir, "sonnet", "test", "t1", 1,
+            scores={"x": 80.0}, variant_label="bare",
+        )
+        _make_parallel_run(
+            results_dir, "sonnet", "test", "t1", 2,
+            scores={"x": 90.0}, variant_label="polite",
+        )
+        result = load_results_dir(results_dir)
+        assert "test:bare" in result.profiles
+        assert "test:polite" in result.profiles
+
+    def test_no_composite_without_variants(self, tmp_path: Path) -> None:
+        """Without variant_label, profile keys remain plain."""
+        results_dir = tmp_path / "no_variants"
+        _write_manifest(results_dir, models=["sonnet"], tasks=["t1"])
+        _make_parallel_run(
+            results_dir, "sonnet", "test", "t1", 1,
+            scores={"x": 80.0},
+        )
+        result = load_results_dir(results_dir)
+        assert "test" in result.profiles
+        assert not any(":" in k for k in result.profiles)
+
+    def test_variants_in_metadata(self, tmp_path: Path) -> None:
+        """Variant labels appear in metadata.variants."""
+        results_dir = tmp_path / "meta_var"
+        _write_manifest(results_dir, models=["sonnet"], tasks=["t1"])
+        _make_parallel_run(
+            results_dir, "sonnet", "test", "t1", 1,
+            scores={"x": 80.0}, variant_label="control",
+        )
+        _make_parallel_run(
+            results_dir, "sonnet", "test", "t1", 2,
+            scores={"x": 85.0}, variant_label="treatment",
+        )
+        result = load_results_dir(results_dir)
+        assert sorted(result.metadata.variants) == ["control", "treatment"]
+
+    def test_variant_in_csv(self, tmp_path: Path) -> None:
+        """to_csv_rows includes variant_label column when present."""
+        results_dir = tmp_path / "csv_var"
+        _write_manifest(results_dir, models=["sonnet"], tasks=["t1"])
+        _make_parallel_run(
+            results_dir, "sonnet", "test", "t1", 1,
+            scores={"x": 80.0}, variant_label="polite",
+        )
+        result = load_results_dir(results_dir)
+        rows = result.to_csv_rows()
+        assert len(rows) == 1
+        assert rows[0]["variant_label"] == "polite"
+
+
+class TestVariantMixedWithNonVariant:
+    """Tests for mixed variant/non-variant results."""
+
+    def test_mixed_grouping(self, tmp_path: Path) -> None:
+        """Variant runs get composite keys; non-variant get plain profile key."""
+        results_dir = tmp_path / "mixed_var"
+        _write_manifest(results_dir, models=["sonnet"], tasks=["t1"])
+        # Run with variant
+        _make_parallel_run(
+            results_dir, "sonnet", "test", "t1", 1,
+            scores={"x": 80.0}, variant_label="polite",
+        )
+        # Run without variant — still grouped under composite key since
+        # has_variants is True (other runs have variant_label)
+        _make_parallel_run(
+            results_dir, "sonnet", "test", "t1", 2,
+            scores={"x": 70.0},
+        )
+        result = load_results_dir(results_dir)
+        # The variant run gets composite key, plain run stays as "test"
+        assert "test:polite" in result.profiles
+        assert "test" in result.profiles
+
+    def test_independent_scores_per_variant(self, tmp_path: Path) -> None:
+        """Each variant group computes its own mean scores independently."""
+        results_dir = tmp_path / "indep"
+        _write_manifest(results_dir, models=["sonnet"], tasks=["t1"])
+        # Two runs for "bare" variant
+        _make_parallel_run(
+            results_dir, "sonnet", "test", "t1", 1,
+            scores={"x": 60.0}, variant_label="bare",
+        )
+        _make_parallel_run(
+            results_dir, "sonnet", "test", "t1", 2,
+            scores={"x": 80.0}, variant_label="bare",
+        )
+        # Two runs for "polite" variant
+        _make_parallel_run(
+            results_dir, "sonnet", "test", "t1", 3,
+            scores={"x": 90.0}, variant_label="polite",
+        )
+        _make_parallel_run(
+            results_dir, "sonnet", "test", "t1", 4,
+            scores={"x": 100.0}, variant_label="polite",
+        )
+        result = load_results_dir(results_dir)
+        bare = result.profiles["test:bare"].tasks["t1"]
+        polite = result.profiles["test:polite"].tasks["t1"]
+        assert bare.mean_scores["x"] == pytest.approx(70.0)
+        assert polite.mean_scores["x"] == pytest.approx(95.0)

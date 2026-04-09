@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="I stacked multiple expert personas (security engineer, performance engineer, code reviewer) in a single prompt and ran 5,400 benchmarks. The result: more personas = worse code. Here's why focused prompts beat expert panels.">
+    <meta name="keywords" content="AI personas, Claude Code, prompt engineering, persona stacking, multi-role prompts, code quality, benchmarking, system prompts, developer tools, expert panel prompt">
+    <meta property="og:title" content="Stop Stacking AI Personas: 5,400 Benchmarks Show Why More Experts = Worse Code">
+    <meta property="og:description" content="I stacked multiple expert personas in a single prompt and ran 5,400 benchmarks. More personas = worse code. Here's the data.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/persona-stacking-experiment.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/persona-stacking-experiment.html">
+    <title>Stop Stacking AI Personas: 5,400 Benchmarks Show Why More Experts = Worse Code - TechLoom</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Stop Stacking AI Personas: 5,400 Benchmarks Show Why More Experts = Worse Code",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-03-20",
+        "dateModified": "2026-03-20",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "A data-driven analysis of persona stacking based on 5,400 benchmark runs testing whether combining multiple expert roles improves or dilutes AI code quality.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/persona-stacking-experiment.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Persona Stacking Experiment",
+                "item": "https://techloom.it/blog/persona-stacking-experiment.html"
+            }
+        ]
+    }
+    </script>
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th, .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose code {
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+        .blog-prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .blog-prose pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card h4 {
+            margin-top: 0;
+            color: #1e293b;
+        }
+        .blog-prose .rule-card .evidence {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .blog-prose .do-dont {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .do-col {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .dont-col {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .do-col h4, .blog-prose .dont-col h4 {
+            margin-top: 0;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 640px) {
+            .blog-prose .do-dont {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Persona Stacking Experiment</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">March 20, 2026</span>
+                    <span class="blog-tag">AI Tooling</span>
+                    <span class="blog-tag">Prompt Engineering</span>
+                    <span class="blog-tag">Benchmarking</span>
+                </div>
+                <h1>Stop Stacking AI Personas: 5,400 Benchmarks Show Why More Experts = Worse Code</h1>
+                <div class="blog-author">
+                    <div class="blog-author-avatar">JC</div>
+                    <div class="blog-author-info">
+                        <span class="blog-author-name">Johnathen Chilcher</span>
+                        <span class="blog-author-role">Senior SRE, TechLoom</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <p>In a <a href="persona-sweep-experiment.html">previous experiment</a>, we found that the "meticulous code reviewer" persona was the one persona that consistently improved AI code quality. A natural follow-up question: if one focused role helps, would <em>stacking</em> multiple expert roles help even more?</p>
+
+                <p>Would combining a code reviewer with a security engineer catch more bugs? Would adding a performance engineer on top of that produce faster, safer, cleaner code? What about assembling a full expert panel?</p>
+
+                <p>I ran 5,400 benchmarks to find out. The answer: <strong>every additional persona you stack makes the code slightly worse.</strong></p>
+
+                <p>This is the sixth experiment in our <a href="effective-ai-coding-prompts.html">benchmark series</a>. The methodology is the same: controlled experiments with statistical analysis, run across Claude Haiku, Sonnet, and Opus on 15 task types. All data is open source at <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a>.</p>
+
+                <h2>Experiment Design</h2>
+
+                <p>I tested four system prompt variants, each building on the code-reviewer persona that won our <a href="persona-sweep-experiment.html">previous experiment</a>:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Prompt</th>
+                    </tr>
+                    <tr>
+                        <td><strong>single-reviewer</strong></td>
+                        <td>"You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."</td>
+                    </tr>
+                    <tr>
+                        <td><strong>reviewer-plus-security</strong></td>
+                        <td>"You are a meticulous code reviewer AND security engineer. Focus on correctness, edge cases, maintainability, and secure coding practices in every line."</td>
+                    </tr>
+                    <tr>
+                        <td><strong>reviewer-plus-perf</strong></td>
+                        <td>"You are a meticulous code reviewer AND performance engineer. Focus on correctness, edge cases, maintainability, and computational efficiency in every line."</td>
+                    </tr>
+                    <tr>
+                        <td><strong>expert-panel</strong></td>
+                        <td>"Three experts are collaborating on this code: a code reviewer (correctness, readability), a security engineer (input validation, safe defaults), and a performance engineer (algorithmic efficiency). Write code that satisfies all three."</td>
+                    </tr>
+                </table>
+
+                <p>Each variant was run across 3 models (Haiku, Sonnet, Opus), 15 tasks (5 code-gen, 4 bug-fix, 3 refactor, 3 instruction-following), and 30 repetitions per combination. That's 4 &times; 15 &times; 3 &times; 30 = <strong>5,400 runs</strong>.</p>
+
+                <p>I deliberately included three new tasks (<code>bug-fix-04</code>, <code>code-gen-04</code>, <code>code-gen-05</code>) designed to give the security and performance personas meaningful surface area&mdash;tasks involving input validation vulnerabilities, SQL injection vectors, and algorithmic complexity traps. If stacking was ever going to help, these tasks should show it.</p>
+
+                <h2>The Scoreboard</h2>
+
+                <p>Here are the overall results across all 5,400 runs:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Composite Score</th>
+                        <th>Stdev</th>
+                        <th>Delta from Single-Reviewer</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>single-reviewer</strong></td>
+                        <td><strong>89.9</strong></td>
+                        <td>13.2</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>reviewer-plus-perf</td>
+                        <td>88.8</td>
+                        <td>14.5</td>
+                        <td>-1.1</td>
+                    </tr>
+                    <tr>
+                        <td>expert-panel</td>
+                        <td>88.6</td>
+                        <td>14.4</td>
+                        <td>-1.3</td>
+                    </tr>
+                    <tr style="background: #fef2f2;">
+                        <td><strong>reviewer-plus-security</strong></td>
+                        <td><strong>88.2</strong></td>
+                        <td>15.5</td>
+                        <td><strong>-1.7</strong></td>
+                    </tr>
+                </table>
+
+                <div class="result-danger">
+                    <strong>Every stacked variant scored lower than the single-reviewer baseline.</strong> Adding a security engineer drops the score by 1.7 points. Adding a performance engineer drops it by 1.1. The full expert panel drops it by 1.3. The pattern is unambiguous: more roles = worse code.
+                </div>
+
+                <p>The variance tells the same story. Single-reviewer has the tightest standard deviation (13.2) while reviewer-plus-security has the widest (15.5). Stacking doesn't just lower the average&mdash;it makes the output less predictable.</p>
+
+                <h2>The Dilution Effect</h2>
+
+                <p>Why does adding expertise hurt? The mechanism is attention dilution.</p>
+
+                <p>When you tell Claude to be a "meticulous code reviewer," it allocates its full attention budget to correctness, edge cases, and maintainability. Every token of reasoning is spent on the things the scorer rewards.</p>
+
+                <p>When you tell Claude to <em>also</em> be a security engineer, you're splitting that attention budget. Now it's spending tokens thinking about input validation and safe defaults&mdash;concerns that may or may not be relevant to the specific task. On a Fibonacci implementation, there's nothing to validate. On a list-sorting task, there's no injection vector. The security reasoning is wasted compute that displaces correctness reasoning.</p>
+
+                <div class="result-warning">
+                    <strong>Persona stacking is a zero-sum game.</strong> The model has a fixed attention budget per response. Every additional concern you add competes with existing ones. Unless the additional role is directly relevant to the task at hand, it dilutes rather than compounds.
+                </div>
+
+                <p>The expert-panel variant is particularly instructive. By framing the prompt as "three experts collaborating," we're asking the model to simulate a multi-perspective review process. But the model isn't actually running three separate analyses&mdash;it's running one analysis while role-playing a committee. The overhead of maintaining three fictional viewpoints costs tokens without adding genuine analytical depth.</p>
+
+                <h2>Model-Specific Results</h2>
+
+                <p>The dilution effect varies by model capability:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Haiku</th>
+                        <th>Sonnet</th>
+                        <th>Opus</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>single-reviewer</strong></td>
+                        <td><strong>90.1</strong></td>
+                        <td><strong>88.2</strong></td>
+                        <td><strong>91.5</strong></td>
+                    </tr>
+                    <tr>
+                        <td>reviewer-plus-security</td>
+                        <td>88.4</td>
+                        <td>85.3</td>
+                        <td>91.0</td>
+                    </tr>
+                    <tr>
+                        <td>reviewer-plus-perf</td>
+                        <td>89.5</td>
+                        <td>86.1</td>
+                        <td>90.7</td>
+                    </tr>
+                    <tr>
+                        <td>expert-panel</td>
+                        <td>88.5</td>
+                        <td>86.0</td>
+                        <td>91.1</td>
+                    </tr>
+                </table>
+
+                <p><strong>Opus is nearly immune.</strong> The spread across all four variants is just 0.8 points (91.5 to 90.7). Opus has enough capacity to handle multiple roles without significant dilution. It processes the additional personas as supplementary context rather than competing directives.</p>
+
+                <p><strong>Sonnet takes the hardest hit.</strong> Single-reviewer scores 88.2, but reviewer-plus-security drops to 85.3&mdash;a 2.9-point decline. Sonnet appears to have less headroom for multi-role processing. When you give it competing concerns, it struggles to prioritize and the overall quality suffers.</p>
+
+                <p><strong>Haiku falls in between.</strong> A 1.7-point spread from best to worst. Haiku handles the stacking better than Sonnet but worse than Opus, consistent with its position in the capability hierarchy.</p>
+
+                <div class="result-highlight">
+                    <strong>If you must stack personas, only do it on Opus.</strong> It's the one model with enough capacity to absorb multiple roles without meaningful quality loss. On Sonnet and Haiku, stick to a single focused role.
+                </div>
+
+                <h2>Task-Level Analysis: Where Stacking Might Help</h2>
+
+                <p>The overall numbers are clear, but I specifically designed tasks where security and performance expertise <em>should</em> matter. Did the targeted personas at least help on those tasks?</p>
+
+                <table>
+                    <tr>
+                        <th>Task</th>
+                        <th>Spread</th>
+                        <th>Winner</th>
+                        <th>Notes</th>
+                    </tr>
+                    <tr>
+                        <td>instruction-01</td>
+                        <td>8.0</td>
+                        <td>single-reviewer (88.6)</td>
+                        <td>Stacking confuses instruction-following</td>
+                    </tr>
+                    <tr>
+                        <td>instruction-03</td>
+                        <td>6.2</td>
+                        <td>reviewer-plus-perf (90.9)</td>
+                        <td>Rare stacking win</td>
+                    </tr>
+                    <tr>
+                        <td>bug-fix-04 *</td>
+                        <td>5.4</td>
+                        <td>single-reviewer (59.5)</td>
+                        <td>Security persona didn't help</td>
+                    </tr>
+                    <tr>
+                        <td>code-gen-04 *</td>
+                        <td>3.0</td>
+                        <td>single-reviewer (85.4)</td>
+                        <td>Security persona didn't help</td>
+                    </tr>
+                    <tr>
+                        <td>refactor-03</td>
+                        <td>4.2</td>
+                        <td>expert-panel (91.7)</td>
+                        <td>Panel wins on restructuring</td>
+                    </tr>
+                </table>
+
+                <p><em>* Tasks specifically designed with security surface area</em></p>
+
+                <p>The results were the opposite of my hypothesis. <code>bug-fix-04</code> was designed with security vulnerabilities for the security persona to catch. Instead, <strong>single-reviewer scored 59.5 while reviewer-plus-security scored 54.1</strong>&mdash;the security persona actually made it <em>worse</em> at fixing the security bug.</p>
+
+                <div class="result-danger">
+                    <strong>The security-focused task was won by the non-security persona.</strong> This is the strongest evidence against persona stacking: even when the additional role is directly relevant to the task, the dilution effect outweighs the domain benefit. The model writes better security fixes when told to be "meticulous about correctness" than when told to be a "security engineer."
+                </div>
+
+                <p>There are two bright spots for stacking. <code>refactor-03</code> was won by the expert-panel (91.7 vs 88.7), and <code>instruction-03</code> was won by reviewer-plus-perf (90.9 vs 88.2). But these are exceptions. Single-reviewer won or tied on <strong>11 of 15 tasks</strong>.</p>
+
+                <h2>Why the Smoke Test Lied</h2>
+
+                <p>Before running the full 5,400-run experiment, I ran a 60-run smoke test (1 rep per combination on Haiku only). The smoke test showed <code>bug-fix-04</code> scoring 34.5 on single-reviewer vs 67.7 on reviewer-plus-security&mdash;a dramatic win for the security persona. That signal was exciting enough to justify the full experiment.</p>
+
+                <p>With 30 reps and 3 models, the full data told the opposite story. The smoke test's 1-rep signal was noise. This is a useful reminder: <strong>never draw conclusions from n=1, even when the effect looks large.</strong> A 33-point difference at n=1 reversed at n=30. This is exactly why we run large benchmark experiments instead of eyeballing a few examples.</p>
+
+                <h2>The Attention Budget Model</h2>
+
+                <p>These results fit a simple mental model: every LLM response has a fixed <em>attention budget</em> for reasoning and generation. You can direct that budget but you can't expand it by adding more instructions.</p>
+
+                <ul>
+                    <li><strong>Single-reviewer:</strong> 100% of budget on correctness/maintainability.</li>
+                    <li><strong>Reviewer + security:</strong> ~60% correctness, ~40% security. Net effect: worse at both than the specialist.</li>
+                    <li><strong>Expert panel:</strong> ~33% each across three concerns, plus overhead for maintaining the multi-persona fiction. Worst of all worlds.</li>
+                </ul>
+
+                <p>This maps perfectly to the results. Single-reviewer wins because it's a specialist. Every stacked variant is a generalist that's mediocre at multiple things instead of excellent at one.</p>
+
+                <p>Notably, this also explains why Opus is less affected: it has a larger attention budget. A bigger model can absorb additional roles with less proportional dilution. But even Opus is still slightly worse with stacking&mdash;the dilution just isn't as severe.</p>
+
+                <h2>Connection to Previous Experiments</h2>
+
+                <p>This finding reinforces a consistent theme across our entire benchmark series:</p>
+
+                <ul>
+                    <li><strong><a href="context-pollution-experiment.html">Context pollution</a></strong> showed that longer system prompts hurt code quality. Persona stacking is a specific form of context pollution&mdash;adding words to the prompt that don't improve the output.</li>
+                    <li><strong><a href="persona-sweep-experiment.html">Persona sweep</a></strong> showed that "senior engineer" is a waste of tokens because it's redundant with the model's training. Stacking is worse: it's not just redundant, it's <em>distracting</em>.</li>
+                    <li><strong><a href="capstone-best-practices-experiment.html">Capstone best practices</a></strong> showed that verbose kitchen-sink prompts scored 5-15 points lower than focused ones. Expert-panel is a kitchen-sink persona&mdash;the prompt engineering equivalent of "just add everything and hope for the best."</li>
+                </ul>
+
+                <div class="result-highlight">
+                    <strong>The consistent finding across 20,000+ benchmark runs: less is more.</strong> Focused prompts beat verbose ones. Single roles beat multi-role panels. Specific instructions beat comprehensive ones. Every experiment confirms that the best prompt is the minimum prompt that directs the model's attention to exactly what matters.
+                </div>
+
+                <h2>Practical Implications</h2>
+
+                <div class="rule-card">
+                    <h4>1. Use one persona, not three.</h4>
+                    <p>If code-reviewer works for your use case, don't add security and performance on top. You'll make all three worse. The model writes better security code when told to "focus on correctness" than when told to "be a security engineer."</p>
+                    <div class="evidence">Evidence: single-reviewer (89.9) beat reviewer-plus-security (88.2) on all tasks, including security-specific tasks.</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>2. Match the persona to the task, not the pipeline.</h4>
+                    <p>Instead of one stacked prompt for every task, use different single-role personas for different task types. Security review? Use a security-only persona. Performance optimization? Use a performance-only persona. Don't combine them.</p>
+                    <div class="evidence">Evidence: reviewer-plus-perf won instruction-03 (90.9) while losing overall. Targeted single-role personas outperform universal multi-role ones.</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>3. The "expert panel" pattern is an anti-pattern.</h4>
+                    <p>Framing your prompt as "three experts collaborating" doesn't simulate a real review panel. It simulates a single model pretending to be a panel, which costs tokens on persona maintenance instead of reasoning. If you want multiple perspectives, run the model three times with three different single-role personas.</p>
+                    <div class="evidence">Evidence: expert-panel (88.6) scored lower than single-reviewer (89.9) on 11 of 15 tasks with higher variance.</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>4. Model capability determines stacking tolerance.</h4>
+                    <p>On Opus, stacking costs you less than 1 point. On Sonnet, it costs nearly 3. If you're using a smaller model, the penalty is steeper. Keep your prompts focused, especially on smaller models.</p>
+                    <div class="evidence">Evidence: Opus spread 0.8 pts, Haiku spread 1.7 pts, Sonnet spread 2.9 pts.</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>5. Don't trust small-sample signals.</h4>
+                    <p>Our 1-rep smoke test showed a 33-point security persona advantage. The 30-rep full experiment showed the opposite. Always run enough reps to drown out the noise before making prompt decisions.</p>
+                    <div class="evidence">Evidence: bug-fix-04 smoke test: reviewer-plus-security 67.7 vs single-reviewer 34.5. Full run: single-reviewer 59.5 vs reviewer-plus-security 54.1.</div>
+                </div>
+
+                <h2>The Do/Don't</h2>
+
+                <div class="do-dont">
+                    <div class="do-col">
+                        <h4>Do This</h4>
+                        <pre><code>"You are a meticulous code reviewer.
+Focus on correctness, edge cases,
+and maintainability."</code></pre>
+                        <p>One role. Three concerns. All attention on what matters.</p>
+                    </div>
+                    <div class="dont-col">
+                        <h4>Not This</h4>
+                        <pre><code>"Three experts are collaborating:
+a code reviewer, a security
+engineer, and a performance
+engineer. Satisfy all three."</code></pre>
+                        <p>Three roles. Competing concerns. Diluted attention.</p>
+                    </div>
+                </div>
+
+                <h2>Limitations</h2>
+
+                <ul>
+                    <li><strong>Four stacking variants tested.</strong> We tested additive stacking (reviewer + X). Other stacking patterns&mdash;like conditional role activation ("focus on security only when handling user input")&mdash;might perform differently.</li>
+                    <li><strong>Single-prompt stacking only.</strong> Running the same code through three separate single-role passes (review &rarr; security audit &rarr; perf review) could capture multi-perspective value without attention dilution. We didn't test multi-pass architectures.</li>
+                    <li><strong>Scoring rubric alignment.</strong> Our composite scorer rewards correctness, code quality, and test pass rates. A scorer that explicitly measured security or performance might favor the stacked variants. The "right" persona depends on what you're optimizing for.</li>
+                    <li><strong>Claude models only.</strong> Other model families may handle multi-role prompts differently. Models with larger context windows or different attention mechanisms might show less dilution.</li>
+                    <li><strong>Synthetic tasks.</strong> In production codebases with real security vulnerabilities and performance bottlenecks, domain-specific personas might add more value than they did on our synthetic benchmarks.</li>
+                </ul>
+
+                <h2>Try It Yourself</h2>
+
+                <p>The full experiment configuration and all 5,400 results are open source:</p>
+
+                <pre><code>pip install claude-benchmark
+
+# Run the persona stacking experiment
+claude-benchmark experiment experiments/persona-stacking.toml
+
+# Or customize the variants
+claude-benchmark experiment experiments/persona-stacking.toml \
+  -c 5 --yes</code></pre>
+
+                <p>Full experiment configuration: <a href="https://github.com/jchilcher/claude-benchmark/blob/main/experiments/persona-stacking.toml" target="_blank" rel="noopener">experiments/persona-stacking.toml</a></p>
+
+                <p>For the complete picture of what works in AI prompt engineering for code, see the full <a href="effective-ai-coding-prompts.html">benchmark series</a>&mdash;including <a href="chain-of-thought-experiment.html">chain-of-thought</a>, <a href="model-selection-experiment.html">model selection</a>, <a href="politeness-sweep-experiment.html">politeness</a>, <a href="context-pollution-experiment.html">context pollution</a>, and <a href="persona-sweep-experiment.html">single-persona</a> experiments.</p>
+
+            </div>
+
+            <div class="blog-cta-box">
+                <h3>Want to optimize your team's AI-assisted development?</h3>
+                <p>I help teams measure what actually works in their AI coding workflows&mdash;from prompt engineering to infrastructure automation. Every recommendation backed by data, not opinion. Get a free assessment.</p>
+                <a href="../index.html#contact" class="btn-primary btn-large">Get Your Free Assessment</a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

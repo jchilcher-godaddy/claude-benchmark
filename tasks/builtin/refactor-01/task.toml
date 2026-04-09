@@ -21,3 +21,8 @@ tags = ["refactoring", "duplication", "functions"]
 test_file = "test_solution.py"
 reference_solution = "reference.py"
 ruff_rules = ["E501", "F841", "I001"]
+
+[scoring.weight_override]
+test_pass_rate = 0.35
+lint_score = 0.25
+complexity_score = 0.40

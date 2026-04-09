@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="1,080 benchmark runs testing how irrelevant context tokens degrade AI code quality. Sonnet loses 8 points. Opus gains 4. The data is wild.">
+    <meta name="keywords" content="AI context window, context pollution, Claude benchmarks, prompt engineering, token limits, AI code quality, context degradation">
+    <meta property="og:title" content="How Irrelevant Context Degrades AI Code Quality (1,080 Benchmarks)">
+    <meta property="og:description" content="Sonnet loses 8 points with context noise. Opus gains 4. I ran 1,080 benchmarks to find out which models survive bloated prompts.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/context-pollution-experiment.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/context-pollution-experiment.html">
+    <title>How Irrelevant Context Degrades AI Code Quality (1,080 Benchmarks) - TechLoom</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "How Irrelevant Context Degrades AI Code Quality (1,080 Benchmarks)",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-03-19",
+        "dateModified": "2026-03-19",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "1,080 benchmark runs testing how irrelevant context tokens degrade AI code quality across three Claude models. Sonnet loses 8 points at 50k padding. Opus actually improves.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/context-pollution-experiment.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Context Pollution Experiment",
+                "item": "https://techloom.it/blog/context-pollution-experiment.html"
+            }
+        ]
+    }
+    </script>
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th, .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose code {
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+        .blog-prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .blog-prose pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card h4 {
+            margin-top: 0;
+            color: #1e293b;
+        }
+        .blog-prose .rule-card .evidence {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .blog-prose .do-dont {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .do-col {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .dont-col {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .do-col h4, .blog-prose .dont-col h4 {
+            margin-top: 0;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 640px) {
+            .blog-prose .do-dont {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Context Pollution Experiment</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">March 19, 2026</span>
+                    <span class="blog-tag">AI Tooling</span>
+                    <span class="blog-tag">Context Windows</span>
+                    <span class="blog-tag">Benchmarking</span>
+                </div>
+                <h1>How Irrelevant Context Degrades AI Code Quality (1,080 Benchmarks)</h1>
+                <div class="blog-author">
+                    <div class="blog-author-avatar">JC</div>
+                    <div class="blog-author-info">
+                        <span class="blog-author-name">Johnathen Chilcher</span>
+                        <span class="blog-author-role">Senior SRE, TechLoom</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <p>Sonnet loses 8 points with context noise. Opus gains 4. Your model choice determines whether bloated prompts hurt.</p>
+
+                <p>I ran 1,080 benchmarks to answer a question that haunts every AI-assisted coding workflow: what happens when your context window fills up with irrelevant information? Not bad instructions&mdash;just <em>noise</em>. Unrelated code. Old conversation history. Auto-included files that have nothing to do with the current task.</p>
+
+                <p>The answer is more complicated than "it hurts." For one model, it's devastating. For another, it's somehow <em>helpful</em>. And the variance story is scarier than the averages suggest.</p>
+
+                <p>This is the fifth experiment in our <a href="effective-ai-coding-prompts.html">benchmark series</a>, following the <a href="chain-of-thought-experiment.html">chain-of-thought</a>, <a href="model-selection-experiment.html">model selection</a>, and <a href="politeness-sweep-experiment.html">politeness sweep</a> experiments. All data is open source at <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a>.</p>
+
+                <h2>The Experiment</h2>
+
+                <p>I prepended irrelevant context tokens&mdash;random code snippets, documentation fragments, unrelated conversation history&mdash;to the beginning of each prompt. Four padding levels, three models, three tasks, thirty repetitions each.</p>
+
+                <table>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Values</th>
+                    </tr>
+                    <tr>
+                        <td>Variants</td>
+                        <td><code>clean</code>, <code>pad-2k</code>, <code>pad-10k</code>, <code>pad-50k</code></td>
+                    </tr>
+                    <tr>
+                        <td>Models</td>
+                        <td>Claude Haiku 4.5, Sonnet 4.6, Opus 4.6</td>
+                    </tr>
+                    <tr>
+                        <td>Tasks</td>
+                        <td>bug-fix-01, code-gen-01, refactor-01</td>
+                    </tr>
+                    <tr>
+                        <td>Repetitions</td>
+                        <td>30 per cell</td>
+                    </tr>
+                    <tr>
+                        <td>Total runs</td>
+                        <td><strong>1,080</strong> (4 &times; 3 &times; 3 &times; 30)</td>
+                    </tr>
+                </table>
+
+                <p>The padding is deliberately irrelevant&mdash;it has nothing to do with the task at hand. This simulates the real-world scenario where your context window accumulates noise: auto-included repository files, stale conversation turns, tangential documentation. The question is whether models can ignore the noise and focus on the actual task.</p>
+
+                <h2>The Overall Results</h2>
+
+                <p>Averaged across all three models and tasks, context pollution causes a gentle downward slope:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Composite Score</th>
+                        <th>Std Dev</th>
+                        <th>Delta from Clean</th>
+                    </tr>
+                    <tr>
+                        <td>clean</td>
+                        <td><strong>93.7</strong></td>
+                        <td>8.7</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>pad-2k</td>
+                        <td>93.4</td>
+                        <td>9.6</td>
+                        <td>-0.3</td>
+                    </tr>
+                    <tr>
+                        <td>pad-10k</td>
+                        <td>92.1</td>
+                        <td>12.1</td>
+                        <td>-1.6</td>
+                    </tr>
+                    <tr>
+                        <td>pad-50k</td>
+                        <td>91.2</td>
+                        <td>12.6</td>
+                        <td>-2.5</td>
+                    </tr>
+                </table>
+
+                <div class="result-warning">
+                    <strong>The averages lie.</strong> A 2.5-point overall drop from 50k tokens of noise looks manageable. But the aggregate hides wildly different stories for each model. The standard deviation climbing from 8.7 to 12.6 is the real warning sign&mdash;context pollution doesn't just lower the average, it makes output <em>unpredictable</em>.
+                </div>
+
+                <p>If you stopped at the aggregate, you'd conclude that context pollution is a minor nuisance. You'd be wrong. The per-model breakdown tells three completely different stories.</p>
+
+                <h2>The Sonnet Devastation</h2>
+
+                <p>Sonnet is the model most people use for day-to-day coding. It's also the model that falls apart with context noise.</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Sonnet Composite</th>
+                        <th>Std Dev</th>
+                        <th>Delta</th>
+                    </tr>
+                    <tr>
+                        <td>clean</td>
+                        <td><strong>94.2</strong></td>
+                        <td>5.1</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>pad-2k</td>
+                        <td>90.4</td>
+                        <td>9.2</td>
+                        <td>-3.8</td>
+                    </tr>
+                    <tr>
+                        <td>pad-10k</td>
+                        <td>87.1</td>
+                        <td>13.4</td>
+                        <td>-7.1</td>
+                    </tr>
+                    <tr>
+                        <td>pad-50k</td>
+                        <td>85.9</td>
+                        <td>16.3</td>
+                        <td><strong>-8.3</strong></td>
+                    </tr>
+                </table>
+
+                <div class="result-danger">
+                    <strong>Sonnet loses 8.3 composite points at 50k padding.</strong> Its standard deviation triples from 5.1 to 16.3. This isn't a gradual decline&mdash;it's a progressive collapse in both quality and reliability. At pad-2k, it's already lost nearly 4 points. By pad-10k, it's dropped 7 points and producing wildly inconsistent output.
+                </div>
+
+                <p>The degradation is <em>progressive</em>, not threshold-based. Every incremental chunk of noise pushes Sonnet further off course. And the variance explosion is arguably worse than the score drop&mdash;a Sonnet run at pad-50k could give you a 95 or a 70, and you won't know which until you look at the output.</p>
+
+                <p>This has direct practical implications. If you're using Sonnet in a workflow where context accumulates&mdash;long coding sessions, auto-included files, retained conversation history&mdash;your output quality is degrading with every turn. The model you started with isn't the model you're using 20 turns in.</p>
+
+                <h2>The Opus Immunity (and Then Some)</h2>
+
+                <p>This is the finding I didn't expect. Opus doesn't just resist context pollution. It gets <em>better</em>.</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Opus Composite</th>
+                        <th>Std Dev</th>
+                        <th>Delta</th>
+                    </tr>
+                    <tr>
+                        <td>clean</td>
+                        <td>91.2</td>
+                        <td>12.8</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>pad-2k</td>
+                        <td>93.5</td>
+                        <td>10.1</td>
+                        <td>+2.3</td>
+                    </tr>
+                    <tr>
+                        <td>pad-10k</td>
+                        <td>93.4</td>
+                        <td>9.8</td>
+                        <td>+2.2</td>
+                    </tr>
+                    <tr>
+                        <td>pad-50k</td>
+                        <td><strong>95.6</strong></td>
+                        <td>7.2</td>
+                        <td><strong>+4.4</strong></td>
+                    </tr>
+                </table>
+
+                <div class="result-highlight">
+                    <strong>Opus gains 4.4 points at 50k padding.</strong> Its standard deviation drops from 12.8 to 7.2&mdash;it becomes both <em>better</em> and more <em>consistent</em> with noise in the context. This is the opposite of what every intuition about context windows would predict.
+                </div>
+
+                <p>I triple-checked this result. It's real. One hypothesis: the irrelevant context may act as a kind of attention warmup or regularizer for Opus. The model has to actively filter the noise to find the task, and that filtering process engages a more focused mode of processing. It's the cognitive equivalent of noise-cancelling headphones&mdash;the act of cancelling forces concentration.</p>
+
+                <p>Another possibility: Opus's clean baseline (91.2) with a high standard deviation (12.8) suggests it has occasional "lazy" runs where it doesn't fully engage with the task. The noise may prevent this by forcing the model to work harder to identify the relevant signal, which incidentally raises its floor.</p>
+
+                <p>Whatever the mechanism, the practical implication is clear: if you're using Opus, context bloat isn't hurting you. It might actually be helping.</p>
+
+                <h2>The Haiku Threshold Effect</h2>
+
+                <p>Haiku tells a third story&mdash;resilience with a cliff.</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Haiku Composite</th>
+                        <th>Std Dev</th>
+                        <th>Delta</th>
+                    </tr>
+                    <tr>
+                        <td>clean</td>
+                        <td><strong>95.5</strong></td>
+                        <td>5.5</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>pad-2k</td>
+                        <td>96.3</td>
+                        <td>5.8</td>
+                        <td>+0.8</td>
+                    </tr>
+                    <tr>
+                        <td>pad-10k</td>
+                        <td>95.8</td>
+                        <td>5.9</td>
+                        <td>+0.3</td>
+                    </tr>
+                    <tr>
+                        <td>pad-50k</td>
+                        <td>92.3</td>
+                        <td>10.6</td>
+                        <td><strong>-3.2</strong></td>
+                    </tr>
+                </table>
+
+                <div class="result-warning">
+                    <strong>Haiku is rock-solid up to 10k tokens of noise, then falls off a cliff at 50k.</strong> The standard deviation nearly doubles from 5.9 to 10.6 at the 50k threshold. Unlike Sonnet's progressive degradation, Haiku has a clear breakpoint where noise overwhelms its context processing capacity.
+                </div>
+
+                <p>This threshold pattern makes intuitive sense for a smaller model. Haiku's context processing has a capacity limit&mdash;it can shrug off moderate noise, but 50k tokens of irrelevant content exceeds what it can filter out effectively. The result isn't a gentle decline but a step function: fine, fine, fine, degraded.</p>
+
+                <p>For practical purposes, this means Haiku is safe to use in moderately noisy contexts. But if your workflow regularly pushes past 10k tokens of accumulated context, you're in the danger zone.</p>
+
+                <h2>LLM Quality Scores Tell the Same Story</h2>
+
+                <p>The LLM judge quality dimension&mdash;which evaluates code readability, structure, and maintainability independently of correctness&mdash;shows the same degradation pattern:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>LLM Quality Score</th>
+                        <th>Delta</th>
+                    </tr>
+                    <tr>
+                        <td>clean</td>
+                        <td><strong>94.3</strong></td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>pad-2k</td>
+                        <td>93.0</td>
+                        <td>-1.3</td>
+                    </tr>
+                    <tr>
+                        <td>pad-10k</td>
+                        <td>90.5</td>
+                        <td>-3.8</td>
+                    </tr>
+                    <tr>
+                        <td>pad-50k</td>
+                        <td>88.4</td>
+                        <td>-5.9</td>
+                    </tr>
+                </table>
+
+                <p>The quality degradation is steeper than the composite score drop. Context noise doesn't just cause models to miss requirements&mdash;it degrades the <em>quality</em> of the code they write. Variable names get less descriptive. Functions get longer. Error handling gets sloppier. The model writes as if it's in a rush to get past the noise and reach a conclusion.</p>
+
+                <p>This matters because code review often catches correctness issues but misses quality degradation. Your tests pass, your linter is happy, but the code is subtly worse&mdash;harder to maintain, harder to extend, more likely to become technical debt.</p>
+
+                <h2>The Variance Story</h2>
+
+                <p>The standard deviation numbers deserve their own section because they tell a story the averages obscure.</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>Clean StdDev</th>
+                        <th>50k StdDev</th>
+                        <th>Change</th>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td>5.1</td>
+                        <td>16.3</td>
+                        <td><strong>3.2x increase</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td>5.5</td>
+                        <td>10.6</td>
+                        <td><strong>1.9x increase</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Opus</td>
+                        <td>12.8</td>
+                        <td>7.2</td>
+                        <td><strong>0.56x (decrease)</strong></td>
+                    </tr>
+                </table>
+
+                <div class="result-danger">
+                    <strong>Sonnet's variance triples under noise.</strong> A standard deviation of 16.3 means roughly 32% of runs will land more than 16 points away from the mean. For a model averaging 85.9, that means a significant number of runs scoring in the 60s or low 70s. Context pollution doesn't just lower Sonnet's average&mdash;it makes every run a coin flip.
+                </div>
+
+                <div class="result-highlight">
+                    <strong>Opus's variance halves under noise.</strong> It goes from 12.8 (already high) to 7.2, becoming the most consistent model at 50k padding. Whatever mechanism makes Opus improve with noise also makes it more predictable. This is the best possible outcome for production workflows.
+                </div>
+
+                <p>For automated pipelines and CI integrations, variance matters more than mean. A model that averages 90 with a standard deviation of 5 is more useful than one that averages 93 with a standard deviation of 16. You can build reliable workflows around consistent output; you can't build around chaos.</p>
+
+                <h2>Why This Matters</h2>
+
+                <p>This experiment was motivated by watching real-world AI coding workflows. Here's what actually fills up your context window:</p>
+
+                <ul>
+                    <li><strong>Auto-included files.</strong> Many tools automatically include repository files, README contents, dependency manifests, and configuration files in the context. Often irrelevant to the current task.</li>
+                    <li><strong>Conversation history.</strong> In a long coding session, earlier turns about a different function or feature stay in context. By turn 20, most of the context is stale.</li>
+                    <li><strong>Documentation dumps.</strong> Pasting entire API docs, library READMEs, or specification documents when only a small section is relevant.</li>
+                    <li><strong>Error logs and stack traces.</strong> Dumping 500 lines of logs when the relevant error is on line 3.</li>
+                </ul>
+
+                <p>Based on the data, here's how to think about context management per model:</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>Context Sensitivity</th>
+                        <th>Recommendation</th>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td>High (progressive degradation)</td>
+                        <td>Aggressively trim context. Start new conversations frequently. Only include directly relevant files.</td>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td>Threshold at ~50k</td>
+                        <td>Monitor total context size. Safe below 10k of noise, unreliable above 50k.</td>
+                    </tr>
+                    <tr>
+                        <td>Opus</td>
+                        <td>Immune (improves with noise)</td>
+                        <td>Don't worry about context bloat. Focus on other optimizations.</td>
+                    </tr>
+                </table>
+
+                <p>This finding intersects directly with our <a href="model-selection-experiment.html">model selection experiment</a>. If you're choosing a model for a long-session workflow where context will accumulate, Opus's noise immunity becomes a significant advantage that raw benchmark scores on clean prompts don't capture.</p>
+
+                <p>It also connects to our <a href="effective-ai-coding-prompts.html">prompt engineering guide</a>. We found that adding instructions (even useful ones) has a negative correlation with quality. Context pollution is the extreme version of that finding: not just unnecessary instructions, but entirely irrelevant content. The fact that even <em>this</em> helps Opus suggests that the <a href="persona-sweep-experiment.html">persona</a> and <a href="politeness-sweep-experiment.html">politeness</a> experiments may tell a different story per model too.</p>
+
+                <h2>Limitations</h2>
+
+                <ul>
+                    <li><strong>Synthetic noise.</strong> The padding is randomly generated irrelevant content. Real-world context pollution (old conversation history, tangentially related files) has structure that might be more or less distracting than random noise.</li>
+                    <li><strong>Three tasks only.</strong> With bug-fix, code-gen, and refactor tasks, we have reasonable coverage of common coding activities but can't generalize to every task type.</li>
+                    <li><strong>Single-turn only.</strong> Each benchmark run is one prompt-response pair. In real multi-turn sessions, the model may adapt to or be further confused by accumulated context in ways this experiment doesn't capture.</li>
+                    <li><strong>Claude models only.</strong> These results apply to Claude Haiku 4.5, Sonnet 4.6, and Opus 4.6. Other model families may show entirely different patterns&mdash;or the same ones.</li>
+                    <li><strong>Opus improvement needs replication.</strong> The counterintuitive finding that Opus improves with noise should be replicated with different noise types and task sets before building workflows around it.</li>
+                </ul>
+
+                <h2>Try It Yourself</h2>
+
+                <p>The context-pollution experiment configuration and all tooling is open source:</p>
+
+                <pre><code>pip install claude-benchmark
+
+# Run the context pollution experiment
+claude-benchmark experiment run experiments/context-pollution.toml
+
+# Generate the report
+claude-benchmark report
+
+# Compare specific variants
+claude-benchmark experiment report experiments/context-pollution.toml
+
+# See the full results
+open results/*/report.html</code></pre>
+
+                <p>The experiment configuration at <code>experiments/context-pollution.toml</code> defines the four padding levels. You can modify the <code>padding_tokens</code> values to test your own thresholds, or swap in different tasks to see if the per-model patterns hold on your workload.</p>
+
+                <p>If you're building automated coding workflows, I'd especially recommend running this experiment with your actual context patterns&mdash;include the files your tools auto-inject, the conversation history format your system uses, and the documentation you typically paste. The patterns may differ from synthetic noise.</p>
+
+                <p>All data and methodology: <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">github.com/jchilcher/claude-benchmark</a></p>
+
+            </div>
+
+            <div class="blog-cta-box">
+                <h3>Want to optimize your team's AI context management?</h3>
+                <p>I help teams measure and minimize context pollution in their AI coding workflows&mdash;from prompt architecture to model selection. Every recommendation backed by data, not opinion. Get a free assessment.</p>
+                <a href="../index.html#contact" class="btn-primary btn-large">Get Your Free Assessment</a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

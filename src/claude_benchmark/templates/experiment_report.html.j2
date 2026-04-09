@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Experiment Report: {{ experiment_name }}</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #1a202c; background: #f7fafc; }
+h2 { margin-bottom: 1rem; color: #2d3748; }
+h3 { margin-bottom: 0.5rem; color: #4a5568; }
+section { scroll-margin-top: 1rem; }
+
+.sidebar { position: fixed; left: 0; top: 0; width: 220px; height: 100vh; background: #1a1a2e; color: #e0e0e0; padding: 1rem; overflow-y: auto; z-index: 100; }
+.sidebar h1 { font-size: 1rem; margin-bottom: 1rem; color: #ffffff; font-weight: 600; }
+.sidebar a { color: #a0d2ff; text-decoration: none; display: block; padding: 0.4rem 0; font-size: 0.9rem; }
+.sidebar a:hover { color: #ffffff; }
+
+.main { margin-left: 220px; padding: 1.5rem; }
+
+.metadata-banner { background: #f0f4f8; border-radius: 8px; padding: 1rem 1.5rem; display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 1.5rem; border: 1px solid #e2e8f0; }
+.metadata-banner .meta-item { display: flex; flex-direction: column; }
+.metadata-banner .meta-label { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; }
+.metadata-banner .meta-value { font-size: 1.1rem; font-weight: 600; color: #2d3748; }
+
+.experiment-badge { display: inline-block; background: #7c3aed; color: #fff; padding: 0.15rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem; vertical-align: middle; }
+
+.chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+.chart-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+.summary-highlights { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.summary-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; }
+.summary-card .card-label { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; }
+.summary-card .card-value { font-size: 1.25rem; font-weight: 700; color: #2d3748; }
+
+.score-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 0.9rem; }
+.score-table th, .score-table td { padding: 0.4rem 0.6rem; border-bottom: 1px solid #e2e8f0; text-align: left; }
+.score-table th { background: #f7fafc; font-weight: 600; color: #4a5568; }
+
+.insight-callout { background: #f0fdf4; border-left: 4px solid #16a34a; padding: 0.6rem 1rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: #166534; border-radius: 0 6px 6px 0; }
+.section-guide { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.9rem; color: #1e40af; border-radius: 0 6px 6px 0; }
+
+.llm-summary-callout { background: #f5f3ff; border-left: 4px solid #7c3aed; padding: 1rem 1.25rem; margin-bottom: 1rem; border-radius: 0 6px 6px 0; }
+.llm-summary-callout p { font-size: 0.9rem; color: #3b0764; margin-bottom: 0.75rem; line-height: 1.7; }
+.llm-summary-callout p:last-of-type { margin-bottom: 0.5rem; }
+.llm-summary-attribution { font-size: 0.75rem; color: #9ca3af; font-style: italic; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e5e7eb; }
+
+.sig-yes { color: #16a34a; font-weight: 700; }
+.sig-no { color: #94a3b8; }
+.delta-positive { color: #16a34a; }
+.delta-negative { color: #dc2626; }
+
+.diff-container { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.85rem; overflow-x: auto; border-radius: 4px; margin-top: 0.5rem; }
+
+.variant-config { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; }
+.variant-config .vl { font-weight: 600; color: #2d3748; }
+
+.download-btn { display: inline-block; background: #3b82f6; color: #ffffff; padding: 0.5rem 1.25rem; border-radius: 6px; border: none; font-size: 0.9rem; font-weight: 500; cursor: pointer; text-decoration: none; margin-right: 0.75rem; margin-top: 0.5rem; }
+.download-btn:hover { background: #2563eb; }
+.failure-banner { background: #fef2f2; border-left: 4px solid #dc2626; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 0.9rem; color: #991b1b; border-radius: 0 6px 6px 0; }
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .chart-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <h1>Experiment Report</h1>
+  <a href="#summary">Executive Summary</a>
+  <a href="#insights">Key Insights</a>
+  <a href="#statistical">Statistical Comparison</a>
+  <a href="#heatmap">Variant x Task Heatmap</a>
+  <a href="#charts">Charts</a>
+  <a href="#diffs">Code Diffs</a>
+  <a href="#raw-data">Raw Data</a>
+</nav>
+
+<main class="main">
+  {# Metadata Banner #}
+  <div class="metadata-banner">
+    <div class="meta-item">
+      <span class="meta-label">Experiment</span>
+      <span class="meta-value">{{ experiment_name }} <span class="experiment-badge">EXPERIMENT</span></span>
+    </div>
+    {% if experiment_desc %}
+    <div class="meta-item">
+      <span class="meta-label">Description</span>
+      <span class="meta-value" style="font-size:0.9rem;font-weight:400">{{ experiment_desc }}</span>
+    </div>
+    {% endif %}
+    <div class="meta-item">
+      <span class="meta-label">Models</span>
+      <span class="meta-value">{{ metadata.models_tested | join(", ") }}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Variants</span>
+      <span class="meta-value">{{ variants | length }}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Tasks</span>
+      <span class="meta-value">{{ tasks | length }}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Total Runs</span>
+      <span class="meta-value">{{ metadata.total_runs }}</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Date</span>
+      <span class="meta-value">{{ metadata.date }}</span>
+    </div>
+  </div>
+
+  {# Failure Banner #}
+  {% if run_health and run_health.failed_runs > 0 %}
+  <div class="failure-banner">
+    <strong>{{ run_health.failed_runs }}/{{ run_health.total_runs }} runs failed</strong>
+    ({{ "%.0f"|format(run_health.failure_rate * 100) }}% failure rate).
+    Scores below may be incomplete or zero.
+    {% if run_health.common_errors %}
+    <div style="margin-top:0.5rem;font-size:0.82rem">
+      Top errors:
+      {% for err, count in run_health.common_errors %}
+      <div><code>{{ err[:120] }}</code> (&times;{{ count }})</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# Variant Descriptions #}
+  {% if variant_configs %}
+  <div style="margin-bottom:1.5rem">
+    <h3>Variants</h3>
+    {% for key, config in variant_configs.items() %}
+    <div class="variant-config">
+      <span class="vl">{{ config.label }}</span>
+      {% if key == control_variant %}<span class="experiment-badge" style="background:#6b7280">CONTROL</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Executive Summary #}
+  <section id="summary">
+    <h2>Executive Summary</h2>
+    <div class="summary-highlights">
+      <div class="summary-card">
+        <div class="card-label">Best Variant</div>
+        <div class="card-value">{{ summary.best_variant | variant_label }}</div>
+        <div style="font-size:0.85rem;color:#718096">Score: {{ summary.best_score }}</div>
+      </div>
+      <div class="summary-card">
+        <div class="card-label">Control Baseline</div>
+        <div class="card-value">{{ summary.control_variant | variant_label }}</div>
+        <div style="font-size:0.85rem;color:#718096">Score: {{ summary.control_score }}</div>
+      </div>
+      <div class="summary-card">
+        <div class="card-label">Improvement</div>
+        <div class="card-value {% if summary.improvement_delta > 0 %}delta-positive{% elif summary.improvement_delta < 0 %}delta-negative{% endif %}">
+          {% if summary.improvement_delta > 0 %}+{% endif %}{{ summary.improvement_delta }} pts
+        </div>
+        <div style="font-size:0.85rem;color:#718096">{{ summary.improvement_pct }}% vs control</div>
+      </div>
+      <div class="summary-card">
+        <div class="card-label">Token Efficiency Winner</div>
+        <div class="card-value">{{ summary.efficiency_winner | variant_label }}</div>
+      </div>
+    </div>
+  </section>
+
+  {# Key Insights #}
+  <section id="insights">
+    <h2>Key Insights</h2>
+    {% for insight in insights %}
+    <div class="insight-callout">{{ insight }}</div>
+    {% endfor %}
+    {% if not insights %}
+    <p style="color:#718096">No insights generated.</p>
+    {% endif %}
+  </section>
+
+  {# LLM Narrative #}
+  {% if llm_summary_text %}
+  <div class="llm-summary-callout">
+    {% for para in llm_summary_text.split('\n\n') %}
+    <p>{{ para }}</p>
+    {% endfor %}
+    <div class="llm-summary-attribution">Generated by Claude (LLM narrative summary)</div>
+  </div>
+  {% endif %}
+
+  {# Statistical Comparison Table #}
+  <section id="statistical">
+    <h2>Statistical Comparison</h2>
+    <div class="section-guide">Each treatment variant compared against control ({{ control_variant | variant_label }}). Significance threshold: p &lt; 0.05. Bonferroni-adjusted p-values correct for {{ stat_table | length }} comparison{{ 's' if stat_table | length != 1 else '' }}.</div>
+    {% if stat_table %}
+    {% set underpowered = stat_table | selectattr('power', 'lt', 0.8) | list %}
+    {% if underpowered %}
+    <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.9rem;color:#92400e;border-radius:0 6px 6px 0;">
+      <strong>Low statistical power warning:</strong> {{ underpowered | length }} of {{ stat_table | length }} comparisons have estimated power &lt; 0.80, meaning these tests may not reliably detect real differences at the observed effect sizes. Consider increasing sample size (reps) for more conclusive results.
+    </div>
+    {% endif %}
+    <div class="chart-card" style="overflow-x:auto">
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>Variant</th>
+            <th>Mean Score</th>
+            <th>Control Mean</th>
+            <th>Delta</th>
+            <th>Delta %</th>
+            <th>CV %</th>
+            <th>p-value</th>
+            <th>Adj. p-value</th>
+            <th>Effect Size (d)</th>
+            <th>Effect</th>
+            <th>Power</th>
+            <th>Significant?</th>
+            <th>N</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in stat_table %}
+          <tr>
+            <td style="font-weight:600">{{ row.variant | variant_label }}</td>
+            <td>{{ '%.1f'|format(row.mean) }}</td>
+            <td>{{ '%.1f'|format(row.control_mean) }}</td>
+            <td class="{% if row.delta > 0 %}delta-positive{% elif row.delta < 0 %}delta-negative{% endif %}">
+              {% if row.delta > 0 %}+{% endif %}{{ '%.1f'|format(row.delta) }}
+            </td>
+            <td class="{% if row.delta_pct > 0 %}delta-positive{% elif row.delta_pct < 0 %}delta-negative{% endif %}">
+              {% if row.delta_pct > 0 %}+{% endif %}{{ '%.1f'|format(row.delta_pct * 100) }}%
+            </td>
+            <td>{{ '%.1f'|format(row.cv_pct) }}%</td>
+            <td>{{ '%.4f'|format(row.p_value) }}</td>
+            <td>{{ '%.4f'|format(row.adjusted_p_value) }}</td>
+            <td>{{ '%.2f'|format(row.effect_size) }}</td>
+            <td style="font-size:0.82rem">{{ row.effect_interpretation }}</td>
+            <td class="{% if row.power < 0.8 %}delta-negative{% else %}delta-positive{% endif %}">{{ '%.0f'|format(row.power * 100) }}%</td>
+            <td class="{% if row.is_significant_adjusted %}sig-yes{% else %}sig-no{% endif %}">
+              {% if row.is_significant_adjusted %}Yes{% else %}No{% endif %}
+            </td>
+            <td style="font-size:0.8rem;color:#718096">{{ row.n_variant }} vs {{ row.n_control }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color:#718096">Insufficient data for statistical comparison.</p>
+    {% endif %}
+  </section>
+
+  {# Heatmap #}
+  <section id="heatmap">
+    <h2>Variant x Task Scores</h2>
+    {% include "partials/heatmap.html.j2" %}
+  </section>
+
+  {# Charts #}
+  <section id="charts">
+    <h2>Charts</h2>
+    <div class="chart-grid">
+      {% for model in models %}
+      <div class="chart-card">
+        <canvas id="radar-{{ model }}" width="400" height="400"></canvas>
+        {% if comparison_tables and comparison_tables.get(model) %}
+        <table class="score-table" style="margin-top:1rem">
+          <thead>
+            <tr>
+              <th>Variant</th>
+              {% for dim in dimensions %}<th title="{{ dim_labels.get(dim, dim.replace('_', ' ')|title) }}">{{ dim_labels.get(dim, dim.replace("_", " ")|title) }}</th>{% endfor %}
+              <th>Avg</th>
+              <th>#</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in comparison_tables[model] %}
+            <tr>
+              <td style="font-weight:600" title="{{ row.profile }}">{{ row.profile | variant_label }}</td>
+              {% for cell in row.scores %}
+              <td style="{% if cell.is_best %}font-weight:700;color:#16a34a{% endif %}">
+                {{ cell.value }}{% if not cell.is_best %}<span style="color:#94a3b8;font-size:0.8em"> ({{ cell.delta }})</span>{% endif %}
+              </td>
+              {% endfor %}
+              <td><strong>{{ row.avg }}</strong></td>
+              <td>{{ row.rank }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    {% for dim in dimensions %}
+    <div class="chart-card" style="margin-bottom:1.5rem">
+      <div style="height:350px">
+        <canvas id="bar-{{ dim }}" style="width:100%;height:100%"></canvas>
+      </div>
+      {% if scores_by_dimension and scores_by_dimension.get(dim) %}
+      <table class="score-table" style="margin-top:1rem">
+        <thead>
+          <tr>
+            <th>Task</th>
+            {% for variant in variants %}<th>{{ variant | variant_label }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for task in tasks %}
+          <tr>
+            <td>{{ task }}</td>
+            {% for variant in variants %}
+            {% set val = scores_by_dimension[dim].get(variant, {}).get(task) %}
+            <td>{% if val is not none %}{{ '%.1f'|format(val) }}{% else %}-{% endif %}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="chart-card" style="height:400px">
+      <canvas id="scatter-efficiency" style="width:100%;height:100%"></canvas>
+    </div>
+  </section>
+
+  {# Code Diffs #}
+  <section id="diffs">
+    <h2>Code Diffs</h2>
+    <div class="section-guide">Side-by-side comparison of code output between variants.</div>
+    {% if diffs %}
+    {% for key, diff_html in diffs.items() %}
+    <details style="margin-bottom:1rem">
+      <summary>{{ key }}</summary>
+      <div class="diff-container">{{ diff_html | safe }}</div>
+    </details>
+    {% endfor %}
+    {% else %}
+    <p style="color:#718096">No code diffs available.</p>
+    {% endif %}
+  </section>
+
+  {# Raw Data #}
+  <section id="raw-data">
+    <h2>Raw Data</h2>
+    {% if raw_csv %}
+    <div class="chart-card">
+      <h3>CSV Preview</h3>
+      <pre style="max-height:300px;overflow:auto;font-size:0.78rem;background:#f8fafc;padding:0.75rem;border-radius:4px">{{ raw_csv[:5000] }}</pre>
+      {% if raw_csv|length > 5000 %}
+      <p style="color:#718096;font-size:0.82rem;margin-top:0.5rem">Showing first 5000 characters. Download full CSV below.</p>
+      {% endif %}
+    </div>
+    <button class="download-btn" onclick="(function(){var b=new Blob([document.getElementById('csv-data').textContent],{type:'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='experiment-results.csv';a.click()})()">Download CSV</button>
+    <script id="csv-data" type="text/plain">{{ raw_csv }}</script>
+    {% else %}
+    <p style="color:#718096">No raw data available.</p>
+    {% endif %}
+  </section>
+</main>
+
+<script>{{ chartjs_source | safe }}</script>
+
+<script>
+const CHART_CONFIGS = {{ chart_configs_json | safe }};
+const BENCHMARK_DATA = {{ benchmark_data_json | safe }};
+
+// Radar point label plugin
+const radarPointLabels = {
+  id: "radarPointLabels",
+  afterDatasetsDraw(chart) {
+    if (chart.config.type !== "radar") return;
+    const ctx = chart.ctx;
+    chart.data.datasets.forEach(function(dataset, dsIndex) {
+      const meta = chart.getDatasetMeta(dsIndex);
+      if (meta.hidden) return;
+      meta.data.forEach(function(point, index) {
+        const value = (dataset.originalData && dataset.originalData[index] != null)
+          ? dataset.originalData[index] : dataset.data[index];
+        if (value == null) return;
+        ctx.save();
+        ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, sans-serif";
+        ctx.fillStyle = dataset.borderColor || "#333";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(typeof value === "number" ? value.toFixed(1) : String(value), point.x, point.y - 8);
+        ctx.restore();
+      });
+    });
+  }
+};
+Chart.register(radarPointLabels);
+
+document.addEventListener("DOMContentLoaded", function() {
+  for (const [canvasId, config] of Object.entries(CHART_CONFIGS)) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) continue;
+    if (config.type === "radar" && config.data.datasets.some(function(ds) { return ds.originalData; })) {
+      config.options.plugins.tooltip.callbacks = {
+        label: function(ctx) {
+          var ds = ctx.dataset;
+          var orig = ds.originalData ? ds.originalData[ctx.dataIndex] : ctx.raw;
+          return ds.label + ": " + (typeof orig === "number" ? orig.toFixed(1) : orig);
+        }
+      };
+    }
+    new Chart(canvas.getContext("2d"), config);
+  }
+});
+</script>
+
+</body>
+</html>

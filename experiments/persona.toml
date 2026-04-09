@@ -1,0 +1,23 @@
+name = "persona-sweep"
+description = "Test whether assigning a role persona in the system prompt affects quality"
+
+[defaults]
+tasks = ["bug-fix-01", "code-gen-01", "refactor-01"]
+models = ["sonnet", "opus", "haiku"]
+profiles = ["empty"]
+reps = 30
+
+[[variants]]
+label = "no-persona"
+
+[[variants]]
+label = "senior-engineer"
+system_prompt_extra = "You are a senior software engineer with 15 years of experience. Write clean, production-ready code with proper error handling."
+
+[[variants]]
+label = "code-reviewer"
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."
+
+[[variants]]
+label = "mentor"
+system_prompt_extra = "You are a patient mentor helping a junior developer. Write clear, well-commented code that teaches good practices."

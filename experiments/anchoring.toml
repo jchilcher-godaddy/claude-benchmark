@@ -1,0 +1,28 @@
+name = "anchoring"
+description = "Test whether quality anchors (score expectations, peer comparisons) affect output quality via anchoring bias."
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03", "instruction-04",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+[[variants]]
+label = "no-anchor"
+
+[[variants]]
+label = "high-anchor"
+system_prompt_extra = "Top developers consistently produce code that scores 95+ out of 100 on correctness, readability, and maintainability. Match that standard."
+
+[[variants]]
+label = "negative-anchor"
+system_prompt_extra = "Most developers make at least 2 mistakes on tasks like this: missing edge cases and poor variable naming. Be careful to avoid these common pitfalls."
+
+[[variants]]
+label = "quality-bar"
+system_prompt_extra = "Write code that would pass a rigorous code review at a top tech company like Google or Stripe. Production-grade quality expected."

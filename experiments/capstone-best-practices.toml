@@ -1,0 +1,149 @@
+name = "capstone-best-practices"
+description = """Meta-experiment comparing evidence-based best practices from techloom.it \
+(5,000+ benchmark runs across 6 experiments) against common user archetypes: \
+the terse coder, the prompt engineer, and the kitchen-sink power user."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Control: just ask Claude with zero setup ---
+[[variants]]
+label = "bare-default"
+
+# --- Archetype 1: The terse coder ---
+# "The pragmatic developer just fires off terse commands"
+# Uses temp 0 because "forum posts recommend setting it to 0 for deterministic coding"
+[[variants]]
+label = "terse-coder"
+temperature = 0.0
+
+# --- Archetype 2: The prompt engineer ---
+# Follows widely-repeated advice: CoT prefix + verbose instruction set
+# "Think step by step is the most widely repeated prompt engineering advice on the internet"
+[[variants]]
+label = "prompt-engineer"
+prompt_prefix = "Think step by step. "
+system_prompt_extra = """You are a senior staff engineer with deep experience in distributed systems and API design. Think step-by-step before writing code. Outline your approach in comments before implementation.
+
+Code Style Rules:
+- Use snake_case for variables and functions, PascalCase for classes
+- Prefix booleans with is_, has_, can_, should_
+- Use descriptive names, never single letters except loop counters
+- 4 spaces indentation, max 100 char line length
+- Trailing commas in multi-line collections
+- Use early returns to reduce nesting depth
+- Group imports: standard library, third-party, local (separated by blank lines)
+- Every public function and class MUST have a docstring
+- Write comments that explain "why", not "what"
+
+Architecture Principles:
+- Prefer composition over inheritance
+- Design to interfaces, not implementations
+- Single Responsibility Principle for every function and class
+- Explicit dependency injection over global state
+- Make illegal states unrepresentable through types
+- Validate all inputs at system boundaries
+
+Error Handling:
+- Use custom exception classes organized by domain
+- Never catch generic exceptions unless you re-raise
+- Exceptions should carry enough context for debugging
+- Fail fast: validate inputs early and reject invalid state
+- Error messages must be actionable
+
+Testing:
+- Write tests first for bug fixes
+- Test behavior, not implementation
+- Each test tests one thing with a descriptive name
+- Arrange-act-assert pattern
+- Mock at system boundaries only, prefer real implementations
+- Aim for 80%+ coverage on new code"""
+
+# --- Archetype 3: The kitchen sink ---
+# Stacks ALL common advice: detailed CoT + temp 0 + verbose CLAUDE.md + no warmth
+[[variants]]
+label = "kitchen-sink"
+prompt_prefix = "Before writing any code, analyze the requirements step by step. Consider edge cases and potential issues. Then implement your solution. "
+temperature = 0.0
+system_prompt_extra = """You are a senior staff engineer with deep experience in distributed systems and API design. Think step-by-step before writing code. Outline your approach in comments before implementation.
+
+Code Style Rules:
+- Use snake_case for variables and functions, PascalCase for classes
+- Prefix booleans with is_, has_, can_, should_
+- Use descriptive names, never single letters except loop counters
+- 4 spaces indentation, max 100 char line length
+- Trailing commas in multi-line collections
+- Use early returns to reduce nesting depth
+- Group imports: standard library, third-party, local (separated by blank lines)
+- Every public function and class MUST have a docstring
+- Write comments that explain "why", not "what"
+
+Architecture Principles:
+- Prefer composition over inheritance
+- Design to interfaces, not implementations
+- Single Responsibility Principle for every function and class
+- Explicit dependency injection over global state
+- Make illegal states unrepresentable through types
+- Validate all inputs at system boundaries
+
+Error Handling:
+- Use custom exception classes organized by domain
+- Never catch generic exceptions unless you re-raise
+- Exceptions should carry enough context for debugging
+- Fail fast: validate inputs early and reject invalid state
+- Error messages must be actionable
+
+Testing:
+- Write tests first for bug fixes
+- Test behavior, not implementation
+- Each test tests one thing with a descriptive name
+- Arrange-act-assert pattern
+- Mock at system boundaries only, prefer real implementations
+- Aim for 80%+ coverage on new code"""
+
+# --- Evidence-based best practices (techloom.it optimal stack) ---
+# Combines ALL experiment findings (published + unpublished):
+#   - Warm framing (politeness sweep: +1.5pts, best floor/variance)
+#   - Default temperature 1.0 (temperature sweep: marginally best, lowest stdev)
+#   - No CoT scaffolding (CoT experiment: every variant hurt)
+#   - Minimal instructions (CLAUDE.md experiment: r=-0.95 token/quality)
+#   - Code-reviewer persona (persona sweep: +1.0 overall, +2.9 on refactoring)
+#   - Clean context, no padding (context-pollution: refactoring degrades -7.5pts)
+[[variants]]
+label = "best-practices"
+prompt_prefix = "Could you please "
+temperature = 1.0
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."
+
+# --- Best practices + model-tuned guidance ---
+# Per-model system prompts from model-selection experiment findings,
+# layered on top of the code-reviewer persona from persona-sweep.
+
+[[variants]]
+label = "tuned-haiku"
+models = ["haiku"]
+prompt_prefix = "Could you please "
+temperature = 1.0
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write. Structure your solution clearly with descriptive variable names. Write a brief plan before coding. Use type hints and keep functions focused on a single responsibility."
+
+[[variants]]
+label = "tuned-sonnet"
+models = ["sonnet"]
+prompt_prefix = "Could you please "
+temperature = 1.0
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write. Write clean, idiomatic Python. Let the code speak for itself."
+
+[[variants]]
+label = "tuned-opus"
+models = ["opus"]
+prompt_prefix = "Could you please "
+temperature = 1.0
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write. Prioritize correctness and elegant simplicity. Favor readability over cleverness."

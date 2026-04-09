@@ -32,3 +32,15 @@ class LLMJudgeError(ScoringError):
     def __init__(self, message: str, retry_attempted: bool = False) -> None:
         self.retry_attempted = retry_attempted
         super().__init__(message)
+
+
+_DETERMINISTIC_PATTERNS = [
+    "No Python files found",
+    "Could not read any Python files",
+    "aws_credentials_expired",
+]
+
+
+def is_deterministic_llm_error(exc: LLMJudgeError) -> bool:
+    """Check if an LLM judge error is deterministic and should not be retried."""
+    return any(pat in str(exc) for pat in _DETERMINISTIC_PATTERNS)

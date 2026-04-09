@@ -1,0 +1,24 @@
+name = "temperature-sweep"
+description = "Measure effect of sampling temperature on output quality and consistency"
+
+[defaults]
+tasks = ["bug-fix-02", "code-gen-02", "refactor-02", "bug-fix-03", "code-gen-03", "refactor-03"]
+models = ["sonnet"]
+profiles = ["empty"]
+reps = 30
+
+[[variants]]
+label = "temp-1.0"
+temperature = 1.0
+
+[[variants]]
+label = "temp-0.0"
+temperature = 0.0
+
+[[variants]]
+label = "temp-0.3"
+temperature = 0.3
+
+[[variants]]
+label = "temp-0.7"
+temperature = 0.7

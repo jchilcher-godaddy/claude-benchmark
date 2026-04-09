@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="I ran 720 benchmark runs across 4 temperatures, 6 tasks, and 30 repetitions to test whether temperature affects code quality. The spread was 0.9 points on a 100-point scale.">
+    <meta name="keywords" content="Claude temperature, LLM temperature, code quality benchmark, Claude Code, AI coding, temperature sweep, sampling temperature">
+    <meta property="og:title" content="Does Temperature Actually Matter? 720 Runs Say Not Really">
+    <meta property="og:description" content="I ran 720 benchmark runs across 4 temperatures, 6 tasks, and 30 repetitions to test whether temperature affects code quality. The spread was 0.9 points on a 100-point scale.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/temperature-sweep-benchmark.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/temperature-sweep-benchmark.html">
+    <title>Does Temperature Actually Matter? 720 Runs Say Not Really - TechLoom</title>
+    <link rel="alternate" type="application/rss+xml" title="TechLoom Blog" href="https://techloom.it/blog/feed.xml">
+    <link rel="stylesheet" href="https://techloom.it/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th,
+        .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+    </style>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Does Temperature Actually Matter? 720 Runs Say Not Really",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-03-09",
+        "dateModified": "2026-03-09",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "I ran 720 benchmark runs across 4 temperatures, 6 tasks, and 30 repetitions to test whether temperature affects code quality. The spread was 0.9 points on a 100-point scale.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/temperature-sweep-benchmark.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Does Temperature Actually Matter? 720 Runs Say Not Really",
+                "item": "https://techloom.it/blog/temperature-sweep-benchmark.html"
+            }
+        ]
+    }
+    </script>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Does Temperature Actually Matter? 720 Runs Say Not Really</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">March 9, 2026</span>
+                    <span class="blog-tag">Benchmarking</span>
+                </div>
+                <h1>Does Temperature Actually Matter? 720 Runs Say Not Really</h1>
+                <div class="blog-author">
+                    <span>By Johnathen Chilcher</span>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <h2>The Next Knob to Test</h2>
+
+                <p>After I published <a href="claudemd-benchmark-results.html">"I Ran 540 Benchmarks to Prove CLAUDE.md Compression Works"</a>, I got a recurring question: <em>what about temperature?</em></p>
+
+                <p>Fair question. If <a href="compress-claude-md.html">compressing your CLAUDE.md</a> doesn't measurably hurt code quality, and verbose instruction profiles barely move the needle for generic coding tasks, then temperature is the next obvious variable to isolate. It's the setting people actually fiddle with. Forum posts recommend setting it to 0 for "deterministic" coding. API wrappers default to all sorts of values. Everyone has an opinion, almost nobody has data.</p>
+
+                <p>So I ran the experiment. Same benchmark tool, same scoring pipeline, new variable.</p>
+
+                <h2>Experiment Design</h2>
+
+                <p>I used <a href="https://github.com/jchilcher/claude-benchmark">claude-benchmark</a> to run a full temperature sweep with the following setup:</p>
+
+                <ul>
+                    <li><strong>Temperatures:</strong> 0.0, 0.3, 0.7, 1.0</li>
+                    <li><strong>Model:</strong> Claude Sonnet 4.6</li>
+                    <li><strong>Profile:</strong> Empty (no CLAUDE.md instructions)</li>
+                    <li><strong>Tasks:</strong> 6 total &mdash; 2 bug-fix, 2 code-gen, 2 refactor</li>
+                    <li><strong>Repetitions:</strong> 30 per task per temperature</li>
+                    <li><strong>Total runs:</strong> 720</li>
+                </ul>
+
+                <p>I used the empty profile deliberately. The <a href="claudemd-benchmark-results.html">previous benchmark</a> showed that instruction content has minimal impact on generic task quality, and an empty profile actually scored highest across the board. Using it here isolates temperature as the only variable &mdash; no confounding effects from prompt content.</p>
+
+                <p>Scoring works the same way as before: automated test execution (pass/fail), lint checks, and an LLM quality judge, blended into a composite score on a 0&ndash;100 scale. Each of the 720 runs gets scored independently.</p>
+
+                <h2>The Results: 0.9 Points of Nothing</h2>
+
+                <p>Here are the overall composite scores across all 6 tasks and 30 reps per temperature:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Temperature</th>
+                            <th>Mean</th>
+                            <th>Median</th>
+                            <th>Std Dev</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0.0</td>
+                            <td>92.71</td>
+                            <td>97.50</td>
+                            <td>11.17</td>
+                        </tr>
+                        <tr>
+                            <td>0.3</td>
+                            <td>92.44</td>
+                            <td>97.17</td>
+                            <td>9.70</td>
+                        </tr>
+                        <tr>
+                            <td>0.7</td>
+                            <td>92.71</td>
+                            <td>97.17</td>
+                            <td>9.77</td>
+                        </tr>
+                        <tr>
+                            <td>1.0</td>
+                            <td>93.34</td>
+                            <td>97.17</td>
+                            <td>8.91</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="result-highlight">
+                    <p><strong>Bottom line:</strong> The difference between the best and worst mean score is <strong>0.9 points</strong> across 180 runs per temperature. The medians are nearly identical. This is well within noise.</p>
+                </div>
+
+                <p>Temperature 1.0 &mdash; Claude's default &mdash; comes out marginally on top with the highest mean (93.34) and, counterintuitively, the <em>lowest</em> standard deviation (8.91). The "deterministic" setting at 0.0 doesn't produce more consistent results. If anything, it's slightly less consistent.</p>
+
+                <h2>Task-Type Breakdown</h2>
+
+                <p>The overall numbers are boring by design &mdash; that's the finding. But the per-task-type breakdown has some texture worth examining.</p>
+
+                <h3>Bug-Fix Tasks</h3>
+
+                <p>All four temperatures score between 98 and 99 on bug-fix tasks. The model either finds the bug and fixes it, or it doesn't, and temperature doesn't change that outcome. Temp 1.0 has slightly more variance (stdev 4.65 vs ~1.5 for the others), meaning it occasionally whiffs on a fix that the deterministic setting nails, but the mean is effectively identical.</p>
+
+                <div class="result-highlight">
+                    <p><strong>Bug-fix verdict:</strong> Temperature is irrelevant. All settings produce near-perfect scores.</p>
+                </div>
+
+                <h3>Code Generation Tasks</h3>
+
+                <p>This is where temp 0.0 has its best showing. Mean score at temp 0.0 is 98.02 compared to 95.53 at temp 1.0. For tasks with clear specifications and a single correct implementation path, deterministic sampling has a slight edge &mdash; it doesn't explore alternatives that might introduce unnecessary complexity.</p>
+
+                <div class="result-warning">
+                    <p><strong>Code-gen nuance:</strong> Temp 0.0 edges ahead by ~2.5 points for straightforward generation tasks. This is the strongest per-category difference in the entire sweep, and it's still small.</p>
+                </div>
+
+                <h3>Refactoring Tasks</h3>
+
+                <p>Here's the interesting reversal. Temp 1.0 scores 86.52 on refactoring tasks versus 81.27 at temp 0.0 &mdash; a 5-point gap, the largest single difference in the experiment. Higher temperature produces better refactoring output.</p>
+
+                <p>This makes sense when you think about what refactoring involves. There's no single "correct" refactoring &mdash; it's about improving structure, readability, and design. These are inherently subjective qualities. The LLM quality judge rewards cleaner abstractions and more thoughtful restructuring, and higher temperature lets the model explore a wider solution space before committing to an approach.</p>
+
+                <div class="result-highlight">
+                    <p><strong>Refactor verdict:</strong> Temp 1.0 wins by the widest margin of any task type. Creativity helps where there's no single right answer.</p>
+                </div>
+
+                <h2>Sub-Component Analysis</h2>
+
+                <p>The composite score blends three signals. Breaking them apart tells you exactly where temperature does and doesn't matter.</p>
+
+                <p><strong>Test pass rate: 100% across the board.</strong> Every temperature, every task type, every run. The model produces code that passes its test suite regardless of sampling temperature. This is the most important finding for anyone worried about correctness &mdash; temperature doesn't introduce bugs.</p>
+
+                <p><strong>Lint scores barely move.</strong> The range is 96.92 (temp 1.0) to 97.86 (temp 0.0). Yes, slightly higher temperature produces marginally more lint warnings, but we're talking about less than a single percentage point. Not actionable.</p>
+
+                <p><strong>LLM quality judge prefers higher temperature.</strong> This is the driver behind the overall scores. The quality judge &mdash; which evaluates code structure, readability, and design quality &mdash; gives temp 1.0 the highest mean (91.60) with the <em>lowest</em> variance (stdev 16.90 vs 22.13 at temp 0.0). Higher temperature produces output that a quality-focused evaluator consistently rates better, and rates more consistently.</p>
+
+                <div class="result-warning">
+                    <p><strong>The variance surprise:</strong> Conventional wisdom says lower temperature = more consistent output. The data says the opposite for code quality scores. Temp 0.0 has the highest standard deviation overall (11.17) while temp 1.0 has the lowest (8.91).</p>
+                </div>
+
+                <h2>Why This Makes Sense</h2>
+
+                <p>Modern LLMs are robust to temperature for structured output tasks, and code is about as structured as output gets. The model has learned strong priors about what correct code looks like &mdash; syntax, patterns, idioms &mdash; and those priors dominate regardless of how much randomness you inject into the sampling.</p>
+
+                <p>Think of it this way: if you ask someone who deeply understands Python to write a function that reverses a linked list, they'll write essentially the same code whether they're feeling "creative" or "methodical." The solution space for correct code is narrow enough that temperature doesn't push the model outside it.</p>
+
+                <p>Where temperature <em>does</em> matter is in the subjective quality channel. Refactoring has many valid approaches. Higher temperature lets the model consider more of them before settling on one, and the result is often a more thoughtful restructuring. The "creativity" knob isn't making the code more creative &mdash; it's making the <em>search</em> over possible solutions broader, which helps when the quality landscape has multiple peaks.</p>
+
+                <h2>Updated Recommendations</h2>
+
+                <ol>
+                    <li><strong>Stick with the default (1.0).</strong> The data shows no reason to override Claude's default temperature for coding tasks. It ties or wins in every category except narrow code generation, where the advantage of 0.0 is offset by worse refactoring scores.</li>
+                    <li><strong>Don't waste time tuning temperature for coding.</strong> The 0.9-point overall spread across 720 runs means temperature tuning has near-zero ROI. Spend that time on better task decomposition or clearer specifications instead.</li>
+                    <li><strong>If you must pick a non-default value, avoid 0.0 for refactoring.</strong> Deterministic sampling costs you ~5 points on refactoring quality. If your workflow is refactor-heavy, the default is strictly better.</li>
+                    <li><strong>Don't trust the "set temp to 0 for coding" advice.</strong> It's intuitive but unsupported. Deterministic sampling doesn't produce more consistent results &mdash; it actually produces slightly <em>less</em> consistent ones across the full task spectrum.</li>
+                    <li><strong>Correctness isn't at stake.</strong> Tests pass at 100% regardless of temperature. This isn't a safety-critical parameter.</li>
+                </ol>
+
+                <h2>The Bigger Picture</h2>
+
+                <p>This is the third experiment in a series, and the findings keep converging on the same theme.</p>
+
+                <p>In the <a href="compress-claude-md.html">first post</a>, I showed that compressing CLAUDE.md saves tokens without hurting quality. In the <a href="claudemd-benchmark-results.html">second</a>, I found that instruction profile content barely moves the needle for generic coding tasks &mdash; the empty profile actually scored highest. Now, temperature joins the list of things that don't meaningfully affect code output quality.</p>
+
+                <p>The pattern is clear: <strong>for standard coding tasks, the model's training dominates the parameter space.</strong> CLAUDE.md content, instruction verbosity, sampling temperature &mdash; none of these knobs produce more than a point or two of movement on a 100-point scale. The model knows how to write code, and it writes similar-quality code regardless of how you configure these settings.</p>
+
+                <div class="result-highlight">
+                    <p><strong>What actually matters:</strong> Task design, problem decomposition, and clear specifications move the needle far more than parameter tuning. Focus your optimization effort there.</p>
+                </div>
+
+                <p>That said, "generic coding tasks" is the key qualifier. These benchmarks test bug fixes, code generation, and refactoring on well-specified problems. If your use case involves ambiguous requirements, domain-specific conventions, or tasks where the "right" answer depends heavily on context, instruction content and temperature might matter more. I haven't tested that yet.</p>
+
+                <p>If you want to run your own experiments &mdash; on your tasks, your prompts, your workflow &mdash; the <a href="https://github.com/jchilcher/claude-benchmark">claude-benchmark</a> tool is open source. Define your tasks, pick your variables, and let the data tell you what matters for <em>your</em> specific use case.</p>
+
+            </div>
+        </div>
+    </article>
+
+    <!-- CTA Box -->
+    <section class="about-cta-box" style="margin: 4rem auto; max-width: 800px; padding: 0 2rem;">
+        <h3>Need help building data-driven engineering workflows?</h3>
+        <p>I help teams build production-grade systems with AI tooling, from benchmarking configurations to infrastructure automation. Get a free assessment to see where measurement can improve your process.</p>
+        <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                        <a href="../blog/feed.xml" class="social-icon" aria-label="RSS Feed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" name="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://techloom.it/script.js"></script>
+</body>
+</html>

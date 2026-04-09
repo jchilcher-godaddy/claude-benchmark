@@ -1,0 +1,23 @@
+name = "context-pollution"
+description = "Measure quality degradation when irrelevant context is prepended to prompts"
+
+[defaults]
+tasks = ["bug-fix-01", "code-gen-01", "refactor-01"]
+models = ["sonnet", "opus", "haiku"]
+profiles = ["empty"]
+reps = 30
+
+[[variants]]
+label = "clean"
+
+[[variants]]
+label = "pad-2k"
+padding_tokens = 2000
+
+[[variants]]
+label = "pad-10k"
+padding_tokens = 10000
+
+[[variants]]
+label = "pad-50k"
+padding_tokens = 50000

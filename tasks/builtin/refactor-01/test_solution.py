@@ -1,6 +1,9 @@
 """Tests for refactor-01 task."""
 
+import ast
+import inspect
 import pytest
+from pathlib import Path
 
 from solution import process_records
 
@@ -88,3 +91,42 @@ def test_large_amounts():
     assert result["active_total"] == 1_250_000
     assert result["high_priority_total"] == 1_500_000
     assert result["pending_total"] == 500_000
+
+
+def test_no_duplicated_loops():
+    """Verify solution reduces duplicated loops by extracting repeated logic.
+
+    The starter code has 5 separate 'for record in records' loops.
+    A properly refactored solution should have fewer than 4 For loops.
+    """
+    solution_path = Path(__file__).parent / "solution.py"
+    with open(solution_path) as f:
+        tree = ast.parse(f.read())
+
+    for_count = sum(1 for node in ast.walk(tree) if isinstance(node, ast.For))
+    assert for_count < 4, (
+        f"Expected fewer than 4 'for' loops (found {for_count}). "
+        "The task requires extracting repeated loop logic into helper functions."
+    )
+
+
+def test_has_helper_functions():
+    """Verify solution extracts repeated logic into helper functions.
+
+    The task requires extracting duplicated aggregation logic into reusable helpers.
+    Solution should define at least 1 function besides process_records.
+    """
+    solution_path = Path(__file__).parent / "solution.py"
+    with open(solution_path) as f:
+        tree = ast.parse(f.read())
+
+    function_names = [
+        node.name for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef) and node.name != "process_records"
+    ]
+
+    assert len(function_names) >= 1, (
+        "Expected at least 1 helper function besides process_records. "
+        f"Found: {function_names if function_names else 'none'}. "
+        "The task requires extracting repeated logic into helper functions."
+    )

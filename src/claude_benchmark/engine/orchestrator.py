@@ -22,6 +22,7 @@ from claude_benchmark.results.storage import (
     save_manifest,
     save_run_result,
 )
+from claude_benchmark.scoring.models import SCORING_VERSION
 from claude_benchmark.tasks.schema import TaskDefinition
 
 logger = logging.getLogger(__name__)
@@ -147,6 +148,7 @@ async def run_benchmark_matrix(
         runs_per_combination=runs_per,
         total_combinations=len(tasks) * len(profiles) * len(models),
         total_runs=total_runs,
+        scoring_version=SCORING_VERSION,
     )
     save_manifest(results_dir, manifest)
 

@@ -1,0 +1,20 @@
+name = "politeness-sweep"
+description = "Test whether polite framing improves output quality"
+
+[defaults]
+tasks = ["bug-fix-01", "code-gen-01", "refactor-01"]
+models = ["sonnet", "opus", "haiku"]
+profiles = ["empty"]
+reps = 20
+
+[[variants]]
+label = "bare-imperative"
+
+[[variants]]
+label = "polite"
+prompt_prefix = "Could you please "
+
+[[variants]]
+label = "effusive"
+prompt_prefix = "I'd really appreciate your expert help! "
+system_prompt_extra = "The user values politeness and thorough explanations."

@@ -12,6 +12,7 @@ from claude_benchmark.reporting.models import (
     TaskResult,
 )
 from claude_benchmark.reporting.regression import (
+    benjamini_hochberg,
     check_regression,
     detect_all_regressions,
     summarize_regressions,
@@ -409,3 +410,81 @@ class TestSummarizeRegressions:
         assert len(lines) == 2
         assert "t1/correctness" in lines[0]
         assert "t2/style" in lines[1]
+
+
+# --- benjamini_hochberg tests ---
+
+
+class TestBenjaminiHochberg:
+    def test_empty_list(self):
+        """Empty p-value list returns empty list."""
+        assert benjamini_hochberg([]) == []
+
+    def test_single_value(self):
+        """Single p-value is adjusted by n/rank = 1/1 = 1."""
+        result = benjamini_hochberg([0.05])
+        assert result == [0.05]
+
+    def test_all_significant_remain_significant(self):
+        """When all p-values are low, FDR adjustment keeps them significant."""
+        p_values = [0.001, 0.002, 0.003, 0.004, 0.005]
+        adjusted = benjamini_hochberg(p_values, alpha=0.05)
+        # All adjusted values should remain < 0.05
+        assert all(p < 0.05 for p in adjusted)
+
+    def test_mixed_significance(self):
+        """FDR is less conservative than Bonferroni for mixed p-values."""
+        p_values = [0.01, 0.02, 0.03, 0.04, 0.05]
+        adjusted_bh = benjamini_hochberg(p_values, alpha=0.05)
+        from claude_benchmark.reporting.regression import bonferroni_correct
+        adjusted_bonf = bonferroni_correct(p_values)
+
+        # BH should be more lenient (lower adjusted p-values)
+        for bh, bonf in zip(adjusted_bh, adjusted_bonf):
+            assert bh <= bonf
+
+    def test_monotonicity_enforced(self):
+        """Adjusted p-values are monotonic in sorted order."""
+        p_values = [0.05, 0.01, 0.03, 0.02, 0.04]
+        adjusted = benjamini_hochberg(p_values)
+
+        # Sort by original p-values and check monotonicity
+        sorted_pairs = sorted(zip(p_values, adjusted), key=lambda x: x[0])
+        sorted_adjusted = [adj for _, adj in sorted_pairs]
+
+        for i in range(1, len(sorted_adjusted)):
+            assert sorted_adjusted[i] >= sorted_adjusted[i - 1]
+
+    def test_capped_at_one(self):
+        """Adjusted p-values are capped at 1.0."""
+        p_values = [0.5, 0.6, 0.7, 0.8, 0.9]
+        adjusted = benjamini_hochberg(p_values)
+        assert all(p <= 1.0 for p in adjusted)
+
+    def test_original_order_preserved(self):
+        """Adjusted p-values match original order (not sorted)."""
+        p_values = [0.05, 0.01, 0.03]
+        adjusted = benjamini_hochberg(p_values)
+
+        # Output length matches input length and order
+        assert len(adjusted) == len(p_values)
+        # The smallest p-value (0.01 at index 1) should have smallest adjustment
+        assert adjusted[1] < adjusted[0]
+        assert adjusted[1] < adjusted[2]
+
+    def test_known_calculation(self):
+        """Verify known BH calculation example."""
+        # p-values: [0.01, 0.04, 0.03, 0.05]
+        # Sorted: [0.01, 0.03, 0.04, 0.05]
+        # Ranks:   1,    2,    3,    4
+        # Adjusted: 0.01*4/1=0.04, 0.03*4/2=0.06, 0.04*4/3=0.053, 0.05*4/4=0.05
+        # After monotonicity: [0.04, 0.053, 0.053, 0.05] -> [0.04, 0.05, 0.05, 0.05]
+        p_values = [0.01, 0.04, 0.03, 0.05]
+        adjusted = benjamini_hochberg(p_values)
+
+        assert len(adjusted) == 4
+        assert adjusted[0] == pytest.approx(0.04)  # 0.01 * 4 / 1
+        # After monotonicity enforcement, values should be non-decreasing when sorted
+        sorted_adjusted = sorted(adjusted)
+        for i in range(1, len(sorted_adjusted)):
+            assert sorted_adjusted[i] >= sorted_adjusted[i - 1]

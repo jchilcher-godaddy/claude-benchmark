@@ -1,0 +1,24 @@
+name = "step-back"
+description = "Test step-back prompting: abstract to general principles before solving specific problem. Google DeepMind 2023."
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+[[variants]]
+label = "direct"
+
+[[variants]]
+label = "step-back-principles"
+prompt_prefix = "Before solving this, briefly identify what general programming principles and patterns apply to this type of problem. Then solve it. "
+
+[[variants]]
+label = "step-back-pitfalls"
+prompt_prefix = "Before solving this, briefly list the 2-3 most common mistakes developers make on this type of problem. Then solve it carefully avoiding those pitfalls. "

@@ -1,6 +1,8 @@
 """Tests for refactor-03 task."""
 
+import ast
 import pytest
+from pathlib import Path
 
 from solution import process_data
 
@@ -136,3 +138,48 @@ Charlie,Marketing,150"""
     result = process_data(raw_input)
     lines = result.split("\n")
     assert len(lines) == 3
+
+
+def test_has_classes():
+    """Verify solution converts procedural code to class-based design.
+
+    The task requires converting procedural functions to classes.
+    Solution should define at least 2 ClassDef nodes.
+    """
+    solution_path = Path(__file__).parent / "solution.py"
+    with open(solution_path) as f:
+        tree = ast.parse(f.read())
+
+    class_names = [
+        node.name for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef)
+    ]
+
+    assert len(class_names) >= 2, (
+        f"Expected at least 2 classes (found {len(class_names)}: {class_names}). "
+        "The task requires converting procedural code to class-based design with "
+        "separate classes for parsing, validation, transformation, and formatting."
+    )
+
+
+def test_no_procedural_globals():
+    """Verify solution moves procedural logic into classes.
+
+    The starter has 6 top-level procedural functions (plus process_data).
+    A properly refactored solution should have most logic in classes,
+    with at most 1-2 top-level functions (like process_data or a factory).
+    """
+    solution_path = Path(__file__).parent / "solution.py"
+    with open(solution_path) as f:
+        tree = ast.parse(f.read())
+
+    top_level_functions = [
+        node.name for node in tree.body
+        if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")
+    ]
+
+    assert len(top_level_functions) <= 2, (
+        f"Expected at most 2 top-level functions (found {len(top_level_functions)}: "
+        f"{top_level_functions}). The task requires converting procedural functions "
+        "to methods within classes."
+    )

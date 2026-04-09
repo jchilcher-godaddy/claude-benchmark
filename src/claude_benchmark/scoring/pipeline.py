@@ -21,12 +21,12 @@ from claude_benchmark.execution.parallel import RunResult
 from claude_benchmark.profiles.token_counter import count_tokens_approx
 from claude_benchmark.scoring.aggregator import StatisticalAggregator
 from claude_benchmark.scoring.composite import CompositeScorer
-from claude_benchmark.scoring.errors import LLMJudgeError, ScoringError
+from claude_benchmark.scoring.errors import LLMJudgeError, ScoringError, is_deterministic_llm_error
 from claude_benchmark.scoring.llm_judge import LLMJudgeScorer
 from claude_benchmark.scoring.models import AggregateStats, CompositeScore, TokenEfficiency
 from claude_benchmark.scoring.static import StaticScorer
 from claude_benchmark.scoring.token_efficiency import compute_token_efficiency
-from claude_benchmark.tasks.loader import load_task
+from claude_benchmark.tasks.loader import load_judge_rubric, load_task
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,13 @@ def _score_static_single(
     task_def = load_task(result.run.task_dir)
     try:
         test_file = result.run.task_dir / task_def.scoring.test_file
-        static_score = StaticScorer().score(
+
+        weights = None
+        if task_def.scoring.weight_override:
+            from claude_benchmark.scoring.models import ScoringWeights
+            weights = ScoringWeights(**task_def.scoring.weight_override)
+
+        static_score = StaticScorer(weights=weights).score(
             result.output_dir, test_file, ruff_rules=task_def.scoring.ruff_rules
         )
         return (i, task_def, static_score)
@@ -73,19 +79,36 @@ def _score_llm_single(
     if task_def.scoring.reference_solution:
         ref_path = result.run.task_dir / task_def.scoring.reference_solution
 
+    custom_criteria = None
+    if task_def.scoring.judge_rubric:
+        rubric_path = result.run.task_dir / task_def.scoring.judge_rubric
+        custom_criteria = load_judge_rubric(rubric_path)
+
     llm_score = None
     backoff = [0, 1, 2]
     for attempt in range(3):
         try:
             if backoff[attempt] > 0:
                 time.sleep(backoff[attempt])
-            llm_score = LLMJudgeScorer().score(
+            llm_score = LLMJudgeScorer(
+                use_gocode=result.run.use_gocode,
+            ).score(
                 result.output_dir,
                 task_def.description,
+                custom_criteria=custom_criteria,
                 reference_solution_path=ref_path,
             )
             return (i, llm_score)
         except (LLMJudgeError, Exception) as exc:
+            if isinstance(exc, LLMJudgeError) and is_deterministic_llm_error(exc):
+                logger.info(
+                    "Deterministic LLM failure for %s: %s (no retry)",
+                    result.run.result_key,
+                    exc,
+                )
+                if strict:
+                    raise ScoringError(f"LLM scoring failed (deterministic): {exc}") from exc
+                return (i, None)
             logger.warning(
                 "LLM scoring attempt %d/3 failed for %s: %s",
                 attempt + 1,
@@ -172,7 +195,13 @@ def score_run(
     # --- Static scoring ---
     try:
         test_file = task_dir / task_def.scoring.test_file
-        static_score = StaticScorer().score(
+
+        weights = None
+        if task_def.scoring.weight_override:
+            from claude_benchmark.scoring.models import ScoringWeights
+            weights = ScoringWeights(**task_def.scoring.weight_override)
+
+        static_score = StaticScorer(weights=weights).score(
             result.output_dir, test_file, ruff_rules=task_def.scoring.ruff_rules
         )
         scores["static"] = static_score.model_dump()
@@ -189,19 +218,39 @@ def score_run(
         if task_def.scoring.reference_solution:
             ref_path = task_dir / task_def.scoring.reference_solution
 
+        custom_criteria = None
+        if task_def.scoring.judge_rubric:
+            rubric_path = task_dir / task_def.scoring.judge_rubric
+            custom_criteria = load_judge_rubric(rubric_path)
+
         backoff = [0, 1, 2]
         for attempt in range(3):
             try:
                 if backoff[attempt] > 0:
                     time.sleep(backoff[attempt])
-                llm_score = LLMJudgeScorer().score(
+                llm_score = LLMJudgeScorer(
+                    use_gocode=result.run.use_gocode,
+                ).score(
                     result.output_dir,
                     task_def.description,
+                    custom_criteria=custom_criteria,
                     reference_solution_path=ref_path,
                 )
                 scores["llm"] = llm_score.model_dump()
                 break
             except (LLMJudgeError, Exception) as exc:
+                if isinstance(exc, LLMJudgeError) and is_deterministic_llm_error(exc):
+                    logger.info(
+                        "Deterministic LLM failure for %s: %s (no retry)",
+                        result.run.result_key,
+                        exc,
+                    )
+                    if strict:
+                        raise ScoringError(f"LLM scoring failed (deterministic): {exc}") from exc
+                    scores["failed_scorers"].append("llm_judge")
+                    scores["degraded"] = True
+                    llm_score = None
+                    break
                 logger.warning(
                     "LLM scoring attempt %d/3 failed for %s: %s",
                     attempt + 1,
@@ -321,7 +370,8 @@ def score_all_runs(
             progress.scoring_started("llm", len(successful))
 
         completed_llm = 0
-        with concurrent.futures.ThreadPoolExecutor(max_workers=_LLM_SCORING_CONCURRENCY) as executor:
+        executor_params = {"max_workers": _LLM_SCORING_CONCURRENCY}
+        with concurrent.futures.ThreadPoolExecutor(**executor_params) as executor:
             futures = {
                 executor.submit(_score_llm_single, i, r, task_defs[i], strict): i
                 for i, r in enumerate(successful)
@@ -415,10 +465,12 @@ def score_all_runs(
     # --- Aggregation (SCOR-03) ---
     aggregation: dict[str, dict[str, AggregateStats]] = {}
 
-    # Group by variant key: (task_name, profile_name, model)
+    # Group by variant key: (task_name, profile_name, model[, variant_label])
     variant_groups: dict[str, list[int]] = {}
     for i, result in enumerate(successful):
         key = f"{result.run.task_name}|{result.run.profile_name}|{result.run.model}"
+        if result.run.variant_label:
+            key = f"{key}|{result.run.variant_label}"
         variant_groups.setdefault(key, []).append(i)
 
     aggregator = StatisticalAggregator()

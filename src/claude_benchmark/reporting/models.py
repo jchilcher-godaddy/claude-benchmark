@@ -28,6 +28,7 @@ class RunResult(BaseModel):
     success: bool = True
     error: Optional[str] = None
     output_dir: Optional[str] = None
+    variant_label: Optional[str] = None
 
 
 class TaskResult(BaseModel):
@@ -61,6 +62,7 @@ class ReportMetadata(BaseModel):
 
     date: str
     models_tested: list[str] = Field(default_factory=list)
+    variants: list[str] = Field(default_factory=list)
     profile_count: int = 0
     total_runs: int = 0
     wall_clock_seconds: float = 0.0
@@ -139,6 +141,8 @@ class BenchmarkResults(BaseModel):
                         "token_count": run.token_count,
                         "code_output": run.code_output,
                     }
+                    if run.variant_label:
+                        row["variant_label"] = run.variant_label
                     # Flatten score dimensions into individual columns
                     for dim, score in run.scores.items():
                         row[f"score_{dim}"] = _sanitize_value(score)

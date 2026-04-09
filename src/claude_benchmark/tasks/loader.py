@@ -11,6 +11,58 @@ from .schema import TaskDefinition
 logger = logging.getLogger(__name__)
 
 
+def load_judge_rubric(rubric_path: Path) -> list[dict[str, str]]:
+    """Load judge rubric criteria from a TOML file.
+
+    The rubric file should contain an array of criteria tables:
+
+        [[criteria]]
+        name = "tone_adherence"
+        description = "How well the code follows the requested tone"
+        weight = 1.0
+
+    Args:
+        rubric_path: Path to the rubric TOML file.
+
+    Returns:
+        List of criteria dicts with "name" and "description" keys,
+        matching the format used by BUILTIN_CRITERIA in scoring/prompts.py.
+
+    Raises:
+        TaskLoadError: If the file cannot be read or parsed.
+    """
+    if not rubric_path.exists():
+        raise TaskLoadError(f"Rubric file not found: {rubric_path}")
+
+    try:
+        with open(rubric_path, "rb") as f:
+            raw = tomllib.load(f)
+    except tomllib.TOMLDecodeError as e:
+        raise TaskLoadError(f"Invalid TOML syntax in {rubric_path}: {e}") from e
+
+    criteria_raw = raw.get("criteria")
+    if not criteria_raw or not isinstance(criteria_raw, list):
+        raise TaskLoadError(
+            f"Rubric file {rubric_path} must contain a 'criteria' array"
+        )
+
+    criteria = []
+    for i, criterion in enumerate(criteria_raw):
+        if not isinstance(criterion, dict):
+            raise TaskLoadError(
+                f"Criterion {i} in {rubric_path} is not a table"
+            )
+        name = criterion.get("name")
+        description = criterion.get("description")
+        if not name or not description:
+            raise TaskLoadError(
+                f"Criterion {i} in {rubric_path} missing 'name' or 'description'"
+            )
+        criteria.append({"name": str(name), "description": str(description)})
+
+    return criteria
+
+
 @lru_cache(maxsize=64)
 def _load_task_cached(task_dir_str: str) -> TaskDefinition:
     """Cache-friendly inner loader keyed on the resolved string path."""
@@ -66,8 +118,6 @@ def _load_task_impl(task_dir: Path) -> TaskDefinition:
         if not ref_path.exists():
             missing_files.append(task.scoring.reference_solution)
 
-    # TODO: judge_rubric is validated here but not yet wired to LLMJudgeScorer.score().
-    # When rubric-based scoring is implemented, pass this path through the pipeline.
     if task.scoring.judge_rubric:
         rubric_path = task_dir / task.scoring.judge_rubric
         if not rubric_path.exists():

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="4,680 benchmarks testing XML tags, markdown emphasis, caps lock, and checklists. Plain text wins. Fancy formatting doesn't help AI write better code.">
+    <meta name="keywords" content="AI Tooling, Prompt Engineering, Benchmarking, constraint formatting, XML tags, prompt optimization, Claude Code">
+    <meta property="og:title" content="XML Tags, CAPS LOCK, or Plain English? Formatting Constraints for AI Code (4,680 Benchmarks)">
+    <meta property="og:description" content="4,680 benchmarks testing XML tags, markdown emphasis, caps lock, and checklists. Plain text wins. Fancy formatting doesn't help AI write better code.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/constraint-formatting-experiment.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/constraint-formatting-experiment.html">
+    <title>XML Tags, CAPS LOCK, or Plain English? Formatting Constraints for AI Code (4,680 Benchmarks) - TechLoom</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "XML Tags, CAPS LOCK, or Plain English? Formatting Constraints for AI Code (4,680 Benchmarks)",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-04-22",
+        "dateModified": "2026-04-22",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "A data-driven analysis of constraint formatting based on 4,680 benchmark runs testing XML tags, caps emphasis, checklists, and plain text.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/constraint-formatting-experiment.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Constraint Formatting Experiment",
+                "item": "https://techloom.it/blog/constraint-formatting-experiment.html"
+            }
+        ]
+    }
+    </script>
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th, .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose code {
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+        .blog-prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .blog-prose pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card h4 {
+            margin-top: 0;
+            color: #1e293b;
+        }
+        .blog-prose .rule-card .evidence {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .blog-prose .do-dont {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .do-col {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .dont-col {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .do-col h4, .blog-prose .dont-col h4 {
+            margin-top: 0;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 640px) {
+            .blog-prose .do-dont {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Constraint Formatting Experiment</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">April 22, 2026</span>
+                    <span class="blog-tag">AI Tooling</span>
+                    <span class="blog-tag">Prompt Engineering</span>
+                    <span class="blog-tag">Benchmarking</span>
+                </div>
+                <h1>XML Tags, CAPS LOCK, or Plain English? Formatting Constraints for AI Code (4,680 Benchmarks)</h1>
+                <div class="blog-author">
+                    <div class="blog-author-avatar">JC</div>
+                    <div class="blog-author-info">
+                        <span class="blog-author-name">Johnathen Chilcher</span>
+                        <span class="blog-author-role">Senior SRE, TechLoom</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <p>Wrap your constraints in <code>&lt;constraint&gt;</code> XML tags. Use CAPS LOCK for emphasis. Number them as a checklist. Or just write them as plain text sentences. One of these formats scores 92.4. Another scores 90.6. The constraints are identical&mdash;only the formatting changes.</p>
+
+                <p>I ran 4,680 benchmarks across four formatting styles. The winner: <strong>plain text beats fancy formatting</strong>. XML tags help slightly. CAPS LOCK hurts. Numbered checklists add no value. If you're spending effort on constraint formatting, you're optimizing the wrong thing.</p>
+
+                <p>This is the fifth experiment in our <a href="effective-ai-coding-prompts.html">benchmark series</a>, following the <a href="chain-of-thought-experiment.html">chain-of-thought</a>, <a href="instruction-ordering-experiment.html">instruction-ordering</a>, <a href="persona-sweep-experiment.html">persona</a>, and <a href="politeness-sweep-experiment.html">politeness</a> studies. All data is open source at <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a>.</p>
+
+                <h2>Experiment Design</h2>
+
+                <p>I took the same set of coding constraints and formatted them four ways:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Example Format</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>plain-text</strong></td>
+                        <td>Use only list comprehensions. Avoid imports.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>xml-tagged</strong></td>
+                        <td><code>&lt;constraint&gt;</code>Use only list comprehensions<code>&lt;/constraint&gt;</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>caps-emphasis</strong> (control)</td>
+                        <td>IMPORTANT: Use only list comprehensions. AVOID imports.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>numbered-checklist</strong></td>
+                        <td>1. Use only list comprehensions<br>2. Avoid imports</td>
+                    </tr>
+                </table>
+
+                <p>Each variant was run across 3 models (Haiku, Sonnet, Opus), 13 tasks (3 bug-fix, 3 code-gen, 4 instruction-following, 3 refactoring), and 30 repetitions per combination. That's 4 &times; 3 &times; 13 &times; 30 = <strong>4,680 runs</strong>.</p>
+
+                <p>The constraints were identical across all variants. Only the presentation formatting changed. This isolates whether <em>how you format</em> affects <em>how well the model follows instructions</em>.</p>
+
+                <h2>The Scoreboard</h2>
+
+                <p>Here are the overall results, ranked by composite score:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Composite Score</th>
+                        <th>Std Dev</th>
+                        <th>Delta from Control</th>
+                        <th>p-value</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>plain-text</strong></td>
+                        <td><strong>92.4</strong></td>
+                        <td>6.8</td>
+                        <td><strong>+1.0</strong></td>
+                        <td><strong>0.0000</strong></td>
+                    </tr>
+                    <tr>
+                        <td>xml-tagged</td>
+                        <td>91.9</td>
+                        <td>7.1</td>
+                        <td>+0.6</td>
+                        <td>0.0008</td>
+                    </tr>
+                    <tr>
+                        <td>caps-emphasis (control)</td>
+                        <td>91.3</td>
+                        <td>7.4</td>
+                        <td>&mdash;</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>numbered-checklist</td>
+                        <td>90.6</td>
+                        <td>7.9</td>
+                        <td>-0.7</td>
+                        <td>0.33</td>
+                    </tr>
+                </table>
+
+                <p>The spread is only 1.8 points from best to worst. Constraint formatting is not a game-changer. But within that narrow band, plain text is the clear winner&mdash;and it's also the most token-efficient format.</p>
+
+                <div class="result-highlight">
+                    <strong>Plain text wins: +1.0 points, p&lt;0.0001.</strong> Writing constraints as simple sentences produces the highest quality code, lowest variance, and uses the fewest tokens. No XML. No caps lock. No numbering. Just clear English.
+                </div>
+
+                <div class="result-warning">
+                    <strong>XML tags help slightly: +0.6 points, p=0.0008.</strong> Wrapping constraints in <code>&lt;constraint&gt;</code> tags produces a small but statistically significant improvement over caps emphasis. The model parses structure better than shouting. But plain text still beats XML.
+                </div>
+
+                <p>Numbered checklists score worst (-0.7) but fail to reach significance (p=0.33). The formatting adds no value and may even hurt by implying the constraints are ordered or prioritized when they're not.</p>
+
+                <h2>Per-Task Analysis</h2>
+
+                <p>Not all task types respond equally to formatting:</p>
+
+                <table>
+                    <tr>
+                        <th>Task Type</th>
+                        <th>Plain-Text</th>
+                        <th>XML-Tagged</th>
+                        <th>Caps-Emphasis</th>
+                        <th>Numbered-Checklist</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Bug-Fix</strong></td>
+                        <td>97.2</td>
+                        <td>97.0</td>
+                        <td>96.8</td>
+                        <td>96.5</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Code-Gen</strong></td>
+                        <td>95.8</td>
+                        <td>95.3</td>
+                        <td>94.9</td>
+                        <td>94.1</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Instruction-Following</strong></td>
+                        <td>89.1</td>
+                        <td>88.7</td>
+                        <td>87.9</td>
+                        <td>86.8</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Refactoring</strong></td>
+                        <td>88.3</td>
+                        <td>87.6</td>
+                        <td>86.5</td>
+                        <td>85.2</td>
+                    </tr>
+                </table>
+
+                <p>Plain text leads across all four categories, but the gap widens as task difficulty increases:</p>
+
+                <h3>Bug-Fix Tasks: Ceiling Effect</h3>
+
+                <p>All variants score 96.5-97.2. The tasks are straightforward enough that formatting barely matters. The model nails these regardless of how you write the constraints.</p>
+
+                <h3>Code-Gen Tasks: Modest Spread</h3>
+
+                <p>Plain-text scores 95.8 vs numbered-checklist 94.1&mdash;a 1.7-point gap. Formatting starts to matter when the model must generate new code from scratch, but the effect is still small.</p>
+
+                <h3>Instruction-Following: Wider Gap</h3>
+
+                <p>Plain-text scores 89.1 vs numbered-checklist 86.8&mdash;a <strong>2.3-point gap</strong>. When the primary challenge is <em>following constraints</em>, clear prose beats formatted lists. The irony: numbered checklists are supposed to help with following steps, but they perform worst on tasks that require following steps.</p>
+
+                <div class="result-danger">
+                    <strong>Numbered checklists hurt on instruction-following tasks: 86.8 vs plain-text 89.1.</strong> The format implies a sequence when constraints are often independent. The model may prioritize constraint #1 over constraint #3, or interpret them as steps rather than simultaneous requirements.
+                </div>
+
+                <h3>Refactoring: Biggest Effect</h3>
+
+                <p>Plain-text scores 88.3 vs numbered-checklist 85.2&mdash;a <strong>3.1-point gap</strong>, the largest formatting effect in the dataset. Refactoring is hard. It requires restructuring code while preserving behavior <em>and</em> satisfying constraints. Extra formatting overhead doesn't help&mdash;it distracts. The model performs best when constraints are stated clearly and get out of the way.</p>
+
+                <h2>Per-Model Breakdown</h2>
+
+                <p>Different models react differently to formatting:</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>Plain-Text</th>
+                        <th>XML-Tagged</th>
+                        <th>Caps-Emphasis</th>
+                        <th>Numbered-Checklist</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Haiku</strong></td>
+                        <td>93.7</td>
+                        <td>93.2</td>
+                        <td>92.8</td>
+                        <td>92.1</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sonnet</strong></td>
+                        <td>92.5</td>
+                        <td>92.0</td>
+                        <td>91.4</td>
+                        <td>90.7</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Opus</strong></td>
+                        <td>91.0</td>
+                        <td>90.5</td>
+                        <td>89.7</td>
+                        <td>89.0</td>
+                    </tr>
+                </table>
+
+                <p><strong>Haiku</strong> is the most stable. All variants score within 1.6 points. Haiku appears to parse constraints consistently regardless of formatting, though plain text still edges ahead.</p>
+
+                <p><strong>Sonnet</strong> shows moderate sensitivity. Plain-text gains +1.1 over caps-emphasis. Sonnet responds well to clean formatting but doesn't fall apart with suboptimal formatting.</p>
+
+                <p><strong>Opus</strong> shows the widest gap: plain-text 91.0 vs numbered-checklist 89.0. A 2.0-point spread. Opus is sensitive to noise in the prompt. Fancy formatting is noise. Plain prose is signal.</p>
+
+                <p>The pattern mirrors what we found in the <a href="persona-sweep-experiment.html">persona experiment</a> and <a href="politeness-sweep-experiment.html">politeness study</a>: Opus is a high-beta model. It responds the most dramatically to both good and bad prompt engineering.</p>
+
+                <h2>Variance and Token Efficiency</h2>
+
+                <p>Beyond average scores, formatting affects consistency and cost:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Standard Deviation</th>
+                        <th>Avg Tokens/Constraint</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>plain-text</strong></td>
+                        <td><strong>6.8</strong></td>
+                        <td><strong>~8</strong></td>
+                    </tr>
+                    <tr>
+                        <td>xml-tagged</td>
+                        <td>7.1</td>
+                        <td>~12</td>
+                    </tr>
+                    <tr>
+                        <td>caps-emphasis</td>
+                        <td>7.4</td>
+                        <td>~10</td>
+                    </tr>
+                    <tr>
+                        <td>numbered-checklist</td>
+                        <td>7.9</td>
+                        <td>~9</td>
+                    </tr>
+                </table>
+
+                <p>Plain text is not only the most effective format&mdash;it's also the most consistent (lowest variance) and the most token-efficient. XML tags add ~50% more tokens. Caps emphasis adds ~25%. Numbered lists add ~12%. You're paying more for worse performance.</p>
+
+                <div class="result-highlight">
+                    <strong>Plain text is the only format that wins on quality, consistency, and cost simultaneously.</strong> Every other format is Pareto-dominated: lower score, higher variance, more tokens. There is no trade-off. Plain text is strictly better.
+                </div>
+
+                <h2>Practical Implications</h2>
+
+                <p>So what should you actually do with this data?</p>
+
+                <div class="rule-card">
+                    <h4>1. Write constraints as plain English sentences.</h4>
+                    <p>No XML. No caps lock. No numbered lists. Just clear, simple prose. Plain text produces the highest quality code, lowest variance, and costs the fewest tokens. If you're using fancy formatting, you're over-engineering.</p>
+                    <div class="evidence">Evidence: plain-text scores 92.4 vs caps-emphasis 91.3 (p&lt;0.0001)</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>2. If you must use formatting, use XML tags.</h4>
+                    <p>XML tags are the only format that helps at all (+0.6 vs control, p=0.0008). The model parses structure better than emphasis. But plain text still beats XML, so only use tags if you have a specific reason&mdash;like programmatically generating prompts where tags help with parsing.</p>
+                    <div class="evidence">Evidence: xml-tagged scores 91.9 vs caps-emphasis 91.3</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>3. Don't use CAPS LOCK or bold for emphasis.</h4>
+                    <p>Caps emphasis is the control baseline. It's worse than plain text. The model doesn't need you to shout. Emphasis formatting adds tokens without adding clarity. Say it once, say it clearly, and move on.</p>
+                    <div class="evidence">Evidence: caps-emphasis scores 91.3 vs plain-text 92.4</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>4. Never use numbered checklists for constraints.</h4>
+                    <p>Numbered checklists score worst (-0.7) and perform especially poorly on instruction-following (86.8 vs plain-text 89.1). Numbering implies sequence and priority when most constraints are independent. Use numbered lists for actual steps. Use plain text for constraints.</p>
+                    <div class="evidence">Evidence: numbered-checklist scores 90.6 with highest variance (stdev 7.9)</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>5. Formatting matters most on hard tasks.</h4>
+                    <p>Bug-fix tasks show a ceiling effect&mdash;all formats score 96.5+. Refactoring shows a 3.1-point gap between plain-text and numbered-checklist. If you're dynamically constructing prompts, consider enforcing plain-text formatting specifically for refactoring and instruction-heavy tasks.</p>
+                    <div class="evidence">Evidence: refactoring shows biggest formatting effect (88.3 vs 85.2)</div>
+                </div>
+
+                <h2>Limitations</h2>
+
+                <ul>
+                    <li><strong>Four formatting styles tested.</strong> We tested plain text, XML tags, caps emphasis, and numbered checklists. Other formats (markdown bold, indented lists, bullet points) might behave differently, though the plain-text principle should generalize.</li>
+                    <li><strong>Claude models only.</strong> This data is specific to Claude's formatting interpretation. GPT-4, Gemini, and other models may parse structure differently&mdash;especially XML tags, which vary in effectiveness across model families.</li>
+                    <li><strong>Single-domain constraints.</strong> These are coding constraints. Formatting might matter differently for other domains (creative writing, data analysis, etc.) where structure plays a different role.</li>
+                    <li><strong>No interaction effects tested.</strong> We tested formatting in isolation. Combining with other strategies (like <a href="chain-of-thought-experiment.html">chain-of-thought</a> or <a href="persona-sweep-experiment.html">personas</a>) might change the relative effectiveness of formats.</li>
+                    <li><strong>Constraint complexity.</strong> These are moderately complex constraints (2-5 requirements per task). Very simple or very complex constraint sets might respond differently to formatting.</li>
+                </ul>
+
+                <h2>Try It Yourself</h2>
+
+                <p>The constraint-formatting experiment configuration and all data are open source:</p>
+
+                <pre><code>pip install claude-benchmark
+
+# Run the constraint-formatting experiment
+claude-benchmark experiment run experiments/constraint-formatting.toml
+
+# Generate the report
+claude-benchmark report
+
+# See the results
+open results/*/report.html</code></pre>
+
+                <p>You can modify the experiment TOML to test other formatting patterns or constraint types. If you find a format that beats plain text, I'd like to see the data.</p>
+
+                <p>Full experiment configuration: <a href="https://github.com/jchilcher/claude-benchmark/blob/main/experiments/constraint-formatting.toml" target="_blank" rel="noopener">experiments/constraint-formatting.toml</a></p>
+
+                <p>For the complete picture of what works and what doesn't in AI prompt engineering, see the <a href="effective-ai-coding-prompts.html">benchmark series overview</a> and the <a href="capstone-best-practices-experiment.html">capstone best-practices experiment</a> where we combine the winning strategies from all experiments into a single optimized configuration.</p>
+
+            </div>
+
+            <div class="blog-cta-box">
+                <h3>Want to optimize your team's AI-assisted development?</h3>
+                <p>I help teams measure what actually works in their AI coding workflows&mdash;from prompt engineering to infrastructure automation. Every recommendation backed by data, not opinion. Get a free assessment.</p>
+                <a href="../index.html#contact" class="btn-primary btn-large">Get Your Free Assessment</a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

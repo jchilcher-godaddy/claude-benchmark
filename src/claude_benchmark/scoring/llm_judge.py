@@ -15,7 +15,10 @@ import re
 import subprocess
 from pathlib import Path
 
+import anthropic
 from pydantic import ValidationError
+
+from claude_benchmark.execution.client import create_client, resolve_model_id
 
 from .errors import LLMJudgeError
 from .models import LLMCriterionScore, LLMScore
@@ -28,6 +31,7 @@ from .prompts import (
 )
 
 _NPX_CLAUDE_PACKAGE = "@anthropic-ai/claude-code@latest"
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +52,10 @@ class LLMJudgeScorer:
     def __init__(
         self,
         model: str | None = None,
+        use_gocode: bool = False,
     ) -> None:
         self.model = model or DEFAULT_JUDGE_MODEL
+        self.use_gocode = use_gocode
         self._logger = logging.getLogger(__name__)
 
     def _parse_response(
@@ -177,11 +183,22 @@ class LLMJudgeScorer:
             reference_solution=reference_solution,
         )
 
-        # First attempt
+        # First attempt — prefer direct API (temperature=0 for determinism)
+        call_fn = self._call_api_direct
         try:
-            response_text = self._call_api(user_prompt)
+            response_text = call_fn(user_prompt)
             criterion_scores = self._parse_response(response_text, expected_names)
             return self._compute_llm_score(criterion_scores)
+        except LLMJudgeError:
+            # Direct API unavailable (no credentials); fall back to CLI
+            self._logger.info("Direct API unavailable, falling back to CLI")
+            call_fn = self._call_api
+            try:
+                response_text = call_fn(user_prompt)
+                criterion_scores = self._parse_response(response_text, expected_names)
+                return self._compute_llm_score(criterion_scores)
+            except (json.JSONDecodeError, ValueError, ValidationError):
+                pass  # fall through to retry
         except (json.JSONDecodeError, ValueError, ValidationError) as exc:
             self._logger.warning(
                 "First judge attempt failed: %s. Retrying with explicit prompt.",
@@ -196,7 +213,7 @@ class LLMJudgeScorer:
         )
 
         try:
-            response_text = self._call_api(retry_prompt)
+            response_text = call_fn(retry_prompt)
             criterion_scores = self._parse_response(response_text, expected_names)
             return self._compute_llm_score(criterion_scores)
         except (json.JSONDecodeError, ValueError, ValidationError) as exc:
@@ -204,6 +221,54 @@ class LLMJudgeScorer:
                 f"LLM judge failed after retry: {exc}",
                 retry_attempted=True,
             ) from exc
+
+    def _call_api_direct(self, user_prompt: str) -> str:
+        """Call the Anthropic API directly with temperature=0 for deterministic judging.
+
+        Uses AnthropicBedrock client (same as worker.py) to bypass the CLI
+        and set temperature=0, ensuring reproducible judge scores.
+
+        Returns:
+            A JSON string containing the ``evaluations`` array.
+
+        Raises:
+            LLMJudgeError: If the API call fails or credentials are unavailable.
+        """
+        model_id = resolve_model_id(self.model, use_gocode=self.use_gocode)
+
+        try:
+            client = create_client(use_gocode=self.use_gocode)
+            response = client.messages.create(
+                model=model_id,
+                max_tokens=2048,
+                temperature=0,
+                system=JUDGE_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": user_prompt}],
+            )
+        except Exception as exc:
+            raise LLMJudgeError(f"Direct API call failed: {exc}") from exc
+
+        # Extract text from the response
+        text_parts = [
+            block.text for block in response.content if block.type == "text"
+        ]
+        if not text_parts:
+            raise LLMJudgeError("Direct API returned no text content")
+
+        raw_text = "\n".join(text_parts)
+
+        # Extract JSON from the response (may be wrapped in markdown code block)
+        code_block = re.search(
+            r"```(?:json)?\s*(\{.*?\})\s*```", raw_text, re.DOTALL
+        )
+        if code_block:
+            return code_block.group(1)
+
+        bare_json = re.search(r"\{.*\}", raw_text, re.DOTALL)
+        if bare_json:
+            return bare_json.group(0)
+
+        return raw_text
 
     @staticmethod
     def _clean_env() -> dict[str, str]:

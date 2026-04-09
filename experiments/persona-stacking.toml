@@ -1,0 +1,29 @@
+name = "persona-stacking"
+description = "Test whether stacking multiple role personas compounds or dilutes the code-reviewer effect."
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+[[variants]]
+label = "single-reviewer"
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."
+
+[[variants]]
+label = "reviewer-plus-security"
+system_prompt_extra = "You are a meticulous code reviewer AND security engineer. Focus on correctness, edge cases, maintainability, and secure coding practices in every line."
+
+[[variants]]
+label = "reviewer-plus-perf"
+system_prompt_extra = "You are a meticulous code reviewer AND performance engineer. Focus on correctness, edge cases, maintainability, and computational efficiency in every line."
+
+[[variants]]
+label = "expert-panel"
+system_prompt_extra = "Three experts are collaborating on this code: a code reviewer (correctness, readability), a security engineer (input validation, safe defaults), and a performance engineer (algorithmic efficiency). Write code that satisfies all three."

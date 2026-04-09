@@ -1,0 +1,28 @@
+name = "instruction-ordering"
+description = "Test whether instruction position (system vs user, first vs last) affects compliance. Implications for CLAUDE.md design."
+
+[defaults]
+tasks = [
+    "instruction-01", "instruction-02", "instruction-03", "instruction-04",
+    "refactor-01", "refactor-02", "refactor-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+[[variants]]
+label = "system-only"
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."
+
+[[variants]]
+label = "user-prefix-only"
+prompt_prefix = "Important: You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write. "
+
+[[variants]]
+label = "both-system-and-prefix"
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."
+prompt_prefix = "Remember: focus on correctness, edge cases, and maintainability. "
+
+[[variants]]
+label = "user-suffix"
+system_prompt_extra = "After writing your code, double-check it against these criteria: correctness, edge case handling, readability, and maintainability. You are a meticulous code reviewer."

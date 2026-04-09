@@ -1,0 +1,29 @@
+{# Variant x Task heatmap partial #}
+<div class="chart-card">
+  <h3>Variant x Task Heatmap</h3>
+  <p class="section-guide" style="margin-bottom:0.75rem">Composite scores by variant and task. Darker green = higher score.</p>
+  <table class="score-table" style="font-size:0.82rem">
+    <thead>
+      <tr>
+        <th>Task</th>
+        {% for variant in variants %}
+        <th style="text-align:center">{{ variant_configs[variant].label if variant_configs and variant in variant_configs else variant }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in heatmap %}
+      <tr>
+        <td style="font-weight:600">{{ row.task }}</td>
+        {% for variant in variants %}
+        {% set score = row.scores.get(variant, 0) %}
+        {% set intensity = (score / 100 * 0.7 + 0.1) if score > 0 else 0.05 %}
+        <td style="text-align:center; background: rgba(16, 185, 129, {{ '%.2f'|format(intensity) }}); font-weight:{% if score >= 80 %}700{% else %}400{% endif %}">
+          {{ '%.1f'|format(score) }}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

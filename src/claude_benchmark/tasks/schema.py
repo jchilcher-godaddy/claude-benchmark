@@ -30,6 +30,7 @@ class ScoringCriteria(BaseModel):
     ruff_rules: Optional[list[str]] = None
     judge_rubric: Optional[str] = None
     reference_solution: Optional[str] = None
+    weight_override: Optional[dict[str, float]] = None
 
 
 class TaskDefinition(BaseModel):

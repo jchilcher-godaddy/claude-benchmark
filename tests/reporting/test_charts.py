@@ -9,7 +9,6 @@ from claude_benchmark.reporting.charts import (
     COLOR_PALETTE,
     DIMENSION_LABELS,
     _compute_radar_axis,
-    _normalize_radar_scores,
     build_all_chart_configs,
     build_grouped_bar_config,
     build_radar_config,
@@ -38,23 +37,22 @@ class TestRadarConfig:
         assert len(config["data"]["datasets"]) == 3
 
     def test_correct_scales_single_profile(self):
-        """Single profile: no normalization, axis uses raw scores."""
+        """Single profile: dynamic axis min, ticks displayed."""
         config = build_radar_config("sonnet", ["a"], ["d1"], {"a": [80]})
         r_scale = config["options"]["scales"]["r"]
-        assert r_scale["min"] == 0
         assert r_scale["max"] == 100
-        # Single profile → was_normalized=False, ticks displayed
         assert r_scale["ticks"]["display"] is True
 
-    def test_normalized_scales_multi_profile(self):
-        """Multiple profiles: normalized to 0-100, ticks hidden."""
+    def test_dynamic_axis_multi_profile(self):
+        """Multiple profiles: dynamic axis min based on data, ticks shown."""
         config = build_radar_config(
             "sonnet", ["a", "b"], ["d1"], {"a": [90], "b": [80]}
         )
         r_scale = config["options"]["scales"]["r"]
-        assert r_scale["min"] == 0
         assert r_scale["max"] == 100
-        assert r_scale["ticks"]["display"] is False
+        # Axis min raised above 0 to spread out the data
+        assert r_scale["min"] >= 0
+        assert r_scale["ticks"]["display"] is True
 
     def test_dataset_styling(self):
         config = build_radar_config("sonnet", ["a"], ["d1"], {"a": [80]})
@@ -85,9 +83,9 @@ class TestRadarConfig:
             "sonnet", ["a", "missing"], ["d1", "d2"], {"a": [80, 90]}
         )
         missing_ds = config["data"]["datasets"][1]
-        # Missing profile gets [0, 0] originals; normalized min → 20.0
-        assert missing_ds["originalData"] == [0.0, 0.0]
-        assert missing_ds["data"] == [20.0, 20.0]
+        # Missing profile gets [0, 0] as actual scores
+        assert missing_ds["data"] == [0.0, 0.0]
+        assert "originalData" not in missing_ds
 
     def test_fill_enabled(self):
         config = build_radar_config("sonnet", ["a"], ["d1"], {"a": [80]})
@@ -488,44 +486,23 @@ class TestHumanizeDimensions:
         assert labels == ["Tests", "Lint", "Complexity"]
 
 
-class TestNormalizeRadarScores:
-    """Tests for _normalize_radar_scores."""
+class TestRadarConfigScoring:
+    """Tests for radar chart using actual scores (no normalization)."""
 
-    def test_single_profile_not_normalized(self):
-        norm, orig, was = _normalize_radar_scores(["a"], ["d1"], {"a": [80]})
-        assert was is False
-        assert norm["a"] == [80]
-
-    def test_identical_scores_not_normalized(self):
-        norm, orig, was = _normalize_radar_scores(
-            ["a", "b"], ["d1"], {"a": [90], "b": [90]}
-        )
-        assert was is False
-
-    def test_two_profiles_normalized(self):
-        norm, orig, was = _normalize_radar_scores(
-            ["a", "b"], ["d1"], {"a": [90], "b": [100]}
-        )
-        assert was is True
-        # a=90 is min → maps to 20, b=100 is max → maps to 100
-        assert norm["a"] == [20.0]
-        assert norm["b"] == [100.0]
-        assert orig["a"] == [90]
-        assert orig["b"] == [100]
-
-    def test_original_data_in_radar_config(self):
+    def test_actual_scores_in_radar_config(self):
         config = build_radar_config(
             "test", ["a", "b"], ["d1"], {"a": [90.2], "b": [91.0]}
         )
         ds_a = config["data"]["datasets"][0]
-        assert "originalData" in ds_a
-        assert ds_a["originalData"] == [90.2]
-        # Normalized data should differ from original
-        assert ds_a["data"] != ds_a["originalData"]
+        # No normalization — actual scores used directly
+        assert "originalData" not in ds_a
+        assert ds_a["data"] == [90.2]
 
-    def test_title_indicates_normalization(self):
+    def test_title_indicates_center_when_raised(self):
         config = build_radar_config(
             "opus", ["a", "b"], ["d1"], {"a": [90], "b": [95]}
         )
         title = config["options"]["plugins"]["title"]["text"]
-        assert "scaled per-dimension" in title
+        r_min = config["options"]["scales"]["r"]["min"]
+        if r_min > 0:
+            assert f"center = {r_min}" in title

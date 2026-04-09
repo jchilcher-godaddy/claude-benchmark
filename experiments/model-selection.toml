@@ -1,0 +1,52 @@
+name = "model-selection"
+description = "Which model excels at which task types and complexity levels? Informed by techloom.it benchmark findings: empty baseline + model-tuned variants."
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["sonnet"]
+profiles = ["empty"]
+reps = 30
+
+# --- Bare baseline: each model with no extra instructions ---
+
+[[variants]]
+label = "haiku-bare"
+models = ["haiku"]
+
+[[variants]]
+label = "sonnet-bare"
+models = ["sonnet"]
+
+[[variants]]
+label = "opus-bare"
+models = ["opus"]
+
+# --- Model-tuned: each model with its optimal prompt style ---
+# Applies techloom.it "optimal stack":
+#   - Warm framing via prompt_prefix (politeness sweep: +1.5pts, best floor/variance)
+#   - Model-specific system guidance (CLAUDE.md benchmark: per-model preferences)
+#   - Positive framing only (no prohibitions)
+#   - No CoT scaffolding
+
+[[variants]]
+label = "haiku-tuned"
+models = ["haiku"]
+prompt_prefix = "Please "
+system_prompt_extra = "Structure your solution clearly with descriptive variable names. Write a brief plan before coding. Use type hints and keep functions focused on a single responsibility."
+
+[[variants]]
+label = "sonnet-tuned"
+models = ["sonnet"]
+prompt_prefix = "Please "
+system_prompt_extra = "Write clean, idiomatic Python. Let the code speak for itself."
+
+[[variants]]
+label = "opus-tuned"
+models = ["opus"]
+prompt_prefix = "Please "
+system_prompt_extra = "Prioritize correctness and elegant simplicity. Favor readability over cleverness."

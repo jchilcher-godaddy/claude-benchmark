@@ -109,3 +109,58 @@ def test_function_line_counts():
         source = inspect.getsource(func)
         lines = [line for line in source.split("\n") if line.strip()]
         assert len(lines) <= 20, f"{func.__name__} has {len(lines)} lines, exceeds 20 line limit"
+
+
+# --- Security-focused tests ---
+
+
+def test_validate_email_injection_attempt():
+    """Test validate_email rejects header injection attempts."""
+    assert validate_email("user@domain\nBCC: attacker@evil.com") is False
+    assert validate_email("user@domain\r\nCC: attacker@evil.com") is False
+
+
+def test_validate_email_overly_long():
+    """Test validate_email handles extremely long emails."""
+    long_local = "a" * 300
+    assert validate_email(f"{long_local}@example.com") is False
+
+
+def test_sanitize_html_script_tags():
+    """Test sanitize_html strips script tags."""
+    result = sanitize_html("<script>alert('xss')</script>")
+    assert "<script>" not in result
+    assert "</script>" not in result
+
+
+def test_sanitize_html_nested_tags():
+    """Test sanitize_html handles nested tags."""
+    result = sanitize_html("<div><p><b>Hello</b></p></div>")
+    assert "<" not in result
+    assert "Hello" in result
+
+
+def test_sanitize_html_javascript_in_attributes():
+    """Test sanitize_html strips tags with javascript: in attributes."""
+    result = sanitize_html('<a href="javascript:alert(1)">click</a>')
+    assert "javascript:" not in result
+    assert "<a" not in result
+
+
+def test_sanitize_html_encoded_entities():
+    """Test sanitize_html handles HTML entities."""
+    result = sanitize_html("&lt;script&gt;alert(1)&lt;/script&gt;")
+    assert "<script>" not in result
+
+
+def test_generate_token_uniqueness_100():
+    """Test generate_token produces no duplicates in 100 calls."""
+    tokens = [generate_token() for _ in range(100)]
+    assert len(set(tokens)) == 100
+
+
+def test_generate_token_hex_only():
+    """Test generate_token returns only hex characters."""
+    for _ in range(10):
+        token = generate_token()
+        assert all(c in "0123456789abcdef" for c in token.lower())

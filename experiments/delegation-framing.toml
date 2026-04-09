@@ -1,0 +1,41 @@
+name = "delegation-framing"
+description = """Hypothesis: The way a task is framed when delegated to an agent affects output quality, \
+mirroring the politeness-sweep finding (+1.5 pts for polite framing). Tests four delegation styles: \
+bare (no framing), polite request, formal assignment, and goal-backward (state desired outcome first). \
+Distinct from politeness-sweep (which tested prompt_prefix phrasing) — this tests delegation-specific \
+framing patterns that apply when a parent conversation hands work to a sub-agent."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Bare: no delegation framing, just the task ---
+[[variants]]
+label = "bare"
+
+# --- Polite delegation ---
+[[variants]]
+label = "polite"
+prompt_prefix = "Could you please help with the following task? Take your time to get it right. "
+
+# --- Formal assignment ---
+[[variants]]
+label = "formal"
+prompt_prefix = "Your assignment: Complete the following task according to the requirements specified below. "
+
+# --- Goal-backward: state the desired outcome first ---
+[[variants]]
+label = "goal-backward"
+prompt_prefix = "The desired outcome is working, well-tested code that satisfies all requirements. To achieve this, please implement the following: "
+
+# --- Context-rich delegation: explain why the task matters ---
+[[variants]]
+label = "context-rich"
+prompt_prefix = "This task is part of a production codebase. The code you write will be reviewed by peers and must pass automated tests. Please implement the following: "

@@ -331,6 +331,17 @@ class TestComputeLLMScore:
 class TestJudgeCode:
     """Tests for LLMJudgeScorer.judge_code (mocked CLI)."""
 
+    @pytest.fixture(autouse=True)
+    def _disable_direct_api(self, monkeypatch):
+        """Disable _call_api_direct so tests exercise the CLI fallback path."""
+        from claude_benchmark.scoring.llm_judge import LLMJudgeScorer, LLMJudgeError
+
+        monkeypatch.setattr(
+            LLMJudgeScorer,
+            "_call_api_direct",
+            lambda self, prompt: (_ for _ in ()).throw(LLMJudgeError("No credentials")),
+        )
+
     @patch("claude_benchmark.scoring.llm_judge.subprocess.run")
     def test_valid_response_returns_llm_score(self, mock_run, scorer):
         """Mocked CLI returning valid response -> returns LLMScore."""
@@ -508,6 +519,16 @@ class TestJudgeCode:
 class TestScore:
     """Tests for LLMJudgeScorer.score (directory-based scoring)."""
 
+    @pytest.fixture(autouse=True)
+    def _disable_direct_api(self, monkeypatch):
+        from claude_benchmark.scoring.llm_judge import LLMJudgeScorer, LLMJudgeError
+
+        monkeypatch.setattr(
+            LLMJudgeScorer,
+            "_call_api_direct",
+            lambda self, prompt: (_ for _ in ()).throw(LLMJudgeError("No credentials")),
+        )
+
     def test_empty_directory_raises_llm_judge_error(self, scorer):
         """Empty directory with no .py files raises LLMJudgeError."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -603,6 +624,16 @@ class TestScore:
 
 class TestIntegration:
     """Higher-level tests for the full scoring flow."""
+
+    @pytest.fixture(autouse=True)
+    def _disable_direct_api(self, monkeypatch):
+        from claude_benchmark.scoring.llm_judge import LLMJudgeScorer, LLMJudgeError
+
+        monkeypatch.setattr(
+            LLMJudgeScorer,
+            "_call_api_direct",
+            lambda self, prompt: (_ for _ in ()).throw(LLMJudgeError("No credentials")),
+        )
 
     def test_default_model_is_haiku(self):
         """Default model is Claude Haiku 4.5 to avoid self-bias."""

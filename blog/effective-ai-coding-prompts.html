@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="1,458 benchmark runs across 13 prompt configurations and 3 Claude models. Here's what actually makes AI coding prompts effective — and what's just noise.">
+    <meta name="keywords" content="AI prompts, Claude Code, CLAUDE.md, prompt engineering, code quality, benchmarking, chain of thought, system prompts, developer tools, effective prompts">
+    <meta property="og:title" content="What an Effective AI Coding Prompt Actually Looks Like (Based on 1,458 Benchmarks)">
+    <meta property="og:description" content="I tested 13 prompt strategies across 1,458 runs. Most 'best practices' hurt code quality. Here's what the data says actually works.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/effective-ai-coding-prompts.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/effective-ai-coding-prompts.html">
+    <title>What an Effective AI Coding Prompt Actually Looks Like (Based on 1,458 Benchmarks) - TechLoom</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "What an Effective AI Coding Prompt Actually Looks Like (Based on 1,458 Benchmarks)",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-03-12",
+        "dateModified": "2026-03-12",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "A data-driven guide to AI coding prompts based on 1,458 benchmark runs across 13 configurations and 3 Claude models.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/effective-ai-coding-prompts.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Effective AI Coding Prompts",
+                "item": "https://techloom.it/blog/effective-ai-coding-prompts.html"
+            }
+        ]
+    }
+    </script>
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th, .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose code {
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+        .blog-prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .blog-prose pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card h4 {
+            margin-top: 0;
+            color: #1e293b;
+        }
+        .blog-prose .rule-card .evidence {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .blog-prose .do-dont {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .do-col {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .dont-col {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .do-col h4, .blog-prose .dont-col h4 {
+            margin-top: 0;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 640px) {
+            .blog-prose .do-dont {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Effective AI Coding Prompts</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">March 12, 2026</span>
+                    <span class="blog-tag">AI Tooling</span>
+                    <span class="blog-tag">Prompt Engineering</span>
+                    <span class="blog-tag">Benchmarking</span>
+                </div>
+                <h1>What an Effective AI Coding Prompt Actually Looks Like (Based on 1,458 Benchmarks)</h1>
+                <div class="blog-author">
+                    <div class="blog-author-avatar">JC</div>
+                    <div class="blog-author-info">
+                        <span class="blog-author-name">Johnathen Chilcher</span>
+                        <span class="blog-author-role">Senior SRE, TechLoom</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <p>Over the past few weeks, I've run 1,458 benchmarks testing how different prompting strategies affect AI-generated code quality. I tested <a href="claudemd-benchmark-results.html">10 CLAUDE.md instruction profiles</a> across 1,188 runs, then ran a separate <a href="chain-of-thought-experiment.html">270-run experiment on chain-of-thought prompting</a>. The results contradicted almost everything I believed about prompt engineering for code.</p>
+
+                <p>This post distills all of that data into a practical guide. Not opinions. Not "best practices" passed around on social media. Numbers from controlled experiments with statistical analysis, run across Claude Haiku, Sonnet, and Opus.</p>
+
+                <p>If you want the data, everything is open source at <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a>. If you want the conclusions, keep reading.</p>
+
+                <h2>The Uncomfortable Baseline</h2>
+
+                <p>Let's start with the finding that frames everything else: across 1,458 runs, 13 prompt configurations, and 3 models, <strong>no configuration consistently beat an empty prompt</strong>.</p>
+
+                <table>
+                    <tr>
+                        <th>Configuration</th>
+                        <th>Tokens</th>
+                        <th>Composite Score</th>
+                        <th>Delta from Empty</th>
+                    </tr>
+                    <tr>
+                        <td>empty (no instructions)</td>
+                        <td>0</td>
+                        <td><strong>92.15</strong></td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>micro-quality</td>
+                        <td>74</td>
+                        <td>91.61</td>
+                        <td>-0.54</td>
+                    </tr>
+                    <tr>
+                        <td>refactor-aware</td>
+                        <td>105</td>
+                        <td>91.34</td>
+                        <td>-0.81</td>
+                    </tr>
+                    <tr>
+                        <td>workflow</td>
+                        <td>152</td>
+                        <td>91.10</td>
+                        <td>-1.04</td>
+                    </tr>
+                    <tr>
+                        <td>anti-pattern</td>
+                        <td>125</td>
+                        <td>90.95</td>
+                        <td>-1.19</td>
+                    </tr>
+                    <tr>
+                        <td>judge-aligned</td>
+                        <td>148</td>
+                        <td>90.70</td>
+                        <td>-1.44</td>
+                    </tr>
+                    <tr>
+                        <td>typical-readable</td>
+                        <td>753</td>
+                        <td>91.08</td>
+                        <td>-1.07</td>
+                    </tr>
+                    <tr>
+                        <td>typical-compressed</td>
+                        <td>~650</td>
+                        <td>90.80</td>
+                        <td>-1.35</td>
+                    </tr>
+                    <tr>
+                        <td>large-readable</td>
+                        <td>~6,800</td>
+                        <td>91.29</td>
+                        <td>-0.86</td>
+                    </tr>
+                    <tr>
+                        <td>large-compressed</td>
+                        <td>~5,900</td>
+                        <td>90.57</td>
+                        <td>-1.58</td>
+                    </tr>
+                    <tr>
+                        <td>bare + cot-prefix</td>
+                        <td>~8</td>
+                        <td>94.7*</td>
+                        <td>-0.56*</td>
+                    </tr>
+                    <tr>
+                        <td>bare + cot-detailed</td>
+                        <td>~25</td>
+                        <td>94.6*</td>
+                        <td>-0.73*</td>
+                    </tr>
+                </table>
+
+                <p style="font-size: 0.85rem; color: #6b7280;">* CoT experiment used a different task subset (3 tasks vs. 12), so absolute scores aren't directly comparable. The relative delta from their own bare baseline is the meaningful number.</p>
+
+                <p>The correlation between instruction token count and composite quality score across the Phase 2 profiles was <em>r</em> = -0.95. Nearly perfect negative correlation. Every additional token of instruction marginally decreased output quality.</p>
+
+                <div class="result-danger">
+                    <strong>The most common prompt engineering advice is actively counterproductive for coding tasks.</strong> Adding style rules, chain-of-thought instructions, persona definitions, or formatting guidelines to your system prompt does not help Claude write better code on generic tasks. It adds noise to a signal the model already has.
+                </div>
+
+                <p>That's the uncomfortable starting point. Now let's talk about when and how instructions <em>do</em> help, because the story is more nuanced than "never use a system prompt."</p>
+
+                <h2>The Seven Rules</h2>
+
+                <p>From 1,458 runs and 13 configurations, seven principles emerged. Each is backed by specific data points. I've organized them from highest impact to lowest.</p>
+
+                <h3>Rule 1: Don't Teach Claude How to Code</h3>
+
+                <div class="rule-card">
+                    <h4>Remove any instruction that restates general programming knowledge.</h4>
+                    <p>Claude's training already encodes Python best practices, clean code principles, naming conventions, design patterns, and edge-case awareness. Instructions like "use snake_case for variables," "write clear docstrings," or "handle edge cases" are redundant. They don't make the model try harder&mdash;they add tokens that dilute the actual task.</p>
+                    <p>The micro-quality profile tested this directly. It contained just four bullet points of universal coding advice:</p>
+                    <ul>
+                        <li>Write clear, self-documenting code with descriptive names</li>
+                        <li>Handle edge cases explicitly with informative error messages</li>
+                        <li>Follow task instructions precisely</li>
+                        <li>Keep functions focused and short</li>
+                    </ul>
+                    <p>These are principles so universal they seem impossible to disagree with. They still reduced quality by 0.54 points. The instructions create a scorecard that can only subtract points, never add them.</p>
+                    <div class="evidence"><strong>Evidence:</strong> micro-quality (74 tokens, -0.54), typical-readable (753 tokens with style/naming/formatting rules, -1.07), large-readable (6,800 tokens of comprehensive guidelines, -0.86). All negative. <em>Phase 2, 648 runs.</em></div>
+                </div>
+
+                <div class="do-dont">
+                    <div class="dont-col">
+                        <h4>Don't include</h4>
+                        <ul>
+                            <li>"Use snake_case for variables"</li>
+                            <li>"Write docstrings for public functions"</li>
+                            <li>"Handle edge cases"</li>
+                            <li>"Follow SOLID principles"</li>
+                            <li>"Use descriptive variable names"</li>
+                            <li>"Keep functions short"</li>
+                        </ul>
+                    </div>
+                    <div class="do-col">
+                        <h4>Do include</h4>
+                        <ul>
+                            <li>"Use Pydantic v2 model_validator, not v1 validator"</li>
+                            <li>"Our API returns snake_case JSON, not camelCase"</li>
+                            <li>"Error responses must include a trace_id field"</li>
+                            <li>Things Claude <em>cannot</em> know from training</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Rule 2: Don't Tell Claude How to Think</h3>
+
+                <div class="rule-card">
+                    <h4>Skip chain-of-thought instructions for code generation.</h4>
+                    <p>"Think step by step" is the most widely repeated prompt engineering advice on the internet. It works on math and logic puzzles. It does not work for coding. In our 270-run experiment, every CoT variant scored lower than the bare baseline on every model.</p>
+                    <p>More explicit reasoning instructions produced worse results than lighter ones. <code>cot-detailed</code> ("analyze requirements step by step, consider edge cases, then implement") scored lower than <code>cot-prefix</code> ("think step by step"), which scored lower than no instruction at all. The more structure you impose on the model's reasoning, the more you constrain its natural problem-solving.</p>
+                    <div class="evidence"><strong>Evidence:</strong> cot-prefix averaged -0.56 from bare; cot-detailed averaged -0.73. Opus suffered the most (-1.14 for cot-detailed). On refactor-01, Opus dropped 3.5 points (86.8 &rarr; 83.3). <em>CoT experiment, 270 runs.</em></div>
+                </div>
+
+                <p>The chess grandmaster analogy holds: giving a grandmaster a "first consider all captures, then consider all checks" checklist doesn't help them&mdash;it fragments the holistic pattern recognition they're better at. Claude already reasons through implementation. Explicit CoT instructions fragment that reasoning.</p>
+
+                <h3>Rule 3: Tell Claude What It Doesn't Know</h3>
+
+                <div class="rule-card">
+                    <h4>Instructions should encode project-specific knowledge, not programming knowledge.</h4>
+                    <p>The one category of information that consistently helped was knowledge Claude <em>cannot</em> have from training: your project's architecture, your team's conventions, your deployment constraints, your domain's terminology.</p>
+                    <p>The typical-readable profile contained build commands (<code>make build</code>, <code>make test</code>), project structure (<code>src/</code> for code, <code>tests/</code> mirrors source), and workflow conventions (commit message format, branch naming). These are exactly the kind of project-specific facts that help Claude navigate a real codebase. On their own they still showed an overall negative delta (-1.07), but this is because they were bundled with generic style rules that diluted the signal.</p>
+                    <div class="evidence"><strong>Evidence:</strong> Build commands and project structure are the type of knowledge that helps in multi-file, real-world sessions (not captured in this benchmark's single-file tasks). The negative result on generic coding tasks confirms that generic rules hurt; it doesn't invalidate project-specific context. <em>See Caveats.</em></div>
+                </div>
+
+                <p>The ideal CLAUDE.md is a project knowledge base, not a coding style guide. Think of it as onboarding documentation for a new team member who already knows how to code but doesn't know <em>your</em> codebase.</p>
+
+                <h3>Rule 4: Use Positive Framing, Never Prohibitions</h3>
+
+                <div class="rule-card">
+                    <h4>Say "do X" not "don't do Y."</h4>
+                    <p>The anti-pattern profile framed guidance as prohibitions: "do not leave dead code," "do not use overly clever one-liners," "do not create deeply nested code." The micro-quality profile framed equivalent guidance as positive directives: "write clear, self-documenting code," "keep functions focused and short."</p>
+                    <p>Positive framing outperformed negative framing by 0.66 points (91.61 vs 90.95). Negative instructions appear to prime the model toward the failure mode being described rather than away from it. When you say "do not write deeply nested code," the model's attention is drawn to deeply nested code as a concept&mdash;and that attention leak shows up in the output.</p>
+                    <div class="evidence"><strong>Evidence:</strong> micro-quality (positive, 91.61) vs. anti-pattern (negative, 90.95). Both ~100-125 tokens, same intent, different framing. Positive won by 0.66. <em>Phase 2, 648 runs.</em></div>
+                </div>
+
+                <div class="do-dont">
+                    <div class="dont-col">
+                        <h4>Negative (worse)</h4>
+                        <ul>
+                            <li>"Do not leave dead code"</li>
+                            <li>"Do not use overly clever one-liners"</li>
+                            <li>"Do not create deeply nested code"</li>
+                            <li>"Do not ignore edge cases"</li>
+                            <li>"Avoid abbreviations"</li>
+                        </ul>
+                    </div>
+                    <div class="do-col">
+                        <h4>Positive (better)</h4>
+                        <ul>
+                            <li>"Remove unused code before finishing"</li>
+                            <li>"Prefer clear multi-line logic over one-liners"</li>
+                            <li>"Use guard clauses and early returns"</li>
+                            <li>"Handle every edge case mentioned in the requirements"</li>
+                            <li>"Use descriptive names"</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Rule 5: Target Specific Weaknesses, Not General Quality</h3>
+
+                <div class="rule-card">
+                    <h4>Instructions hurt on easy tasks and help on hard ones. Write them for the hard parts.</h4>
+                    <p>The overall averages hide the most actionable finding in the data. Instructions consistently <em>hurt</em> on tasks Claude already aces (bug fixes, code generation) and <em>helped</em> on tasks where it struggles (refactoring, instruction-following).</p>
+                    <p>The largest improvement across all 1,188 Phase 1+2 runs: the workflow profile lifted Opus's instruction-following score by <strong>+5.80 points</strong>. A structured "read the task, plan your approach, verify your solution" checklist helped Opus dramatically on tasks requiring precise specification compliance. And it didn't just raise the average&mdash;it raised the <em>floor</em> from 61.4 to 83.5, eliminating catastrophic low-scoring runs.</p>
+                    <div class="evidence"><strong>Evidence:</strong> workflow +5.80 on Opus/instruction tasks. refactor-aware +2.54 on Haiku/refactor. micro-quality +4.41 on Opus/instruction. Meanwhile, these same profiles all showed negative deltas on bug-fix and code-gen tasks. <em>Phase 2, 648 runs.</em></div>
+                </div>
+
+                <p>This means the value of instructions is highly context-dependent. A CLAUDE.md that helps on refactoring tasks may hurt on bug-fix tasks. The right strategy is to use targeted instructions only for the task types where you observe weakness, and omit them otherwise.</p>
+
+                <h3>Rule 6: Keep the Formatting</h3>
+
+                <div class="rule-card">
+                    <h4>Markdown headers, bullet points, and whitespace help smaller models parse instructions.</h4>
+                    <p>I originally <a href="compress-claude-md.html">advocated stripping markdown formatting</a> from CLAUDE.md files to save tokens. The benchmark showed this was wrong for two of three models.</p>
+                    <p>The readable version of the typical profile outperformed the compressed version on Haiku (-1.56 delta) and Sonnet (-0.86 delta). Only Opus was indifferent (+0.19). For the large profile, the gap widened: Sonnet scored 2.81 points higher with readable formatting. The large-compressed profile triggered the only statistically significant regression in the entire Phase 1 study: an 18.8% drop on bug-fix-02 (p=0.018).</p>
+                    <p>The "decoration" of markdown headers, bold text, and whitespace serves as parsing landmarks. Smaller models use these structural cues to segment and prioritize information. Stripping them doesn't save meaningful tokens (5-13% of total API tokens, not the 60-70% of characters) and introduces ambiguity risk.</p>
+                    <div class="evidence"><strong>Evidence:</strong> typical-readable beat typical-compressed on Haiku (-1.56) and Sonnet (-0.86). large-readable beat large-compressed on Sonnet (-2.81). large-compressed triggered an 18.8% regression on bug-fix-02 (p=0.018). <em>Phase 1, 540 runs.</em></div>
+                </div>
+
+                <h3>Rule 7: Match Instructions to the Model</h3>
+
+                <div class="rule-card">
+                    <h4>Different models respond differently to the same instructions. One-size-fits-all is suboptimal.</h4>
+                    <p>Across both studies, models showed consistent but different preferences:</p>
+                    <ul>
+                        <li><strong>Haiku</strong> benefits from structural guidance. It preferred refactor-aware (+0.48 overall) and responded well to readable formatting. It also showed the largest quality gap between readable and compressed formats. Haiku needs the landmarks.</li>
+                        <li><strong>Sonnet</strong> is best left alone. Every instruction profile scored lower than empty. Even CoT only cost it 0.23-0.28 points&mdash;it shrugged off bad instructions better than the others, but still performed best with none.</li>
+                        <li><strong>Opus</strong> responds to lightweight quality nudges. micro-quality gave it +0.82 overall, and workflow gave it +5.80 on instruction tasks specifically. But it was also the most harmed by CoT (-1.14) and showed the largest refactoring penalty. Opus has strong opinions&mdash;instructions either align with them or fight them.</li>
+                    </ul>
+                    <div class="evidence"><strong>Evidence:</strong> Haiku preferred typical-readable (92.3). Sonnet preferred empty (92.5). Opus preferred typical-compressed (90.1) in Phase 1, micro-quality (+0.82) in Phase 2. CoT penalty: Opus -1.14, Sonnet -0.28. <em>All phases, 1,458 runs.</em></div>
+                </div>
+
+                <p>If you use model routing (fast model for simple tasks, capable model for complex ones), your system prompt should vary by model. At minimum, don't add instructions to Sonnet sessions, and consider a lightweight workflow prompt for Opus on complex tasks.</p>
+
+                <h2>What an Effective Prompt Actually Looks Like</h2>
+
+                <p>Here's the synthesis. Based on 1,458 runs, if I were building a production CLAUDE.md from scratch, it would look like this:</p>
+
+                <pre><code># Project Context
+
+- Build: `make build`; test: `make test`; lint: `make lint`
+- Source in src/, tests mirror in tests/, config in config/
+- Database: PostgreSQL 16 with pgvector extension
+- API framework: FastAPI with Pydantic v2 models
+- Auth: JWT tokens issued by Auth0, validated in middleware
+
+# Our Conventions
+
+- API responses: {"data": ..., "meta": {...}, "errors": [...]}
+- All timestamps UTC ISO 8601; stored as timestamptz
+- IDs are ULIDs, not UUIDs (use python-ulid library)
+- Error responses include trace_id from request context
+- Background jobs use Celery with Redis broker
+
+# Current Sprint Context
+
+- Migrating from sync SQLAlchemy to async (sqlalchemy[asyncio])
+- Payment service uses Stripe API v2024-12 — not the latest
+- Feature flag: ENABLE_NEW_CHECKOUT gates the new flow</code></pre>
+
+                <p>That's it. No style rules. No "use descriptive variable names." No "think step by step." No "you are a senior engineer." Just the things Claude cannot know from training: your project's stack, your team's conventions, and your current context.</p>
+
+                <p>Notice what's missing from that example compared to the typical community CLAUDE.md:</p>
+
+                <table>
+                    <tr>
+                        <th>Commonly Included</th>
+                        <th>Why It's Missing</th>
+                        <th>Evidence</th>
+                    </tr>
+                    <tr>
+                        <td>Naming conventions (snake_case, PascalCase)</td>
+                        <td>Claude already follows Python naming conventions. Restating them is redundant.</td>
+                        <td>All profiles with naming rules scored &le; empty</td>
+                    </tr>
+                    <tr>
+                        <td>Formatting rules (indent, line length)</td>
+                        <td>Claude follows standard formatting. Your linter catches the rest.</td>
+                        <td>typical-readable (-1.07), large-readable (-0.86)</td>
+                    </tr>
+                    <tr>
+                        <td>Design principles (SOLID, DRY, composition over inheritance)</td>
+                        <td>Encoded in training. Restating them doesn't improve output.</td>
+                        <td>large-readable contains all of these; still -0.86</td>
+                    </tr>
+                    <tr>
+                        <td>"Think step by step" / CoT</td>
+                        <td>Hurts code quality across all models.</td>
+                        <td>CoT experiment: -0.56 to -1.14</td>
+                    </tr>
+                    <tr>
+                        <td>Persona ("you are a senior engineer")</td>
+                        <td>large-readable includes a persona; scored below empty.</td>
+                        <td>large-readable (-0.86), large-compressed (-1.58)</td>
+                    </tr>
+                    <tr>
+                        <td>Comment/docstring rules</td>
+                        <td>Claude writes appropriate documentation by default.</td>
+                        <td>micro-quality includes "write clear code"; still -0.54</td>
+                    </tr>
+                    <tr>
+                        <td>Error handling guidelines</td>
+                        <td>Claude handles errors well on its own; generic guidelines add noise.</td>
+                        <td>All profiles with error handling rules &le; empty</td>
+                    </tr>
+                    <tr>
+                        <td>Git conventions</td>
+                        <td>These affect workflow, not code quality. Keep them if useful for your workflow, but know they don't improve the code itself.</td>
+                        <td>Not directly measured in code quality scores</td>
+                    </tr>
+                </table>
+
+                <h2>The Exception: When Instructions Are Worth It</h2>
+
+                <p>The data doesn't say "never use instructions." It says "generic instructions hurt; specific instructions help on specific tasks." Here's when to break the minimalist rule:</p>
+
+                <h3>1. Opus on Complex Tasks</h3>
+
+                <p>When using Opus for instruction-following or compliance-heavy work (API contract implementation, specification-driven development), a lightweight workflow prompt is the single most impactful intervention in the dataset:</p>
+
+                <pre><code># Before You Write Code
+- Read the entire task description twice
+- Identify all explicit requirements and edge cases
+- Plan your approach before typing
+
+# After Writing Code
+- Verify your solution addresses every requirement
+- Remove unused imports or dead code</code></pre>
+
+                <p>This raised Opus's instruction-following score by +5.80 points and its worst-case score from 61.4 to 83.5. That's the difference between a solution that occasionally misses requirements entirely and one that consistently covers them all.</p>
+
+                <h3>2. Haiku on Refactoring</h3>
+
+                <p>When using Haiku for code restructuring, targeted refactoring guidance helps:</p>
+
+                <pre><code># When Refactoring
+- Use guard clauses and early returns to flatten nested logic
+- Extract repeated patterns into well-named helper functions
+- Preserve all existing public interfaces unless told otherwise</code></pre>
+
+                <p>This lifted Haiku's refactoring score by +2.54. Haiku benefits from structural guidance because its internal model of code architecture is less developed than Sonnet's or Opus's.</p>
+
+                <h3>3. Consistency-Critical Workloads</h3>
+
+                <p>If your use case values consistency over peak performance (CI pipelines, automated code generation, production workflows), instructions compress the variance. The workflow profile reduced Opus's standard deviation on refactoring from 3.2 to 2.2 in the CoT study. More importantly, targeted instructions eliminated catastrophic low-scoring runs. Even when the average barely moves, the floor rises significantly.</p>
+
+                <div class="result-highlight">
+                    <strong>Instructions act as guardrails, not boosters.</strong> They don't make the best runs better. They prevent the worst runs from happening. For automated workflows where a bad outlier is more costly than a slightly lower average, that tradeoff is worth it.
+                </div>
+
+                <h2>A Decision Framework</h2>
+
+                <p>Rather than prescribing a single prompt, here's how to decide what to include:</p>
+
+                <table>
+                    <tr>
+                        <th>Ask yourself</th>
+                        <th>If yes</th>
+                        <th>If no</th>
+                    </tr>
+                    <tr>
+                        <td>Does Claude already know this from training?</td>
+                        <td>Remove it.</td>
+                        <td>Keep it.</td>
+                    </tr>
+                    <tr>
+                        <td>Is this a general coding principle?</td>
+                        <td>Remove it.</td>
+                        <td>Keep it.</td>
+                    </tr>
+                    <tr>
+                        <td>Is this specific to my project/team/domain?</td>
+                        <td>Keep it.</td>
+                        <td>Remove it.</td>
+                    </tr>
+                    <tr>
+                        <td>Am I framing this as a prohibition?</td>
+                        <td>Rewrite as positive directive.</td>
+                        <td>Good.</td>
+                    </tr>
+                    <tr>
+                        <td>Am I using Sonnet?</td>
+                        <td>Minimize all instructions.</td>
+                        <td>See model-specific guidance.</td>
+                    </tr>
+                    <tr>
+                        <td>Does this address a specific task-type weakness?</td>
+                        <td>Keep it; consider making it conditional.</td>
+                        <td>Remove it.</td>
+                    </tr>
+                    <tr>
+                        <td>Would this survive a "does Claude need to be told this?" test?</td>
+                        <td>Keep it.</td>
+                        <td>Remove it.</td>
+                    </tr>
+                </table>
+
+                <h2>What I Got Wrong</h2>
+
+                <p>I've published three posts in this series. The first two contained advice I now know is wrong, or at best overstated. In the interest of intellectual honesty:</p>
+
+                <table>
+                    <tr>
+                        <th>What I Said</th>
+                        <th>What the Data Shows</th>
+                    </tr>
+                    <tr>
+                        <td><a href="compress-claude-md.html">"Compress your CLAUDE.md"</a> &mdash; strip markdown formatting to save 60-70% token bloat</td>
+                        <td>Compression saves 5-13% of total tokens (not 60-70%), and it degrades quality for Haiku and Sonnet. Keep the formatting.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="ai-code-production-ready.html">"Check for error handling, documentation, and security"</a> &mdash; a checklist for evaluating AI code</td>
+                        <td>Claude already handles most items on that checklist by default. The value is in project-specific checks (does it use our auth middleware? does it follow our API contract?), not generic code quality criteria.</td>
+                    </tr>
+                    <tr>
+                        <td>Implied: more detailed instructions = better output</td>
+                        <td>r = -0.95 between instruction tokens and quality. The large-readable profile (649 lines, 6,800 tokens of painstakingly crafted guidelines) scored below an empty file.</td>
+                    </tr>
+                </table>
+
+                <p>I'm not embarrassed by the earlier posts&mdash;they led to building the benchmark that proved them wrong. That's how this is supposed to work. You form a hypothesis, test it, and update when the data disagrees. The problem is publishing the hypothesis as advice before running the test.</p>
+
+                <h2>Caveats</h2>
+
+                <p>This data is real but limited. Before you delete your CLAUDE.md entirely:</p>
+
+                <ul>
+                    <li><strong>Single-file tasks only.</strong> All benchmark tasks involve modifying one file. Real-world coding involves navigating codebases, understanding dependencies, and following project-specific conventions&mdash;exactly the scenarios where CLAUDE.md project context matters most. The benchmark can't measure this.</li>
+                    <li><strong>Generic coding tasks.</strong> These are domain-agnostic problems (fix a bug, implement a function, refactor code). Tasks with domain-specific requirements, complex business logic, or unfamiliar frameworks may respond differently to instructions.</li>
+                    <li><strong>No multi-turn conversations.</strong> Each benchmark run is a single prompt &rarr; response. In extended coding sessions, a lean system prompt preserves more context window for conversation history.</li>
+                    <li><strong>Workflow instructions aren't measured.</strong> Rules like "always run tests before committing" or "use conventional commits" affect development workflow, not code quality scores. They may be valuable even if they don't show up in this benchmark.</li>
+                    <li><strong>Claude models only.</strong> These results are for Claude Haiku 4.5, Sonnet 4.6, and Opus 4.6. Other model families (GPT, Gemini, open-source) may respond differently to instruction patterns.</li>
+                </ul>
+
+                <h2>The Bottom Line</h2>
+
+                <p>After 1,458 benchmark runs, the most effective AI coding prompt is shorter than you think. The data points to a simple framework:</p>
+
+                <ol>
+                    <li><strong>Start empty.</strong> Claude already writes good code. Your default should be no system instructions, not a comprehensive style guide.</li>
+                    <li><strong>Add project context.</strong> Build commands, project structure, stack details, current sprint context. Things Claude cannot know.</li>
+                    <li><strong>Target specific weaknesses.</strong> If you observe bad output on specific task types, add a narrow instruction for that. Don't add blanket quality rules.</li>
+                    <li><strong>Use positive framing.</strong> "Do X" not "don't do Y."</li>
+                    <li><strong>Match the model.</strong> Minimal instructions for Sonnet. Lightweight workflow for Opus on complex tasks. Structural guidance for Haiku on refactoring.</li>
+                    <li><strong>Measure the output.</strong> If you can't tell whether an instruction helps by looking at the code, run the benchmark. Intuition about what "should" help is frequently wrong.</li>
+                </ol>
+
+                <p>Every token in your system prompt should earn its place. If it doesn't encode knowledge Claude lacks, it's not paying rent.</p>
+
+                <h2>Try It Yourself</h2>
+
+                <p>The benchmark tool, all 13 profiles, and the experiment configurations are open source:</p>
+
+                <pre><code>pip install claude-benchmark
+
+# Test your current CLAUDE.md
+claude-benchmark run --profile path/to/your/CLAUDE.md
+
+# Compare against empty
+claude-benchmark report
+
+# Run the CoT experiment
+claude-benchmark experiment run experiments/cot.toml
+
+# See what the data says
+open results/*/report.html</code></pre>
+
+                <p>If your CLAUDE.md beats empty on your tasks, you've found something genuinely useful. If it doesn't, you've just freed up context window for the conversation that actually matters.</p>
+
+                <p>All data and methodology: <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">github.com/jchilcher/claude-benchmark</a></p>
+
+            </div>
+
+            <div class="blog-cta-box">
+                <h3>Want to optimize your team's AI-assisted development?</h3>
+                <p>I help teams measure what actually works in their AI coding workflows&mdash;from prompt engineering to infrastructure automation. Every recommendation backed by data, not opinion. Get a free assessment.</p>
+                <a href="../index.html#contact" class="btn-primary btn-large">Get Your Free Assessment</a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

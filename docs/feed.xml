@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>TechLoom Blog</title>
+        <link>https://techloom.it/blog.html</link>
+        <description>SRE insights, code quality tips, and startup tech advice from a senior site reliability engineer with 10+ years of enterprise experience.</description>
+        <language>en-us</language>
+        <lastBuildDate>Mon, 09 Mar 2026 00:00:00 GMT</lastBuildDate>
+        <atom:link href="https://techloom.it/blog/feed.xml" rel="self" type="application/rss+xml"/>
+
+        <item>
+            <title>Does Temperature Actually Matter? 720 Runs Say Not Really</title>
+            <link>https://techloom.it/blog/temperature-sweep-benchmark.html</link>
+            <guid isPermaLink="true">https://techloom.it/blog/temperature-sweep-benchmark.html</guid>
+            <pubDate>Mon, 09 Mar 2026 00:00:00 GMT</pubDate>
+            <description>I swept temperature from 0.0 to 1.0 across 6 coding tasks with 30 repetitions each. The total spread in quality was 0.9 points on a 100-point scale.</description>
+            <author>johnathen@techloom.it (Johnathen Chilcher)</author>
+        </item>
+
+        <item>
+            <title>I Ran 540 Benchmarks to Prove CLAUDE.md Compression Works. The Data Had Other Plans.</title>
+            <link>https://techloom.it/blog/claudemd-benchmark-results.html</link>
+            <guid isPermaLink="true">https://techloom.it/blog/claudemd-benchmark-results.html</guid>
+            <pubDate>Sun, 01 Mar 2026 00:00:00 GMT</pubDate>
+            <description>I built an open-source benchmark to test whether compressing CLAUDE.md improves code quality. 540 runs across 3 models and 5 profiles later, the results surprised me.</description>
+            <author>johnathen@techloom.it (Johnathen Chilcher)</author>
+        </item>
+
+        <item>
+            <title>Compress Your CLAUDE.md: Cut 60-70% of System Prompt Bloat in Claude Code</title>
+            <link>https://techloom.it/blog/compress-claude-md.html</link>
+            <guid isPermaLink="true">https://techloom.it/blog/compress-claude-md.html</guid>
+            <pubDate>Tue, 24 Feb 2026 00:00:00 GMT</pubDate>
+            <description>Claude Code injects CLAUDE.md into every conversation. I compressed my instruction and memory files by 60-70% by stripping human-readable formatting and keeping only machine-readable signal. Here&apos;s how.</description>
+            <author>johnathen@techloom.it (Johnathen Chilcher)</author>
+        </item>
+
+        <item>
+            <title>Why I Built a Budget App That Knows Nothing About You</title>
+            <link>https://techloom.it/blog/introducing-ledgr.html</link>
+            <guid isPermaLink="true">https://techloom.it/blog/introducing-ledgr.html</guid>
+            <pubDate>Sun, 15 Feb 2026 00:00:00 GMT</pubDate>
+            <description>Why I built Ledgr, a privacy-first open-source budget app that keeps all your financial data on your device. No cloud sync, no bank credentials, no tracking.</description>
+            <author>johnathen@techloom.it (Johnathen Chilcher)</author>
+        </item>
+
+        <item>
+            <title>How to Tell If Your AI-Generated Code Is Production-Ready</title>
+            <link>https://techloom.it/blog/ai-code-production-ready.html</link>
+            <guid isPermaLink="true">https://techloom.it/blog/ai-code-production-ready.html</guid>
+            <pubDate>Tue, 10 Feb 2026 00:00:00 GMT</pubDate>
+            <description>AI tools are generating tons of code, but is it production-ready? Use this 7-point checklist to evaluate your AI-generated codebase before it reaches production.</description>
+            <author>johnathen@techloom.it (Johnathen Chilcher)</author>
+        </item>
+
+        <item>
+            <title>5 Signs Your Startup Needs a Fractional SRE</title>
+            <link>https://techloom.it/blog/signs-startup-needs-fractional-sre.html</link>
+            <guid isPermaLink="true">https://techloom.it/blog/signs-startup-needs-fractional-sre.html</guid>
+            <pubDate>Sat, 07 Feb 2026 00:00:00 GMT</pubDate>
+            <description>Growing pains are real, but they shouldn&apos;t crash your app. Learn the five clear signals that it&apos;s time to bring in fractional SRE expertise.</description>
+            <author>johnathen@techloom.it (Johnathen Chilcher)</author>
+        </item>
+
+        <item>
+            <title>MVP Development: Build vs Buy in 2026</title>
+            <link>https://techloom.it/blog/mvp-build-vs-buy-2026.html</link>
+            <guid isPermaLink="true">https://techloom.it/blog/mvp-build-vs-buy-2026.html</guid>
+            <pubDate>Tue, 03 Feb 2026 00:00:00 GMT</pubDate>
+            <description>The build vs buy landscape has changed. Here&apos;s how to make the right decision for your MVP in 2026, plus the hidden costs both approaches carry.</description>
+            <author>johnathen@techloom.it (Johnathen Chilcher)</author>
+        </item>
+    </channel>
+</rss>

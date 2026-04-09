@@ -15,6 +15,35 @@ from scipy import stats
 from claude_benchmark.reporting.models import BenchmarkResults, RegressionResult
 
 
+def compute_effect_size(
+    baseline_scores: list[float],
+    treatment_scores: list[float],
+) -> float:
+    """Compute Cohen's d effect size between baseline and treatment groups.
+
+    Cohen's d = (mean_treatment - mean_baseline) / pooled_std.
+    Positive d means treatment scored higher than baseline.
+
+    Returns 0.0 when pooled standard deviation is zero (identical scores).
+    """
+    n1 = len(baseline_scores)
+    n2 = len(treatment_scores)
+    if n1 < 2 or n2 < 2:
+        return 0.0
+
+    mean1 = sum(baseline_scores) / n1
+    mean2 = sum(treatment_scores) / n2
+
+    var1 = sum((x - mean1) ** 2 for x in baseline_scores) / (n1 - 1)
+    var2 = sum((x - mean2) ** 2 for x in treatment_scores) / (n2 - 1)
+
+    pooled_std = ((var1 * (n1 - 1) + var2 * (n2 - 1)) / (n1 + n2 - 2)) ** 0.5
+    if pooled_std < 1e-10:
+        return 0.0
+
+    return (mean2 - mean1) / pooled_std
+
+
 def check_regression(
     baseline_scores: list[float],
     profile_scores: list[float],
@@ -163,6 +192,96 @@ def detect_all_regressions(
                 all_results.append(result)
 
     return all_results
+
+
+def bonferroni_correct(p_values: list[float]) -> list[float]:
+    """Apply Bonferroni correction to a list of p-values.
+
+    Multiplies each p-value by the number of comparisons, capping at 1.0.
+    """
+    n = len(p_values)
+    if n == 0:
+        return []
+    return [min(1.0, p * n) for p in p_values]
+
+
+def benjamini_hochberg(p_values: list[float], alpha: float = 0.05) -> list[float]:
+    """Apply Benjamini-Hochberg FDR correction to a list of p-values.
+
+    Less conservative than Bonferroni; controls the false discovery rate
+    rather than the family-wise error rate. More appropriate for exploratory
+    analysis where some false positives are acceptable.
+
+    Args:
+        p_values: Raw p-values from multiple comparisons.
+        alpha: Target FDR level (unused in adjustment, included for API consistency).
+
+    Returns:
+        Adjusted p-values, each capped at 1.0.
+    """
+    n = len(p_values)
+    if n == 0:
+        return []
+
+    # Sort p-values and track original indices
+    indexed = sorted(enumerate(p_values), key=lambda x: x[1])
+    adjusted = [0.0] * n
+
+    for rank, (orig_idx, pval) in enumerate(indexed, 1):
+        adjusted[orig_idx] = pval * n / rank
+
+    # Enforce monotonicity (step-up): walk backwards, each value <= successor
+    sorted_indices = [idx for idx, _ in indexed]
+    for i in range(n - 2, -1, -1):
+        adjusted[sorted_indices[i]] = min(
+            adjusted[sorted_indices[i]],
+            adjusted[sorted_indices[i + 1]],
+        )
+
+    return [min(1.0, p) for p in adjusted]
+
+
+def interpret_effect_size(d: float) -> str:
+    """Interpret Cohen's d magnitude using conventional thresholds.
+
+    Returns one of: negligible, small, medium, large.
+    """
+    abs_d = abs(d)
+    if abs_d < 0.2:
+        return "negligible"
+    elif abs_d < 0.5:
+        return "small"
+    elif abs_d < 0.8:
+        return "medium"
+    else:
+        return "large"
+
+
+def post_hoc_power(
+    effect_size: float,
+    n1: int,
+    n2: int,
+    alpha: float = 0.05,
+) -> float:
+    """Estimate post-hoc statistical power for a two-sample t-test.
+
+    Uses the non-central t-distribution approximation.
+    Returns power as a float between 0 and 1.
+    """
+    import math
+
+    if n1 < 2 or n2 < 2 or abs(effect_size) < 1e-10:
+        return alpha  # power equals alpha when effect is zero
+
+    df = n1 + n2 - 2
+    harmonic_n = 2.0 * n1 * n2 / (n1 + n2)
+    noncentrality = abs(effect_size) * math.sqrt(harmonic_n / 2.0)
+
+    # Use scipy's non-central t-distribution for power calculation
+    t_crit = stats.t.ppf(1 - alpha / 2, df)
+    power = 1.0 - stats.nct.cdf(t_crit, df, noncentrality) + stats.nct.cdf(-t_crit, df, noncentrality)
+
+    return max(0.0, min(1.0, power))
 
 
 def summarize_regressions(regressions: list[RegressionResult]) -> str:

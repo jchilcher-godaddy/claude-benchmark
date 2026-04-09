@@ -9,14 +9,17 @@ from __future__ import annotations
 import json
 import logging
 import os
+import random
 import shutil
 import subprocess
 import tempfile
 import time
 from pathlib import Path
 
+import anthropic
 import anyio
 
+from claude_benchmark.execution.client import create_client, resolve_model_id
 from claude_benchmark.execution.cost import MODEL_PRICING
 from claude_benchmark.execution.parallel import BenchmarkRun, RunResult
 
@@ -30,6 +33,99 @@ logger = logging.getLogger(__name__)
 _NPX_CLAUDE_PACKAGE = "@anthropic-ai/claude-code@latest"
 
 
+_WRITE_FILE_TOOL = {
+    "name": "write_file",
+    "description": "Write content to a file in the current directory",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "path": {"type": "string", "description": "File path (relative)"},
+            "content": {"type": "string", "description": "File content"},
+        },
+        "required": ["path", "content"],
+    },
+}
+
+_MAX_TOOL_ITERATIONS = 10
+_RATE_LIMIT_MAX_RETRIES = 5
+_RATE_LIMIT_BASE_DELAY = 2.0  # seconds
+
+_TRANSIENT_PATTERNS = [
+    "too many tokens",
+    "rate limit",
+    "rate_limit",
+    "overloaded",
+    "529",
+    "too many requests",
+    "capacity",
+    "please wait",
+]
+
+_AUTH_ERROR_PATTERNS = [
+    "expired",
+    "expiredtoken",
+    "the sso session associated with this profile has expired",
+    "the sso token associated with this profile has expired",
+    "unable to locate credentials",
+    "invalidclienttokenid",
+    "unauthorizedaccess",
+    "could not resolve credentials",
+    "security token included in the request is expired",
+    "no credentials",
+    "not authorized to perform",
+]
+
+
+def is_transient_error(error_msg: str | None) -> bool:
+    """Check if an error message indicates a transient/retryable failure."""
+    if not error_msg:
+        return False
+    lower = error_msg.lower()
+    return any(pat in lower for pat in _TRANSIENT_PATTERNS)
+
+
+def is_auth_error(exc_or_msg: Exception | str | None) -> bool:
+    """Check if an error indicates expired or missing AWS credentials.
+
+    Inspects exception types first (most reliable), then falls back
+    to string pattern matching on the error message.
+
+    Args:
+        exc_or_msg: An exception instance, error message string, or None.
+
+    Returns:
+        True if the error is an authentication/credential failure.
+    """
+    if exc_or_msg is None:
+        return False
+
+    # Check exception type first (most reliable)
+    if isinstance(exc_or_msg, Exception):
+        if isinstance(exc_or_msg, (anthropic.AuthenticationError, anthropic.PermissionDeniedError)):
+            return True
+        try:
+            from botocore.exceptions import (
+                CredentialRetrievalError,
+                NoCredentialsError,
+                SSOError,
+                TokenRetrievalError,
+            )
+
+            if isinstance(
+                exc_or_msg,
+                (SSOError, NoCredentialsError, TokenRetrievalError, CredentialRetrievalError),
+            ):
+                return True
+        except ImportError:
+            pass
+        msg = str(exc_or_msg)
+    else:
+        msg = exc_or_msg
+
+    lower = msg.lower()
+    return any(pat in lower for pat in _AUTH_ERROR_PATTERNS)
+
+
 def _clean_env() -> dict[str, str]:
     """Build a subprocess environment with ``CLAUDECODE`` removed.
 
@@ -38,6 +134,139 @@ def _clean_env() -> dict[str, str]:
     benchmark to invoke the CLI as a nested subprocess.
     """
     return {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+
+
+def _execute_via_api_sync(
+    run: BenchmarkRun,
+    work_dir: Path,
+    output_dir: Path,
+    task_prompt: str,
+    system_prompt: str,
+) -> RunResult:
+    """Execute a run via the Anthropic API with temperature support.
+
+    Uses the Messages API directly so we can pass temperature.
+    Provides a write_file tool so the model can write code to disk.
+    """
+    start_time = time.monotonic()
+
+    model_id = resolve_model_id(run.model, use_gocode=run.use_gocode)
+    client = create_client(use_gocode=run.use_gocode)
+
+    messages = [{"role": "user", "content": task_prompt}]
+    total_input = 0
+    total_output = 0
+
+    try:
+        for _ in range(_MAX_TOOL_ITERATIONS):
+            # Retry loop for rate-limit (429) errors with exponential backoff
+            last_exc: Exception | None = None
+            for attempt in range(_RATE_LIMIT_MAX_RETRIES + 1):
+                try:
+                    create_kwargs: dict = dict(
+                        model=model_id,
+                        max_tokens=4096,
+                        system=system_prompt,
+                        tools=[_WRITE_FILE_TOOL],
+                        messages=messages,
+                    )
+                    if run.temperature is not None:
+                        create_kwargs["temperature"] = run.temperature
+                    response = client.messages.create(**create_kwargs)
+                    break  # success
+                except (anthropic.RateLimitError, anthropic.InternalServerError) as rate_exc:
+                    last_exc = rate_exc
+                    if attempt >= _RATE_LIMIT_MAX_RETRIES:
+                        raise
+                    delay = _RATE_LIMIT_BASE_DELAY * (2 ** attempt) + random.uniform(0, 1)
+                    logger.warning(
+                        "Rate limited on %s (attempt %d/%d), retrying in %.1fs",
+                        run.result_key, attempt + 1, _RATE_LIMIT_MAX_RETRIES, delay,
+                    )
+                    time.sleep(delay)
+
+            total_input += response.usage.input_tokens
+            total_output += response.usage.output_tokens
+
+            # Process tool use blocks
+            tool_uses = [b for b in response.content if b.type == "tool_use"]
+
+            if not tool_uses or response.stop_reason == "end_turn":
+                break
+
+            # Execute each tool call
+            tool_results = []
+            for tool_use in tool_uses:
+                if tool_use.name == "write_file":
+                    path_val = tool_use.input.get("path")
+                    content_val = tool_use.input.get("content")
+                    if not path_val or content_val is None:
+                        tool_results.append({
+                            "type": "tool_result",
+                            "tool_use_id": tool_use.id,
+                            "content": "Error: write_file requires 'path' and 'content' parameters",
+                            "is_error": True,
+                        })
+                        continue
+                    file_path = work_dir / path_val
+                    file_path.parent.mkdir(parents=True, exist_ok=True)
+                    file_path.write_text(content_val, encoding="utf-8")
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tool_use.id,
+                        "content": f"Wrote {path_val}",
+                    })
+                else:
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tool_use.id,
+                        "content": f"Unknown tool: {tool_use.name}",
+                        "is_error": True,
+                    })
+
+            # Append assistant response and tool results for next turn
+            messages.append({"role": "assistant", "content": response.content})
+            messages.append({"role": "user", "content": tool_results})
+
+        # Copy files from work_dir to output_dir
+        for item in work_dir.iterdir():
+            if item.is_file():
+                shutil.copy2(item, output_dir / item.name)
+            elif item.is_dir() and not item.name.startswith("."):
+                shutil.copytree(item, output_dir / item.name, dirs_exist_ok=True)
+
+        duration = time.monotonic() - start_time
+        total_tokens = total_input + total_output
+
+        pricing = MODEL_PRICING.get(run.model, MODEL_PRICING["sonnet"])
+        cost = (
+            (total_input / 1_000_000) * pricing["input"]
+            + (total_output / 1_000_000) * pricing["output"]
+        )
+
+        return RunResult(
+            run=run,
+            status="success",
+            output_dir=output_dir,
+            input_tokens=total_input,
+            output_tokens=total_output,
+            total_tokens=total_tokens,
+            cost=cost,
+            duration_seconds=duration,
+        )
+
+    except Exception as exc:
+        duration = time.monotonic() - start_time
+        error_msg = str(exc)
+        if is_auth_error(exc):
+            error_msg = f"aws_credentials_expired: {exc}"
+        return RunResult(
+            run=run,
+            status="failure",
+            error=error_msg,
+            output_dir=output_dir,
+            duration_seconds=duration,
+        )
 
 
 async def execute_single_run(run: BenchmarkRun) -> RunResult:
@@ -149,6 +378,41 @@ async def execute_single_run(run: BenchmarkRun) -> RunResult:
     if claudemd_rules_content.strip():
         cmd.extend(["--append-system-prompt", claudemd_rules_content])
 
+    # Inject experiment variant system prompt extra (Phase 1 prompt variants)
+    if run.system_prompt_extra:
+        cmd.extend(["--append-system-prompt", run.system_prompt_extra])
+
+    # Use Anthropic API directly for experiment runs (variant_label set),
+    # temperature overrides, or when prompt_prefix is present.
+    # Reasons: (1) CLI arg parser chokes on large/special-char prefixes
+    # (e.g. context-padding starting with "---") by misinterpreting them as
+    # option flags.  (2) All variants within an experiment must use the same
+    # execution path to avoid confounding treatment effects with path differences.
+    if run.temperature is not None or run.prompt_prefix or run.variant_label or run.use_gocode:
+        system_parts = []
+        if run.profile_path and run.profile_path.exists():
+            profile_content = run.profile_path.read_text(encoding="utf-8").strip()
+            if profile_content:
+                system_parts.append(profile_content)
+        if claudemd_rules_content.strip():
+            system_parts.append(claudemd_rules_content.strip())
+        if run.system_prompt_extra:
+            system_parts.append(run.system_prompt_extra.strip())
+        system_prompt = "\n\n".join(system_parts) if system_parts else ""
+        api_task_prompt = task_prompt
+        if run.prompt_prefix:
+            api_task_prompt = run.prompt_prefix + api_task_prompt
+        try:
+            return await anyio.to_thread.run_sync(
+                lambda: _execute_via_api_sync(run, work_dir, output_dir, api_task_prompt, system_prompt)
+            )
+        finally:
+            shutil.rmtree(work_dir, ignore_errors=True)
+
+    # Prepend experiment variant prompt prefix to task prompt
+    if run.prompt_prefix:
+        task_prompt = run.prompt_prefix + task_prompt
+
     # Task prompt is the positional argument (last)
     cmd.append(task_prompt)
 
@@ -248,10 +512,13 @@ async def execute_single_run(run: BenchmarkRun) -> RunResult:
 
     except Exception as exc:
         duration = time.monotonic() - start_time
+        error_msg = str(exc)
+        if is_auth_error(exc):
+            error_msg = f"aws_credentials_expired: {exc}"
         return RunResult(
             run=run,
             status="failure",
-            error=str(exc),
+            error=error_msg,
             output_dir=output_dir,
             duration_seconds=duration,
         )

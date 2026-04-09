@@ -1,0 +1,36 @@
+name = "specificity-level"
+description = """Hypothesis: Concrete, specific instructions outperform vague ones, especially for \
+smaller models and diagnostic-heavy tasks (bug fixes). Anthropic docs explicitly say 'Use 2-space \
+indentation' beats 'Format code properly'. Tests specificity as an isolated variable in prompt_prefix, \
+holding instruction count roughly constant. Distinct from constraint-formatting (structural format) \
+and persona (role identity)."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Bare baseline ---
+[[variants]]
+label = "bare"
+
+# --- Vague quality request (~20 words) ---
+[[variants]]
+label = "vague"
+prompt_prefix = "Write high-quality, clean, well-structured code with good error handling and proper naming. "
+
+# --- Moderately specific (~20 words) ---
+[[variants]]
+label = "moderate"
+prompt_prefix = "Use type hints, raise ValueError for invalid inputs, and keep functions under 20 lines. "
+
+# --- Highly specific (~25 words) ---
+[[variants]]
+label = "specific"
+prompt_prefix = "Use type hints on all parameters and returns. Raise ValueError with a message for invalid inputs. Use snake_case. Keep functions under 20 lines. "

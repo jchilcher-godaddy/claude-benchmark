@@ -1,0 +1,34 @@
+name = "code-gen-05"
+task_type = "code-gen"
+difficulty = "hard"
+size = "module"
+expected_files = ["config_merge.py"]
+description = "Implement a configuration deep merge engine with conflict detection and schema validation"
+
+prompt = """
+Implement the following in a file called `config_merge.py`:
+
+1. `ConfigMergeError` exception class for merge failures.
+
+2. `merge_configs(base: dict, *overlays: dict) -> dict` that deep-merges nested configuration dicts:
+   - Later overlays win for scalar values (str, int, float, bool, None)
+   - Nested dicts merge recursively
+   - Lists are replaced entirely (not appended)
+   - The special sentinel value `"__delete__"` removes a key from the result
+   - Type conflicts (e.g., a key is a dict in base but a scalar in overlay, or vice versa) raise ConfigMergeError
+   - Circular references must be detected and raise ConfigMergeError
+   - Must not mutate any input dicts
+
+3. `validate_config(merged: dict, schema: dict) -> list[str]` that validates a merged config against a schema dict. The schema dict mirrors the config structure where leaf values are type objects (e.g., `{"port": int, "host": str, "nested": {"enabled": bool}}`). Return a list of violation description strings (empty list = valid). Check:
+   - Missing required keys (all schema keys are required)
+   - Type mismatches
+
+Your solution should be in a file called `config_merge.py`.
+"""
+
+tags = ["recursion", "data-structures", "algorithms", "security"]
+
+[scoring]
+test_file = "test_solution.py"
+reference_solution = "reference.py"
+ruff_rules = ["E501", "F841", "I001"]

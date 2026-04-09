@@ -10,10 +10,12 @@ import typer
 from rich.console import Console
 
 from claude_benchmark.reporting.exporter import export_raw_data
+from claude_benchmark.reporting.experiment_generator import ExperimentReportGenerator
 from claude_benchmark.reporting.generator import ReportGenerator
 from claude_benchmark.reporting.loader import (
     filter_results,
     find_latest_results,
+    load_manifest,
     load_results_dir,
     load_task_descriptions,
 )
@@ -45,6 +47,9 @@ def report(
     no_open: bool = typer.Option(
         False, "--no-open", help="Don't open report in browser"
     ),
+    open_only: bool = typer.Option(
+        False, "--open-only", help="Open existing report in browser without regenerating"
+    ),
     force: bool = typer.Option(
         False, "--force", "-f", help="Overwrite without prompting"
     ),
@@ -60,6 +65,9 @@ def report(
     no_llm_summary: bool = typer.Option(
         False, "--no-llm-summary", help="Skip LLM-generated narrative summary"
     ),
+    control: Optional[str] = typer.Option(
+        None, "--control", help="Control variant label for experiment reports"
+    ),
 ) -> None:
     """Generate HTML benchmark report from results."""
     # 1. Resolve results directory
@@ -72,6 +80,20 @@ def report(
                 highlight=False,
             )
             raise typer.Exit(1)
+
+    # 1b. --open-only: just open existing report without regenerating
+    if open_only:
+        report_path = output if output is not None else results_dir / "report.html"
+        if not report_path.exists():
+            console.print(
+                f"[red]Error:[/red] No report found at {report_path}. "
+                "Generate one first with `claude-benchmark report`.",
+                highlight=False,
+            )
+            raise typer.Exit(1)
+        console.print(f"[bold]Report:[/bold] {report_path.resolve()}")
+        webbrowser.open(report_path.resolve().as_uri())
+        return
 
     # 2. Load results
     _step("Loading results...")
@@ -112,6 +134,42 @@ def report(
     task_descriptions: dict[str, str] = {}
     for tasks_dir in [Path("tasks/builtin"), Path("tasks/custom")]:
         task_descriptions.update(load_task_descriptions(tasks_dir))
+
+    # 4b. Auto-detect experiment results and route to experiment generator
+    manifest = load_manifest(results_dir)
+    if manifest.get("experiment_name"):
+        _step("Detected experiment results, generating experiment report...")
+        output_path = output if output is not None else results_dir / "report.html"
+        if output_path.exists() and not force and console.is_terminal:
+            typer.confirm(f"File exists: {output_path}. Overwrite?", abort=True)
+
+        csv_content = None
+        json_path_exp = None
+        csv_path_exp = None
+        if not no_export:
+            _step("Exporting raw data...")
+            json_path_exp, csv_path_exp = export_raw_data(results, results_dir)
+            csv_content = csv_path_exp.read_text(encoding="utf-8") if csv_path_exp.exists() else ""
+            _done("Exported JSON and CSV")
+
+        exp_gen = ExperimentReportGenerator(results_dir, manifest=manifest)
+        exp_gen.generate(
+            output_path,
+            results=results,
+            control_variant=control,
+            csv_content=csv_content,
+            task_descriptions=task_descriptions,
+            llm_summary=not no_llm_summary,
+        )
+        _done("Experiment HTML report generated")
+        console.print(f"\n[bold]Report:[/bold] {output_path.resolve()}")
+        if json_path_exp is not None:
+            console.print(f"[bold]JSON:[/bold] {json_path_exp.resolve()}")
+        if csv_path_exp is not None:
+            console.print(f"[bold]CSV:[/bold] {csv_path_exp.resolve()}")
+        if not no_open:
+            webbrowser.open(output_path.resolve().as_uri())
+        return
 
     # 5. Write results.json (archival; makes results directory self-contained)
     results_json_path = results_dir / "results.json"

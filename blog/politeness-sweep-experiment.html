@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="I ran 810 benchmarks testing whether saying 'please' makes AI code better. Turns out, warmth matters more than specific wording&mdash;and more than what you put in your CLAUDE.md. Warm framing beat terse commands by 1.5 points.">
+    <meta name="keywords" content="prompt tone, politeness, Claude Code, benchmarking, AI coding, prompt engineering, code quality, developer tools, effusive prompting">
+    <meta property="og:title" content="Saying 'Please' to Claude Produces Better Code. 810 Benchmarks Exposed the Gap.">
+    <meta property="og:description" content="810 benchmark runs across 3 Claude models testing effusive, polite, and bare-imperative prompting. Warm framing beat terse commands, but effusive and polite were statistically tied.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/politeness-sweep-experiment.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/politeness-sweep-experiment.html">
+    <title>Saying "Please" to Claude Produces Better Code. 810 Benchmarks Exposed the Gap. - TechLoom</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Saying 'Please' to Claude Produces Better Code. 810 Benchmarks Exposed the Gap.",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-03-17",
+        "dateModified": "2026-03-17",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "810 benchmark runs testing prompt tone across 3 Claude models. Warm framing beat terse commands by ~1.5 points, primarily by preventing bad outlier runs. Effusive and polite prompts were statistically indistinguishable.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/politeness-sweep-experiment.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Politeness Sweep Experiment",
+                "item": "https://techloom.it/blog/politeness-sweep-experiment.html"
+            }
+        ]
+    }
+    </script>
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th, .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            color: #111827;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose code {
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+        .blog-prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .blog-prose pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Politeness Sweep Experiment</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">March 17, 2026</span>
+                    <span class="blog-tag">AI Tooling</span>
+                    <span class="blog-tag">Experiments</span>
+                </div>
+                <h1>Saying &ldquo;Please&rdquo; to Claude Produces Better Code. 810 Benchmarks Exposed the Gap.</h1>
+                <div class="blog-author">
+                    <div class="blog-author-avatar">JC</div>
+                    <div class="blog-author-info">
+                        <span class="blog-author-name">Johnathen Chilcher</span>
+                        <span class="blog-author-role">Senior SRE, TechLoom</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <p>There's a running joke in the AI community about people who say "please" and "thank you" to their LLMs. The implication is that it's sentimental, anthropomorphizing&mdash;treating a statistical model like a colleague. The pragmatic developer just fires off terse commands. "Refactor this." "Fix the bug." No pleasantries, no wasted tokens.</p>
+
+                <p>I was in the pragmatic camp. Then I ran 810 benchmarks.</p>
+
+                <p>It turns out the polite people were onto something. Not for the reasons they think, and not in the way you'd expect, but the data is clear: <em>how</em> you frame a prompt affects code quality more than <em>what</em> you put in your CLAUDE.md. The surprise? It's not about saying "please" specifically&mdash;it's about warmth. Effusive and polite prompts scored identically (p=0.67). The real divide is between warm framing and terse commands.</p>
+
+                <h2>Experiment Design</h2>
+
+                <p>This is the third experiment in the <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a> series. The <a href="claudemd-benchmark-results.html">first study</a> tested CLAUDE.md instruction content across 1,188 runs. The <a href="chain-of-thought-experiment.html">second</a> tested chain-of-thought prompting across 270 runs. This one holds instruction content constant and isolates a variable nobody seems to measure: <strong>tone</strong>.</p>
+
+                <h3>The Three Variants</h3>
+
+                <p>Every variant uses the same task prompt. Only the framing changes:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>What It Sounds Like</th>
+                    </tr>
+                    <tr>
+                        <td>bare-imperative</td>
+                        <td>Terse, command-style. "Refactor this function." No context, no courtesy. The way most developers actually prompt.</td>
+                    </tr>
+                    <tr>
+                        <td>polite</td>
+                        <td>Standard professional tone. "Could you please refactor this function?" Adds courtesy and framing without changing the ask.</td>
+                    </tr>
+                    <tr>
+                        <td>effusive</td>
+                        <td>Enthusiastic, encouraging. "You're excellent at writing clean, well-structured code. I'd love your help refactoring this function." Positive reinforcement and confidence framing.</td>
+                    </tr>
+                </table>
+
+                <h3>The Test Matrix</h3>
+
+                <table>
+                    <tr>
+                        <th>Dimension</th>
+                        <th>Values</th>
+                    </tr>
+                    <tr>
+                        <td>Models</td>
+                        <td>Claude Haiku 4.5, Claude Sonnet 4.6, Claude Opus 4.6</td>
+                    </tr>
+                    <tr>
+                        <td>Profile</td>
+                        <td>empty (no CLAUDE.md)</td>
+                    </tr>
+                    <tr>
+                        <td>Tasks</td>
+                        <td>bug-fix-01, code-gen-01, refactor-01</td>
+                    </tr>
+                    <tr>
+                        <td>Variants</td>
+                        <td>bare-imperative, polite, effusive</td>
+                    </tr>
+                    <tr>
+                        <td>Repetitions</td>
+                        <td>30 per combination</td>
+                    </tr>
+                    <tr>
+                        <td>Total runs</td>
+                        <td>810</td>
+                    </tr>
+                </table>
+
+                <p>Same structure as the CoT experiment but with 3&times; the repetitions: 30 runs per combination, empty profile to isolate the variable, same three tasks. All that changed is the wrapper around the prompt. The higher rep count gives us enough statistical power to distinguish real effects from noise.</p>
+
+                <h2>Results: Tone Moves the Needle</h2>
+
+                <p>Overall composite scores, averaged across all models and tasks:</p>
+
+                <img src="images/politeness-sweep/executive-summary.png" alt="Executive summary showing effusive as best variant at 95.2 composite score, bare-imperative control at 93.7, a +1.5 point improvement">
+                <p class="image-caption">Executive summary from the benchmark report: effusive leads at 95.2, bare-imperative trails at 93.7.</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Composite Score</th>
+                        <th>Std Dev</th>
+                        <th>Min</th>
+                        <th>Max</th>
+                    </tr>
+                    <tr>
+                        <td><strong>effusive</strong></td>
+                        <td><strong>95.21</strong></td>
+                        <td>6.45</td>
+                        <td>54.3</td>
+                        <td>98.5</td>
+                    </tr>
+                    <tr>
+                        <td>polite</td>
+                        <td>94.99</td>
+                        <td>6.10</td>
+                        <td>62.4</td>
+                        <td>98.5</td>
+                    </tr>
+                    <tr>
+                        <td>bare-imperative</td>
+                        <td>93.68</td>
+                        <td>9.29</td>
+                        <td>41.1</td>
+                        <td>98.5</td>
+                    </tr>
+                </table>
+
+                <div class="result-highlight">
+                    <strong>Warm framing beat terse commands by ~1.5 points.</strong> But here's the nuance 810 runs revealed: effusive and polite are statistically indistinguishable (p=0.67, Welch's t-test). The real divide isn't between "please" and enthusiastic praise&mdash;it's between any warm framing and bare commands. Effusive vs. bare-imperative: p=0.027. Polite vs. bare-imperative: p=0.051.
+                </div>
+
+                <p>The average difference is smaller than the original 270-run subset suggested, but the pattern is more reliable at 810 runs. Look at the standard deviations. Bare-imperative runs had a spread of 9.29&mdash;roughly 50% wider than polite's 6.10. And the minimum scores tell the real story: bare-imperative's worst run scored 41.1. Polite's worst was 62.4. Effusive's worst was 54.3.</p>
+
+                <p>All three variants hit the same ceiling (98.5). The difference is entirely in the floor. And notably, polite framing has the best floor of all&mdash;62.4 vs. effusive's 54.3. If you care about worst-case reliability, simple courtesy beats enthusiastic praise.</p>
+
+                <h3>Model-Level Breakdown</h3>
+
+                <img src="images/politeness-sweep/radar-charts.png" alt="Radar charts comparing variant scores across metrics for Haiku, Opus, and Sonnet models">
+                <p class="image-caption">Per-model radar charts: Haiku is nearly identical across variants, Sonnet shows the clearest separation, Opus has the most variance.</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>bare-imperative</th>
+                        <th>polite</th>
+                        <th>effusive</th>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td>96.40</td>
+                        <td>96.40</td>
+                        <td><strong>96.40</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td>94.19</td>
+                        <td>95.29</td>
+                        <td><strong>96.11</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Opus</td>
+                        <td>91.00</td>
+                        <td>93.28</td>
+                        <td>93.13</td>
+                    </tr>
+                </table>
+
+                <p>Three very different stories here.</p>
+
+                <p><strong>Haiku doesn't care.</strong> It scored ~96.4 regardless of whether you barked orders at it or showered it with praise. Essentially zero spread across all three variants. Haiku is the honey badger of Claude models&mdash;it just does its thing.</p>
+
+                <p><strong>Sonnet shows the cleanest signal.</strong> A 1.92-point spread from bare to effusive, with low variance across runs. Sonnet reliably produces better code when prompted warmly. This is the most actionable finding in the experiment.</p>
+
+                <p><strong>Opus confirms the warm-vs-terse divide.</strong> A 2.28-point gap between bare-imperative (91.00) and polite (93.28), but notice that effusive (93.13) and polite are virtually identical. For Opus, just being warm is enough&mdash;cranking up the enthusiasm doesn't buy extra quality. Opus also had the highest variance across runs, so the signal is noisier at the individual-run level.</p>
+
+                <h3>Task-Level Breakdown</h3>
+
+                <img src="images/politeness-sweep/heatmap.png" alt="Heatmap showing variant scores broken down by task, with refactor-01 showing the largest differences">
+                <p class="image-caption">Variant x Task heatmap: refactor-01 is the only task where tone meaningfully moves the score.</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>bug-fix-01</th>
+                        <th>code-gen-01</th>
+                        <th>refactor-01</th>
+                    </tr>
+                    <tr>
+                        <td>effusive</td>
+                        <td>98.50</td>
+                        <td>97.80</td>
+                        <td><strong>89.34</strong></td>
+                    </tr>
+                    <tr>
+                        <td>polite</td>
+                        <td>98.40</td>
+                        <td>97.10</td>
+                        <td>89.49</td>
+                    </tr>
+                    <tr>
+                        <td>bare-imperative</td>
+                        <td>97.90</td>
+                        <td>97.05</td>
+                        <td>86.09</td>
+                    </tr>
+                </table>
+
+                <p>Same pattern as every experiment in this series: bug-fix and code-gen are nearly saturated. The models nail these tasks regardless of how you ask. The differentiation happens on <strong>refactor-01</strong>&mdash;the only task complex enough to be sensitive to prompting strategy.</p>
+
+                <div class="result-warning">
+                    <strong>On refactoring, warm framing beat bare-imperative by ~3.3 points</strong> (effusive 89.34, polite 89.49 vs. bare 86.09). Again, effusive and polite are virtually tied. That's the largest single-variable effect I've measured across three experiments and over 1,300 total benchmark runs. Tone matters most when the task requires judgment, not just execution.
+                </div>
+
+                <h2>Why Tone Affects Code Quality</h2>
+
+                <p>This isn't about the model having feelings. It's about what different framings activate in the training distribution.</p>
+
+                <p>Think about where these models learned to code. The training data includes millions of interactions: Stack Overflow answers, code reviews, pair programming transcripts, tutorial exchanges, mentorship conversations. The <em>quality</em> of code in those interactions correlates with the <em>tone</em> of the surrounding context.</p>
+
+                <p>When someone writes "just fix it," the associated code in the training data tends to be quick patches, workarounds, drive-by fixes. When someone writes "I'd really appreciate a clean, well-structured approach to this," the associated code tends to be thoughtful, reviewed, production-grade. The model isn't responding to politeness. It's pattern-matching on the contextual signal that predicts code quality.</p>
+
+                <h3>The Floor Effect</h3>
+
+                <p>The most important finding isn't the 2-point average difference. It's the floor. Look at the minimums again:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Worst Run</th>
+                        <th>Std Dev</th>
+                    </tr>
+                    <tr>
+                        <td>bare-imperative</td>
+                        <td>41.1</td>
+                        <td>9.29</td>
+                    </tr>
+                    <tr>
+                        <td>effusive</td>
+                        <td>54.3</td>
+                        <td>6.45</td>
+                    </tr>
+                    <tr>
+                        <td><strong>polite</strong></td>
+                        <td><strong>62.4</strong></td>
+                        <td><strong>6.10</strong></td>
+                    </tr>
+                </table>
+
+                <p>Bare-imperative's worst run was a 41.1. That's a catastrophic failure&mdash;code that barely functions. With warm framing, the worst runs were 13&ndash;21 points higher. And here's an interesting twist: <strong>polite had the best floor</strong> (62.4) and the tightest spread (6.10). Effusive's floor was actually lower (54.3). If you're optimizing for worst-case reliability rather than average score, simple professional courtesy beats enthusiastic praise. The ceiling was the same across all three. Tone doesn't make good code better. It makes bad code less bad. It's a guardrail.</p>
+
+                <p>This is the same pattern the <a href="claudemd-benchmark-results.html">CLAUDE.md study</a> found with instructions: they raise the floor more than the average. And the same pattern the <a href="chain-of-thought-experiment.html">CoT study</a> found with reasoning scaffolds (though CoT reduced variance by pulling down the ceiling, which is worse). Tone is the first variable I've tested that raises the floor without lowering the ceiling.</p>
+
+                <div class="result-highlight">
+                    <strong>Tone is the only prompting variable in this series that improves consistency without sacrificing peak performance.</strong> Instructions and CoT both introduced tradeoffs. Warm framing is a free lunch&mdash;or as close to one as I've found.
+                </div>
+
+                <h3>Statistical Significance</h3>
+
+                <p>With 810 runs (270 per variant), we have enough power to draw real conclusions. Welch's t-test results:</p>
+
+                <img src="images/politeness-sweep/statistical-comparison.png" alt="Statistical comparison table showing p-values and significance for all variant pairs">
+                <p class="image-caption">Full statistical comparison from the benchmark report, including effect sizes and confidence intervals.</p>
+
+                <table>
+                    <tr>
+                        <th>Comparison</th>
+                        <th>Mean Difference</th>
+                        <th>p-value</th>
+                        <th>Significant?</th>
+                    </tr>
+                    <tr>
+                        <td>effusive vs. bare-imperative</td>
+                        <td>+1.53</td>
+                        <td>0.027</td>
+                        <td>Yes (p &lt; 0.05)</td>
+                    </tr>
+                    <tr>
+                        <td>polite vs. bare-imperative</td>
+                        <td>+1.31</td>
+                        <td>0.051</td>
+                        <td>Marginal</td>
+                    </tr>
+                    <tr>
+                        <td>effusive vs. polite</td>
+                        <td>+0.22</td>
+                        <td>0.67</td>
+                        <td>No</td>
+                    </tr>
+                </table>
+
+                <p>The effusive-vs-polite comparison is the key finding that only emerged with 810 runs. At 270 runs, the gap looked meaningful. At 810, it's noise. The real story is warm framing vs. terse commands&mdash;not the specific flavor of warmth.</p>
+
+                <h2>How This Fits the Bigger Picture</h2>
+
+                <p>Three experiments, 1,350 runs, one consistent hierarchy:</p>
+
+                <table>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Effect Size</th>
+                        <th>Direction</th>
+                        <th>Source</th>
+                    </tr>
+                    <tr>
+                        <td>Model selection (best vs. worst)</td>
+                        <td>~2.5 points</td>
+                        <td>Positive</td>
+                        <td><a href="claudemd-benchmark-results.html">CLAUDE.md study</a></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Prompt tone (warm vs. bare)</strong></td>
+                        <td><strong>~1.3&ndash;1.5 points</strong></td>
+                        <td><strong>Positive</strong></td>
+                        <td><strong>This study (810 runs)</strong></td>
+                    </tr>
+                    <tr>
+                        <td>CLAUDE.md instructions (best vs. worst)</td>
+                        <td>~1.4 points</td>
+                        <td>Mixed</td>
+                        <td><a href="claudemd-benchmark-results.html">CLAUDE.md study</a></td>
+                    </tr>
+                    <tr>
+                        <td>Chain-of-thought (bare vs. CoT)</td>
+                        <td>~0.5&ndash;1.1 points</td>
+                        <td>Negative</td>
+                        <td><a href="chain-of-thought-experiment.html">CoT study</a></td>
+                    </tr>
+                </table>
+
+                <img src="images/politeness-sweep/scatter-efficiency.png" alt="Scatter plot showing token efficiency across variants, with effusive winning on both quality and token usage">
+                <p class="image-caption">Token efficiency scatter: warm framing doesn't cost extra tokens relative to its quality gains.</p>
+
+                <p>Prompt tone is the second most impactful variable I've measured, behind only model selection. It has a comparable effect to the content of your CLAUDE.md instructions, and unlike chain-of-thought prompting, it actually helps instead of hurting.</p>
+
+                <p>If you're spending time curating your CLAUDE.md but firing off terse commands in your prompts, you're optimizing the wrong thing. And the good news from 810 runs: you don't need to write effusive praise. A simple "Could you please..." gets you the same result.</p>
+
+                <h2>What This Means for Your Prompts</h2>
+
+                <ol>
+                    <li><strong>Add warmth to your prompts, especially for complex tasks.</strong> "Could you please restructure this for readability?" will outperform "Refactor this" more often than not&mdash;and it performs just as well as effusive praise. The effect is largest on tasks that require judgment (refactoring, architecture decisions) and negligible on mechanical tasks (bug fixes, simple code generation).</li>
+                    <li><strong>Don't bother with elaborate praise.</strong> 810 runs proved that effusive and polite prompts are statistically identical (p=0.67). You don't need to write "You're excellent at writing clean, well-structured code." Just say "please." The warmth signal is binary: present or absent.</li>
+                    <li><strong>This matters most for Sonnet.</strong> If you're routing between models, Sonnet showed the cleanest, most reliable improvement from warm framing. Haiku doesn't care. Opus benefits but with more variance.</li>
+                    <li><strong>Think of tone as a consistency tool, not a quality booster.</strong> You're not making the model smarter. You're preventing the worst-case runs where it phones it in. Polite framing has the best floor (62.4 min) and tightest spread (stdev 6.10)&mdash;if reliability matters, simple courtesy is the best bet.</li>
+                    <li><strong>Combine with the other findings.</strong> The optimal prompt from this entire series of experiments is: no CLAUDE.md (or minimal, targeted instructions), no chain-of-thought scaffolding, warm and specific framing. Let the model's training do the work. Just set the right tone&mdash;and "please" is enough.</li>
+                </ol>
+
+                <h2>Limitations</h2>
+
+                <ul>
+                    <li><strong>Three tasks, same saturation problem.</strong> Two of the three tasks are nearly saturated&mdash;the models ace them regardless. The real signal comes from refactor-01. A broader task set with more challenging problems would give a fuller picture.</li>
+                    <li><strong>Tone is hard to parameterize precisely.</strong> "Effusive" and "polite" are fuzzy categories. The specific wording of each variant matters, and different phrasings within the same tone category might produce different results. This tests three specific framings, not the entire space of possible tones.</li>
+                    <li><strong>Single-turn only.</strong> Real development involves multi-turn conversations where tone accumulates over an exchange. The effect of sustained warmth (or sustained terseness) over a long session could be larger or smaller than what single-turn benchmarks capture.</li>
+                    <li><strong>No interaction with instructions.</strong> All runs used the empty profile. Tone might interact with CLAUDE.md content&mdash;warm framing could amplify the effect of good instructions or compensate for bad ones. That's a separate experiment.</li>
+                    <li><strong>Opus variance is high.</strong> The Opus results are directionally consistent but noisy. Even with 30 reps per combination, Opus had the widest standard deviations. The aggregate trend is clear, but any single Opus run is unpredictable.</li>
+                </ul>
+
+                <h2>Try It Yourself</h2>
+
+                <p>The experiment configuration and all 810 runs are available in the <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a> repository. Run the politeness sweep against your own tasks:</p>
+
+                <pre><code>git clone https://github.com/jchilcher/claude-benchmark.git
+cd claude-benchmark
+pip install -e .
+
+# Run the politeness sweep experiment
+claude-benchmark experiment run experiments/politeness-sweep.yaml
+
+# Generate the report
+claude-benchmark experiment report results/experiment-politeness-sweep-*/</code></pre>
+
+                <p>Or define your own variants. Test different tones, different phrasings, different levels of enthusiasm. If you find a framing that beats effusive, or a task where terse commands win, I want to see the data. That boundary is where the interesting questions live.</p>
+
+            </div>
+
+            <div class="blog-cta-box">
+                <h3>Want to benchmark your own AI coding workflows?</h3>
+                <p>I help teams measure and optimize their AI-assisted development processes&mdash;from prompt engineering to infrastructure automation. Get a free assessment to find where data-driven decisions can improve your output quality.</p>
+                <a href="../index.html#contact" class="btn-primary btn-large">Get Your Free Assessment</a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+Interesting breakdown Michael — the "code: Claude wins, business analysis: Gemini wins" framing maps to something I found in my benchmarking data pretty closely.
+
+I ran 2,160 benchmarks across Haiku, Sonnet, and Opus on 4 task types (bug fixes, code gen, instruction following, refactoring). The headline: no single Claude model wins everything either. The overall scores land within 1.5 points of each other — basically noise. But the per-task-type gaps are 6-8 points, which is massive.
+
+The routing that fell out of the data:
+- *Bug fixes and code gen* → Sonnet. 98.95 avg on bug fixes with a stdev of 1.12. Highest accuracy, lowest variance. When there's a clear "correct answer" (pass the tests), Sonnet wins.
+- *Instruction following / compliance* → Opus. 95.32 avg with a stdev near zero. Essentially deterministic. When you need it to follow specific constraints every single time, Opus is the only reliable choice.
+- *Refactoring* → Haiku. 93.07 avg. The cheapest model produces the best restructured code. Opus actually scores worst here (85.06) — Anthropic themselves note Opus tends to overengineer, which is exactly backwards for "simplify this code."
+
+The variance story is what matters most in practice. Opus on instruction-following: stdev 0.05. Haiku on that same task: stdev 20.79. Same prompt, wildly different reliability. Average scores lie — the worst case is what matters in production.
+
+Re: Gemini on business planning and analytics — that tracks with what I'd expect. Those are the kinds of tasks where Google's data advantage and longer context windows probably matter more than raw code execution quality. My benchmarks only cover coding tasks, so I can't directly compare cross-provider on business analysis. But the pattern holds: the right model depends on the task type, not the model tier.
+
+Wrote it up in detail here if you want the full data: https://techloom.it/blog/model-selection-experiment.html

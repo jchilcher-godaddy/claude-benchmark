@@ -1,0 +1,42 @@
+name = "agent-specialization"
+description = """Hypothesis: Narrow agent specialization outperforms broad generalist framing, \
+particularly for task types that match the specialization. The persona-sweep showed code-reviewer \
+(+2.9 refactoring) beats generic senior-engineer — this extends that finding to test specialization \
+depth. Predicts that medium specificity is optimal: too narrow risks mismatch with task variety, \
+too broad adds no signal. Distinct from persona-sweep (which tested role identity) — this tests \
+the depth of domain specialization within a consistent role."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- No specialization (bare) ---
+[[variants]]
+label = "bare"
+
+# --- Broad: general coding assistant ---
+[[variants]]
+label = "broad"
+system_prompt_extra = "You are a general-purpose coding assistant. You help with all types of programming tasks."
+
+# --- Moderate: Python backend specialist ---
+[[variants]]
+label = "moderate"
+system_prompt_extra = "You are a Python backend specialist. You write clean, well-tested Python code with proper error handling and type safety."
+
+# --- Narrow: task-type-aligned specialist ---
+[[variants]]
+label = "narrow-implementation"
+system_prompt_extra = "You are a Python implementation specialist focused on writing correct, readable functions. You pay careful attention to edge cases, input validation, and type hints on every signature."
+
+# --- Very narrow: technique-specific ---
+[[variants]]
+label = "very-narrow"
+system_prompt_extra = "You are a Python specialist focused exclusively on writing pure functions with comprehensive edge-case handling. Every function you write validates inputs, uses type hints, handles empty/None/boundary cases, and raises specific exceptions with actionable messages."

@@ -58,3 +58,4 @@ class BenchmarkManifest(BaseModel):
     total_combinations: int
     total_runs: int
     cli_args: dict[str, str] = Field(default_factory=dict)
+    scoring_version: str = Field(default="1.0")

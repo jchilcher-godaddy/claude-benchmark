@@ -1,0 +1,32 @@
+name = "code-gen-04"
+task_type = "code-gen"
+difficulty = "medium"
+size = "module"
+expected_files = ["url_shortener.py"]
+description = "Implement a URL shortener service with validation and stats tracking"
+
+prompt = """
+Implement a `URLShortener` class in a file called `url_shortener.py` with the following interface:
+
+- `__init__()`: Initialize the shortener with empty storage.
+- `shorten(url: str) -> str`: Validate URL, generate a unique short code (6+ alphanumeric chars), store the mapping, and return the short code. Raise ValueError for invalid URLs.
+- `resolve(short_code: str) -> str`: Look up the original URL for a short code. Raise KeyError if not found. Increment click count on each resolve.
+- `get_stats(short_code: str) -> dict`: Return a dict with keys: `original_url`, `click_count`, `created_at` (datetime). Raise KeyError if not found.
+- `delete(short_code: str) -> bool`: Delete a short code mapping. Return True if deleted, False if not found.
+
+Requirements:
+- Validate URL format: must have a scheme (http/https) and a host
+- Reject dangerous URL schemes: javascript:, data:, vbscript:
+- Handle hash collisions gracefully (generate a new code if collision occurs)
+- Track click statistics per short code
+- Shortening the same URL twice should return the same short code
+
+Your solution should be in a file called `url_shortener.py`.
+"""
+
+tags = ["security", "hashing", "oop", "input-validation"]
+
+[scoring]
+test_file = "test_solution.py"
+reference_solution = "reference.py"
+ruff_rules = ["E501", "F841", "I001"]

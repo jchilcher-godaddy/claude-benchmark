@@ -147,59 +147,6 @@ def _compute_radar_axis(scores: dict[str, list[float]]) -> tuple[int, int]:
     return (axis_min, step_size)
 
 
-def _normalize_radar_scores(
-    profiles: list[str],
-    dimensions: list[str],
-    scores: dict[str, list[float]],
-) -> tuple[dict[str, list[float]], dict[str, list[float]], bool]:
-    """Normalize radar scores per dimension to maximize visual spread.
-
-    Each dimension is independently scaled to the 20-100 range so that even
-    tiny absolute differences (e.g., 90.2 vs 91.0) become clearly visible.
-    The floor of 20 prevents the worst profile from collapsing to the center.
-
-    Returns:
-        (normalized_scores, original_scores, was_normalized) where
-        was_normalized is True if normalization was applied.
-    """
-    if len(profiles) < 2:
-        orig = {p: list(scores.get(p, [0.0] * len(dimensions))) for p in profiles}
-        return orig, orig, False
-
-    n_dims = len(dimensions)
-    original: dict[str, list[float]] = {
-        p: list(scores.get(p, [0.0] * n_dims)) for p in profiles
-    }
-
-    # Per-dimension min/max
-    dim_mins: list[float] = []
-    dim_maxs: list[float] = []
-    for d in range(n_dims):
-        vals = [original[p][d] for p in profiles]
-        dim_mins.append(min(vals))
-        dim_maxs.append(max(vals))
-
-    # Check if any dimension has spread; if all identical, skip normalization
-    has_spread = any(
-        dim_maxs[d] - dim_mins[d] > 0.01 for d in range(n_dims)
-    )
-    if not has_spread:
-        return original, original, False
-
-    # Normalize each dimension to 20-100 range
-    normalized: dict[str, list[float]] = {p: [] for p in profiles}
-    for d in range(n_dims):
-        spread = dim_maxs[d] - dim_mins[d]
-        for p in profiles:
-            if spread > 0.01:
-                norm = 20.0 + (original[p][d] - dim_mins[d]) / spread * 80.0
-            else:
-                norm = 60.0  # midpoint when all identical on this dim
-            normalized[p].append(round(norm, 2))
-
-    return normalized, original, True
-
-
 def build_radar_config(
     model_name: str,
     profiles: list[str],
@@ -209,9 +156,10 @@ def build_radar_config(
 ) -> dict:
     """Build a Chart.js radar config overlaying all profiles for a model.
 
-    When multiple profiles are present, scores are normalized per dimension
-    to fill the chart area, making small differences visible. Original scores
-    are stored in ``originalData`` for display by the point-label plugin.
+    Uses actual scores (not per-dimension normalization) so that cross-dimension
+    comparisons are accurate — a 76 looks smaller than a 100. When scores cluster
+    in a narrow range, the axis minimum is raised above 0 to spread out the
+    polygons visually. Tick labels are always shown so the center value is clear.
 
     Args:
         model_name: Name of the model (used in chart title).
@@ -224,16 +172,14 @@ def build_radar_config(
         Chart.js 4.x radar configuration dict.
     """
     palette = _get_colors(len(profiles), colors)
-    normalized, original, was_normalized = _normalize_radar_scores(
-        profiles, dimensions, scores,
-    )
+    axis_min, step_size = _compute_radar_axis(scores)
 
     datasets = []
     for i, profile in enumerate(profiles):
         color = palette[i]
         ds: dict = {
             "label": profile,
-            "data": normalized.get(profile, [0.0] * len(dimensions)),
+            "data": list(scores.get(profile, [0.0] * len(dimensions))),
             "backgroundColor": _hex_with_alpha(color, "33"),
             "borderColor": color,
             "borderWidth": 2,
@@ -241,15 +187,11 @@ def build_radar_config(
             "pointHoverRadius": 6,
             "fill": True,
         }
-        if was_normalized:
-            ds["originalData"] = original.get(
-                profile, [0.0] * len(dimensions)
-            )
         datasets.append(ds)
 
     title_text = f"Profile Comparison: {model_name}"
-    if was_normalized:
-        title_text += "  (axes scaled per-dimension)"
+    if axis_min > 0:
+        title_text += f"  (center = {axis_min})"
 
     return sanitize_chart_data({
         "type": "radar",
@@ -262,11 +204,11 @@ def build_radar_config(
             "maintainAspectRatio": True,
             "scales": {
                 "r": {
-                    "min": 0,
+                    "min": axis_min,
                     "max": 100,
                     "ticks": {
-                        "stepSize": 20,
-                        "display": not was_normalized,
+                        "stepSize": step_size,
+                        "display": True,
                     },
                 },
             },

@@ -33,6 +33,10 @@ def _make_run(
     model: str = "sonnet",
     run_number: int = 1,
     results_dir: Path | None = None,
+    variant_label: str | None = None,
+    temperature: float | None = None,
+    system_prompt_extra: str | None = None,
+    prompt_prefix: str | None = None,
 ) -> BenchmarkRun:
     """Create a BenchmarkRun with sensible defaults for testing."""
     return BenchmarkRun(
@@ -43,6 +47,10 @@ def _make_run(
         task_dir=Path("/tmp/tasks") / task_name,
         profile_path=Path("/tmp/profiles") / profile_name / "CLAUDE.md",
         results_dir=results_dir or Path("/tmp/results"),
+        variant_label=variant_label,
+        temperature=temperature,
+        system_prompt_extra=system_prompt_extra,
+        prompt_prefix=prompt_prefix,
     )
 
 
@@ -77,6 +85,40 @@ class TestBenchmarkRunResultKey:
     def test_result_key_different_values(self) -> None:
         run = _make_run(model="haiku", profile_name="large", task_name="refactor-01", run_number=1)
         assert run.result_key == "haiku/large/refactor-01/run-1"
+
+
+class TestBenchmarkRunVariantResultKey:
+    """BenchmarkRun.result_key with variant_label."""
+
+    def test_result_key_without_variant(self) -> None:
+        run = _make_run(model="sonnet", profile_name="empty", task_name="t1", run_number=1)
+        assert run.result_key == "sonnet/empty/t1/run-1"
+        assert "variant" not in run.result_key.lower()
+
+    def test_result_key_with_variant(self) -> None:
+        run = _make_run(
+            model="sonnet", profile_name="empty", task_name="t1",
+            run_number=1, variant_label="polite",
+        )
+        assert run.result_key == "sonnet/empty/t1/polite/run-1"
+
+    def test_result_path_with_variant(self, tmp_path: Path) -> None:
+        run = _make_run(
+            model="sonnet", profile_name="empty", task_name="t1",
+            run_number=2, variant_label="polite", results_dir=tmp_path,
+        )
+        expected = tmp_path / "sonnet" / "empty" / "t1" / "polite" / "run-2.json"
+        assert run.result_path == expected
+
+    def test_uniqueness_across_variants(self) -> None:
+        run_a = _make_run(task_name="t1", run_number=1, variant_label="control")
+        run_b = _make_run(task_name="t1", run_number=1, variant_label="treatment")
+        assert run_a.result_key != run_b.result_key
+
+    def test_uniqueness_variant_vs_no_variant(self) -> None:
+        run_with = _make_run(task_name="t1", run_number=1, variant_label="v1")
+        run_without = _make_run(task_name="t1", run_number=1)
+        assert run_with.result_key != run_without.result_key
 
 
 class TestBenchmarkRunResultPath:
@@ -149,6 +191,41 @@ class TestRunResultToDict:
         result = RunResult(run=run, status="success")
         d = result.to_dict()
         assert d["scores"] is None
+
+
+class TestRunResultToDictVariantFields:
+    """RunResult.to_dict() includes/excludes variant_label and temperature."""
+
+    def test_to_dict_includes_variant_label(self) -> None:
+        run = _make_run(variant_label="polite")
+        result = RunResult(run=run, status="success")
+        d = result.to_dict()
+        assert d["variant_label"] == "polite"
+
+    def test_to_dict_excludes_variant_label_when_none(self) -> None:
+        run = _make_run()
+        result = RunResult(run=run, status="success")
+        d = result.to_dict()
+        assert "variant_label" not in d
+
+    def test_to_dict_includes_temperature(self) -> None:
+        run = _make_run(temperature=0.7)
+        result = RunResult(run=run, status="success")
+        d = result.to_dict()
+        assert d["temperature"] == 0.7
+
+    def test_to_dict_excludes_temperature_when_none(self) -> None:
+        run = _make_run()
+        result = RunResult(run=run, status="success")
+        d = result.to_dict()
+        assert "temperature" not in d
+
+    def test_to_dict_both_variant_and_temperature(self) -> None:
+        run = _make_run(variant_label="hot", temperature=1.0)
+        result = RunResult(run=run, status="success")
+        d = result.to_dict()
+        assert d["variant_label"] == "hot"
+        assert d["temperature"] == 1.0
 
 
 class TestRunResultFailure:
@@ -474,3 +551,91 @@ class TestRunBenchmarkParallel:
         """Empty runs list returns empty results."""
         results = await run_benchmark_parallel([], concurrency=3)
         assert results == []
+
+
+# ---------------------------------------------------------------------------
+# Orchestrator retry tests
+# ---------------------------------------------------------------------------
+
+
+class TestOrchestratorRetry:
+    """Orchestrator retries transient failures with backoff."""
+
+    @pytest.mark.asyncio
+    async def test_transient_failure_retried_then_succeeds(self, tmp_path: Path) -> None:
+        """Transient failure is retried and succeeds on second attempt."""
+        runs = [_make_run(run_number=1, results_dir=tmp_path)]
+        call_count = 0
+
+        async def mock_execute(run: BenchmarkRun) -> RunResult:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return RunResult(run=run, status="failure", error="Too many tokens, please wait")
+            return RunResult(run=run, status="success", cost=0.01)
+
+        with (
+            patch(
+                "claude_benchmark.execution.worker.execute_single_run",
+                side_effect=mock_execute,
+            ),
+            patch("claude_benchmark.execution.worker.write_result_atomic"),
+            patch("claude_benchmark.execution.parallel.anyio.sleep", new_callable=AsyncMock),
+        ):
+            results = await run_benchmark_parallel(runs, concurrency=1)
+
+        assert len(results) == 1
+        assert results[0].status == "success"
+        assert call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_permanent_failure_not_retried(self, tmp_path: Path) -> None:
+        """Permanent failure is not retried."""
+        runs = [_make_run(run_number=1, results_dir=tmp_path)]
+        call_count = 0
+
+        async def mock_execute(run: BenchmarkRun) -> RunResult:
+            nonlocal call_count
+            call_count += 1
+            return RunResult(run=run, status="failure", error="bad input")
+
+        with (
+            patch(
+                "claude_benchmark.execution.worker.execute_single_run",
+                side_effect=mock_execute,
+            ),
+            patch("claude_benchmark.execution.worker.write_result_atomic"),
+            patch("claude_benchmark.execution.parallel.anyio.sleep", new_callable=AsyncMock),
+        ):
+            results = await run_benchmark_parallel(runs, concurrency=1)
+
+        assert len(results) == 1
+        assert results[0].status == "failure"
+        assert call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_transient_failure_exhausts_retries(self, tmp_path: Path) -> None:
+        """Transient failure exhausts all retries and returns final failure."""
+        from claude_benchmark.execution.parallel import _ORCHESTRATOR_MAX_RETRIES
+
+        runs = [_make_run(run_number=1, results_dir=tmp_path)]
+        call_count = 0
+
+        async def mock_execute(run: BenchmarkRun) -> RunResult:
+            nonlocal call_count
+            call_count += 1
+            return RunResult(run=run, status="failure", error="Too many tokens, please wait")
+
+        with (
+            patch(
+                "claude_benchmark.execution.worker.execute_single_run",
+                side_effect=mock_execute,
+            ),
+            patch("claude_benchmark.execution.worker.write_result_atomic"),
+            patch("claude_benchmark.execution.parallel.anyio.sleep", new_callable=AsyncMock),
+        ):
+            results = await run_benchmark_parallel(runs, concurrency=1)
+
+        assert len(results) == 1
+        assert results[0].status == "failure"
+        assert call_count == _ORCHESTRATOR_MAX_RETRIES + 1

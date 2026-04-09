@@ -10,6 +10,9 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, model_validator
 
+# Bump when composite weights, judge criteria, or judge model change
+SCORING_VERSION = "1.0"
+
 
 class StaticScore(BaseModel):
     """Result of static analysis scoring (Ruff, pytest, radon)."""

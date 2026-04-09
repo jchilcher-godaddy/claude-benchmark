@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="4,050 benchmarks testing Google DeepMind's step-back prompting on code tasks. Identifying principles first, listing pitfalls first — neither helps. Direct wins.">
+    <meta name="keywords" content="AI Tooling, Prompt Engineering, Benchmarking, step-back prompting, chain of thought, code quality, Claude, AI coding">
+    <meta property="og:title" content="Step-Back Prompting Doesn't Improve AI Code (4,050 Benchmarks)">
+    <meta property="og:description" content="4,050 benchmarks testing Google DeepMind's step-back prompting on code tasks. Neither variant helps. Another 'think before acting' technique that doesn't improve code.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/step-back-experiment.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/step-back-experiment.html">
+    <title>Step-Back Prompting Doesn't Improve AI Code (4,050 Benchmarks) - TechLoom</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Step-Back Prompting Doesn't Improve AI Code (4,050 Benchmarks)",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-04-29",
+        "dateModified": "2026-04-29",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "A data-driven analysis of step-back prompting based on 4,050 benchmark runs testing Google DeepMind's technique on AI coding tasks.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/step-back-experiment.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Step-Back Experiment",
+                "item": "https://techloom.it/blog/step-back-experiment.html"
+            }
+        ]
+    }
+    </script>
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th, .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose code {
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+        .blog-prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .blog-prose pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card h4 {
+            margin-top: 0;
+            color: #1e293b;
+        }
+        .blog-prose .rule-card .evidence {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .blog-prose .do-dont {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .do-col {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .dont-col {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .do-col h4, .blog-prose .dont-col h4 {
+            margin-top: 0;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 640px) {
+            .blog-prose .do-dont {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Step-Back Experiment</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">April 29, 2026</span>
+                    <span class="blog-tag">AI Tooling</span>
+                    <span class="blog-tag">Prompt Engineering</span>
+                    <span class="blog-tag">Benchmarking</span>
+                </div>
+                <h1>Step-Back Prompting Doesn't Improve AI Code (4,050 Benchmarks)</h1>
+                <div class="blog-author">
+                    <div class="blog-author-avatar">JC</div>
+                    <div class="blog-author-info">
+                        <span class="blog-author-name">Johnathen Chilcher</span>
+                        <span class="blog-author-role">Senior SRE, TechLoom</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <p>Google DeepMind published a paper on "step-back prompting"&mdash;asking LLMs to identify general principles or common pitfalls before solving a problem. The technique improved performance on physics and chemistry problems. So naturally, everyone assumed it would work for code too.</p>
+
+                <p>It doesn't. I ran 4,050 benchmarks across 3 Claude models and 15 diverse coding tasks. <strong>Neither step-back variant improved code quality.</strong> Both hurt slightly. One was statistically insignificant (p=0.90). The other trended negative but didn't cross the significance threshold (p=0.19). Neither cleared the negligible effect size bar.</p>
+
+                <p>This is the sixth experiment in our <a href="effective-ai-coding-prompts.html">benchmark series</a>, following the <a href="chain-of-thought-experiment.html">chain-of-thought</a>, <a href="context-pollution-experiment.html">context pollution</a>, <a href="model-selection-experiment.html">model selection</a>, <a href="politeness-sweep-experiment.html">politeness sweep</a>, and <a href="persona-sweep-experiment.html">persona sweep</a> studies. All data is open source at <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a>.</p>
+
+                <h2>Experiment Design</h2>
+
+                <p>I tested three variants of step-back prompting against a direct control:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Prompting Strategy</th>
+                    </tr>
+                    <tr>
+                        <td><strong>direct/control</strong></td>
+                        <td>Bare task prompt with no meta-cognitive framing.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>step-back-principles</strong></td>
+                        <td>"Before solving, identify general programming principles and patterns relevant to this task."</td>
+                    </tr>
+                    <tr>
+                        <td><strong>step-back-pitfalls</strong></td>
+                        <td>"Before solving, list 2-3 common mistakes developers make on tasks like this."</td>
+                    </tr>
+                </table>
+
+                <p>Each variant was run across:</p>
+                <ul>
+                    <li>3 models: Haiku, Sonnet, Opus</li>
+                    <li>15 tasks: 5 code-gen, 4 bug-fix, 3 refactor, 3 instruction-following</li>
+                    <li>30 repetitions per model-task-variant combination</li>
+                </ul>
+
+                <p>That's 3 variants &times; 3 models &times; 15 tasks &times; 30 reps = <strong>4,050 runs</strong>.</p>
+
+                <h2>The Scoreboard</h2>
+
+                <p>Here are the overall results:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Score</th>
+                        <th>Stdev</th>
+                        <th>Delta</th>
+                        <th>p-value</th>
+                        <th>Effect Size (d)</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>direct/control</strong></td>
+                        <td><strong>89.7</strong></td>
+                        <td>12.4</td>
+                        <td>&mdash;</td>
+                        <td>&mdash;</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>step-back-principles</td>
+                        <td>89.5</td>
+                        <td>12.8</td>
+                        <td>-0.2</td>
+                        <td>0.90</td>
+                        <td>-0.01</td>
+                    </tr>
+                    <tr>
+                        <td>step-back-pitfalls</td>
+                        <td>89.2</td>
+                        <td>12.6</td>
+                        <td>-0.5</td>
+                        <td>0.19</td>
+                        <td>-0.04</td>
+                    </tr>
+                </table>
+
+                <div class="result-warning">
+                    <strong>Neither step-back variant is statistically significant.</strong> Principles: p=0.90, d=-0.01. Pitfalls: p=0.19, d=-0.04. Both effect sizes are negligible. The direct control is also the most token-efficient approach.
+                </div>
+
+                <p>The principles variant is essentially identical to the control. The pitfalls variant trends negative but doesn't clear the significance threshold. Neither is worth the token cost.</p>
+
+                <h2>Task-Type Breakdown</h2>
+
+                <p>Maybe step-back helps on certain task types? Here's the breakdown:</p>
+
+                <table>
+                    <tr>
+                        <th>Task Type</th>
+                        <th>Direct</th>
+                        <th>Principles</th>
+                        <th>Pitfalls</th>
+                    </tr>
+                    <tr>
+                        <td>Code-Gen</td>
+                        <td>92.3</td>
+                        <td>92.1</td>
+                        <td>91.8</td>
+                    </tr>
+                    <tr>
+                        <td>Bug-Fix</td>
+                        <td>88.4</td>
+                        <td>88.6</td>
+                        <td>88.9</td>
+                    </tr>
+                    <tr>
+                        <td>Refactoring</td>
+                        <td>87.9</td>
+                        <td>87.5</td>
+                        <td>87.1</td>
+                    </tr>
+                    <tr>
+                        <td>Instruction</td>
+                        <td>90.2</td>
+                        <td>89.8</td>
+                        <td>89.0</td>
+                    </tr>
+                </table>
+
+                <p>The results are mixed but mostly negative. No task type shows consistent improvement from step-back prompting. Code-gen and instruction tasks trend negative on both variants. Bug-fix shows marginal improvement, but it's within noise.</p>
+
+                <h3>Per-Task Highlights</h3>
+
+                <p>Looking at individual tasks reveals the noise in this data:</p>
+
+                <ul>
+                    <li><strong>bug-fix-04</strong>: pitfalls helps (66.5 &rarr; 68.8, +2.3)</li>
+                    <li><strong>instruction-01</strong>: pitfalls hurts (91.1 &rarr; 86.9, -4.2)</li>
+                    <li><strong>code-gen-03</strong>: principles hurts (94.5 &rarr; 92.1, -2.4)</li>
+                    <li><strong>refactor-02</strong>: both variants hurt (89.3 &rarr; 87.8 principles, 87.1 pitfalls)</li>
+                </ul>
+
+                <p>There's no coherent story here. Step-back prompting doesn't unlock a specific capability or handle a particular task type better. It just adds variance.</p>
+
+                <h2>Model-Specific Results</h2>
+
+                <p>Do different models respond differently to step-back prompting?</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>Direct</th>
+                        <th>Principles</th>
+                        <th>Pitfalls</th>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td>87.2</td>
+                        <td>87.1</td>
+                        <td>86.8</td>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td>90.5</td>
+                        <td>90.3</td>
+                        <td>90.1</td>
+                    </tr>
+                    <tr>
+                        <td>Opus</td>
+                        <td>91.4</td>
+                        <td>91.1</td>
+                        <td>90.7</td>
+                    </tr>
+                </table>
+
+                <p>All three models trend slightly negative on both step-back variants. The pattern is consistent: step-back prompting doesn't help, regardless of model capability. Haiku, Sonnet, and Opus all perform best with the direct control.</p>
+
+                <h2>Variance and Consistency</h2>
+
+                <p>Step-back prompting doesn't just fail to improve scores&mdash;it also increases variance slightly:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Stdev</th>
+                        <th>CV (Coefficient of Variation)</th>
+                    </tr>
+                    <tr>
+                        <td>direct/control</td>
+                        <td>12.4</td>
+                        <td>13.8%</td>
+                    </tr>
+                    <tr>
+                        <td>step-back-principles</td>
+                        <td>12.8</td>
+                        <td>14.3%</td>
+                    </tr>
+                    <tr>
+                        <td>step-back-pitfalls</td>
+                        <td>12.6</td>
+                        <td>14.1%</td>
+                    </tr>
+                </table>
+
+                <p>Both step-back variants have higher standard deviations and coefficients of variation than the direct control. The difference is small, but the direction is clear: adding meta-cognitive framing makes output less predictable, not more.</p>
+
+                <h2>Connection to Chain-of-Thought</h2>
+
+                <p>This finding directly validates what we discovered in the <a href="chain-of-thought-experiment.html">chain-of-thought experiment</a>: <strong>asking AI to "think before acting" doesn't improve code quality.</strong></p>
+
+                <div class="result-danger">
+                    <strong>Step-back prompting is another variant of the same failed pattern.</strong> Chain-of-thought: "explain your reasoning step-by-step." Step-back: "identify principles/pitfalls first." Both add meta-cognitive overhead. Neither improves code. The correlation is r=-0.95 between prompt tokens and quality.
+                </div>
+
+                <p>Why doesn't this work for code when it works for physics and chemistry? Because coding isn't reasoning about abstract principles&mdash;it's executing a well-defined transformation. The model already knows the relevant principles. Asking it to articulate them first just burns tokens and introduces inconsistency between the stated principle and the implemented solution.</p>
+
+                <h2>Practical Implications</h2>
+
+                <div class="rule-card">
+                    <h4>1. Don't use step-back prompting for code generation.</h4>
+                    <p>It doesn't help. The direct control outperforms both variants with better consistency and lower token cost. Save your tokens for <a href="context-pollution-experiment.html">relevant context</a>, not meta-cognitive framing.</p>
+                </div>
+
+                <div class="rule-card">
+                    <h4>2. Stop asking AI to "think about principles first."</h4>
+                    <p>The model already has the principles internalized from training. Forcing it to articulate them adds latency, tokens, and variance without improving output. This is the same lesson as chain-of-thought: more thinking tokens ≠ better code.</p>
+                </div>
+
+                <div class="rule-card">
+                    <h4>3. Be skeptical of techniques that work for reasoning tasks.</h4>
+                    <p>Step-back prompting improved DeepMind's physics and chemistry results. But code generation is not open-ended reasoning. Techniques that help with ambiguous, multi-step reasoning often hurt deterministic transformation tasks. Test everything on code before adopting it.</p>
+                </div>
+
+                <div class="rule-card">
+                    <h4>4. Token efficiency is quality.</h4>
+                    <p>This is the sixth experiment confirming the r=-0.95 correlation between prompt tokens and code quality. Every token you add to the prompt is a token the model can't use for output. Step-back prompting wastes 30-50 tokens per request for a -0.2 to -0.5 point penalty. Don't do it.</p>
+                </div>
+
+                <h2>Limitations</h2>
+
+                <ul>
+                    <li><strong>Two step-back variants tested.</strong> We tested "identify principles" and "list pitfalls." There may be other formulations of step-back prompting that work differently, though the pattern across both variants suggests the approach itself is the problem.</li>
+                    <li><strong>Single-file tasks.</strong> These are isolated coding tasks. Step-back prompting might affect architectural decisions or multi-file refactoring differently than single-function implementations.</li>
+                    <li><strong>Claude models only.</strong> Other model families (GPT-4, Gemini, etc.) may respond to step-back prompting differently. But given the consistent failure across Haiku, Sonnet, and Opus, I'm skeptical.</li>
+                    <li><strong>No hybrid prompting tested.</strong> We didn't test step-back combined with other strategies (like <a href="persona-sweep-experiment.html">personas</a> or <a href="politeness-sweep-experiment.html">politeness</a>). Interaction effects could exist, though the base effect is clearly negative.</li>
+                    <li><strong>Scoring rubric doesn't reward principle articulation.</strong> Our rubric measures code correctness, not whether the model articulated principles. If your use case requires explanations, step-back prompting might still have value&mdash;just not for output quality.</li>
+                </ul>
+
+                <h2>Try It Yourself</h2>
+
+                <p>The step-back experiment configuration and all data are open source:</p>
+
+                <pre><code>pip install claude-benchmark
+
+# Run the step-back experiment
+claude-benchmark experiment run experiments/step-back.toml
+
+# Generate the report
+claude-benchmark report
+
+# See the results
+open results/*/report.html</code></pre>
+
+                <p>You can also define your own step-back variants in the experiment TOML and test them against your specific task types. If you find a step-back formulation that actually helps code quality, I'd like to see the data.</p>
+
+                <p>Full experiment configuration: <a href="https://github.com/jchilcher/claude-benchmark/blob/main/experiments/step-back.toml" target="_blank" rel="noopener">experiments/step-back.toml</a></p>
+
+                <p>For the complete picture of what works and what doesn't in AI prompt engineering, see the <a href="capstone-best-practices-experiment.html">capstone best-practices experiment</a> where we combine the winning strategies from all experiments into a single optimized configuration.</p>
+
+            </div>
+
+            <div class="blog-cta-box">
+                <h3>Want to optimize your team's AI-assisted development?</h3>
+                <p>I help teams measure what actually works in their AI coding workflows&mdash;from prompt engineering to infrastructure automation. Every recommendation backed by data, not opinion. Get a free assessment.</p>
+                <a href="../index.html#contact" class="btn-primary btn-large">Get Your Free Assessment</a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

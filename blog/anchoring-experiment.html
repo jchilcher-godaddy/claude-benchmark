@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="5,760 benchmarks testing quality anchors and expectations. High standards, negative warnings, Google-grade demands — none change output quality. AI ignores anchors.">
+    <meta name="keywords" content="AI Tooling, Prompt Engineering, Benchmarking, anchoring effect, quality standards, code quality, Claude, AI coding">
+    <meta property="og:title" content="Telling AI to Write 95/100 Code Doesn't Make It Write 95/100 Code (5,760 Benchmarks)">
+    <meta property="og:description" content="5,760 benchmarks testing quality anchors. High standards, negative warnings, Google-grade demands — none move the needle. AI models have a quality set point that anchor text doesn't change.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/anchoring-experiment.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/anchoring-experiment.html">
+    <title>Telling AI to Write 95/100 Code Doesn't Make It Write 95/100 Code (5,760 Benchmarks) - TechLoom</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Telling AI to Write 95/100 Code Doesn't Make It Write 95/100 Code (5,760 Benchmarks)",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-05-01",
+        "dateModified": "2026-05-01",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "A data-driven analysis of anchoring effects based on 5,760 benchmark runs testing quality expectations on AI coding tasks.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/anchoring-experiment.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Anchoring Experiment",
+                "item": "https://techloom.it/blog/anchoring-experiment.html"
+            }
+        ]
+    }
+    </script>
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th, .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose code {
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+        .blog-prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .blog-prose pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card h4 {
+            margin-top: 0;
+            color: #1e293b;
+        }
+        .blog-prose .rule-card .evidence {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .blog-prose .do-dont {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .do-col {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .dont-col {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .do-col h4, .blog-prose .dont-col h4 {
+            margin-top: 0;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 640px) {
+            .blog-prose .do-dont {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Anchoring Experiment</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">May 1, 2026</span>
+                    <span class="blog-tag">AI Tooling</span>
+                    <span class="blog-tag">Prompt Engineering</span>
+                    <span class="blog-tag">Benchmarking</span>
+                </div>
+                <h1>Telling AI to Write 95/100 Code Doesn't Make It Write 95/100 Code (5,760 Benchmarks)</h1>
+                <div class="blog-author">
+                    <div class="blog-author-avatar">JC</div>
+                    <div class="blog-author-info">
+                        <span class="blog-author-name">Johnathen Chilcher</span>
+                        <span class="blog-author-role">Senior SRE, TechLoom</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <p>"Top developers score 95+/100 on this task." If anchoring works for humans&mdash;and it does, extensively&mdash;shouldn't it work for AI? Set a high bar, prime the model with quality expectations, and watch the output improve.</p>
+
+                <p>I ran 5,760 benchmarks to test this. Four anchoring variants: high standards, negative warnings, Google-grade quality bars, and a bare baseline. <strong>None of them moved the needle.</strong> The score spread across all four variants was 1.2 points. Zero statistically significant differences. AI models have a quality set point, and anchor text doesn't change it.</p>
+
+                <p>This is the seventh experiment in our <a href="effective-ai-coding-prompts.html">benchmark series</a>, following the <a href="chain-of-thought-experiment.html">chain-of-thought</a>, <a href="context-pollution-experiment.html">context pollution</a>, <a href="model-selection-experiment.html">model selection</a>, <a href="politeness-sweep-experiment.html">politeness sweep</a>, <a href="persona-sweep-experiment.html">persona sweep</a>, and <a href="step-back-experiment.html">step-back</a> studies. All data is open source at <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a>.</p>
+
+                <h2>Experiment Design</h2>
+
+                <p>I tested four anchoring variants, each prepended to the system prompt:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Anchoring Text</th>
+                    </tr>
+                    <tr>
+                        <td><strong>high-anchor</strong> (control)</td>
+                        <td>"Top developers score 95+/100 on tasks like this. Aim for that standard."</td>
+                    </tr>
+                    <tr>
+                        <td><strong>no-anchor</strong></td>
+                        <td><em>No anchoring text. Bare baseline prompt.</em></td>
+                    </tr>
+                    <tr>
+                        <td><strong>negative-anchor</strong></td>
+                        <td>"Most developers make 2 mistakes on tasks like this. Avoid them."</td>
+                    </tr>
+                    <tr>
+                        <td><strong>quality-bar</strong></td>
+                        <td>"This code must pass rigorous review at Google/Stripe. Meet that bar."</td>
+                    </tr>
+                </table>
+
+                <p>Each variant was run across:</p>
+                <ul>
+                    <li>3 models: Haiku, Sonnet, Opus</li>
+                    <li>16 tasks: 5 code-gen, 4 bug-fix, 4 refactor, 3 instruction-following</li>
+                    <li>30 repetitions per model-task-variant combination</li>
+                </ul>
+
+                <p>That's 4 variants &times; 3 models &times; 16 tasks &times; 30 reps = <strong>5,760 runs</strong>.</p>
+
+                <h2>The Scoreboard</h2>
+
+                <p>Here are the overall results:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Score</th>
+                        <th>Stdev</th>
+                        <th>CV</th>
+                        <th>Delta</th>
+                        <th>p-value</th>
+                    </tr>
+                    <tr>
+                        <td>no-anchor</td>
+                        <td>89.4</td>
+                        <td>11.8</td>
+                        <td>13.2%</td>
+                        <td>+0.1</td>
+                        <td>0.46</td>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>high-anchor (control)</strong></td>
+                        <td><strong>89.3</strong></td>
+                        <td>11.4</td>
+                        <td>12.8%</td>
+                        <td>&mdash;</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>negative-anchor</td>
+                        <td>88.6</td>
+                        <td>11.9</td>
+                        <td>13.4%</td>
+                        <td>-0.7</td>
+                        <td>0.07</td>
+                    </tr>
+                    <tr>
+                        <td>quality-bar</td>
+                        <td>88.2</td>
+                        <td>15.0</td>
+                        <td>17.0%</td>
+                        <td>-1.1</td>
+                        <td>0.76</td>
+                    </tr>
+                </table>
+
+                <div class="result-danger">
+                    <strong>NO statistically significant differences.</strong> The score spread is 1.2 points across all variants. p-values: negative-anchor 0.07, no-anchor 0.46, quality-bar 0.76. None cross the significance threshold. AI models already operate at their quality ceiling&mdash;anchor text doesn't move it.
+                </div>
+
+                <p>The bare baseline (no-anchor) is indistinguishable from the high-anchor control. The negative-anchor trends slightly negative but doesn't clear significance. The quality-bar variant is the worst performer, with the highest variance.</p>
+
+                <h2>The Variance Story</h2>
+
+                <p>While scores barely move, consistency does:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Stdev</th>
+                        <th>CV (Coefficient of Variation)</th>
+                    </tr>
+                    <tr>
+                        <td>high-anchor</td>
+                        <td>11.4</td>
+                        <td>12.8%</td>
+                    </tr>
+                    <tr>
+                        <td>no-anchor</td>
+                        <td>11.8</td>
+                        <td>13.2%</td>
+                    </tr>
+                    <tr>
+                        <td>negative-anchor</td>
+                        <td>11.9</td>
+                        <td>13.4%</td>
+                    </tr>
+                    <tr style="background: #fef2f2;">
+                        <td><strong>quality-bar</strong></td>
+                        <td><strong>15.0</strong></td>
+                        <td><strong>17.0%</strong></td>
+                    </tr>
+                </table>
+
+                <div class="result-warning">
+                    <strong>Demanding "Google-grade quality" makes output LESS consistent.</strong> The quality-bar variant has the highest standard deviation (15.0) and coefficient of variation (17.0%) of any anchoring strategy. Setting an impossibly high bar doesn't improve quality&mdash;it increases variance.
+                </div>
+
+                <p>This mirrors what we found in the <a href="context-pollution-experiment.html">context pollution experiment</a>: adding expectations that the model can't consistently meet just introduces noise. The model doesn't rise to the challenge&mdash;it thrashes.</p>
+
+                <h2>Model-Specific Results</h2>
+
+                <p>Do different models respond differently to anchoring?</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>No-Anchor</th>
+                        <th>High-Anchor</th>
+                        <th>Negative-Anchor</th>
+                        <th>Quality-Bar</th>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td>86.7</td>
+                        <td>86.5</td>
+                        <td>86.1</td>
+                        <td>85.3</td>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td>90.2</td>
+                        <td>90.3</td>
+                        <td>89.6</td>
+                        <td>89.4</td>
+                    </tr>
+                    <tr>
+                        <td>Opus</td>
+                        <td>91.3</td>
+                        <td>91.1</td>
+                        <td>90.1</td>
+                        <td>89.9</td>
+                    </tr>
+                </table>
+
+                <p>All three models are essentially flat across anchoring variants. Haiku, Sonnet, and Opus all ignore the anchor text. The quality-bar variant is consistently the worst performer across all models, but the differences are small and non-significant.</p>
+
+                <p>This is the opposite of the <a href="persona-sweep-experiment.html">persona experiment</a>, where Opus swung wildly based on role framing. Anchoring is fundamentally different: personas change the optimization target, but anchors just set expectations&mdash;and expectations don't change what the model is capable of.</p>
+
+                <h2>Task-Type Breakdown</h2>
+
+                <p>Maybe anchoring helps on specific task types?</p>
+
+                <table>
+                    <tr>
+                        <th>Task Type</th>
+                        <th>No-Anchor</th>
+                        <th>High-Anchor</th>
+                        <th>Negative-Anchor</th>
+                        <th>Quality-Bar</th>
+                    </tr>
+                    <tr>
+                        <td>Code-Gen</td>
+                        <td>91.8</td>
+                        <td>91.7</td>
+                        <td>91.2</td>
+                        <td>90.8</td>
+                    </tr>
+                    <tr>
+                        <td>Bug-Fix</td>
+                        <td>88.9</td>
+                        <td>88.7</td>
+                        <td>88.4</td>
+                        <td>88.0</td>
+                    </tr>
+                    <tr>
+                        <td>Refactoring</td>
+                        <td>87.5</td>
+                        <td>87.3</td>
+                        <td>86.9</td>
+                        <td>85.7</td>
+                    </tr>
+                    <tr>
+                        <td>Instruction</td>
+                        <td>90.1</td>
+                        <td>89.9</td>
+                        <td>89.0</td>
+                        <td>88.3</td>
+                    </tr>
+                </table>
+
+                <p>No task type shows meaningful sensitivity to anchoring. Code-gen, bug-fix, refactoring, and instruction tasks all trend slightly negative as anchor intensity increases, but the differences are within noise.</p>
+
+                <p>Refactoring tasks show the largest drop for quality-bar (87.5 &rarr; 85.7), which makes sense: refactoring is already the hardest task type, and demanding "Google-grade" quality on a task the model struggles with just makes it worse.</p>
+
+                <h2>Why Anchoring Doesn't Work</h2>
+
+                <p>This is the key insight: <strong>AI models already operate at their capability ceiling.</strong></p>
+
+                <div class="result-highlight">
+                    <strong>The model doesn't have hidden quality reserves you can unlock with anchor text.</strong> Telling Claude "top developers score 95/100" doesn't make Claude better than it already is. The model is always trying to maximize quality within its capability constraints. Anchoring changes your expectations, not the model's output.
+                </div>
+
+                <p>This is different from human anchoring. When you tell a human developer "most people make 2 mistakes," they adjust their effort level. AI doesn't have an effort level to adjust. It's always operating at maximum capability for the given prompt and task. Anchors are noise.</p>
+
+                <h2>Practical Implications</h2>
+
+                <div class="rule-card">
+                    <h4>1. Don't set quality expectations in prompts.</h4>
+                    <p>Telling the model to "write production-grade code" or "aim for 95/100 quality" wastes tokens and doesn't change output. The model is already writing the best code it can. Save the tokens for <a href="context-pollution-experiment.html">relevant context</a>.</p>
+                </div>
+
+                <div class="rule-card">
+                    <h4>2. Avoid negative framing.</h4>
+                    <p>The negative-anchor variant ("most developers make 2 mistakes") trends negative without crossing significance. There's no upside and potential downside. Don't prime the model with failure modes&mdash;just state the task.</p>
+                </div>
+
+                <div class="rule-card">
+                    <h4>3. Never demand "Google/FAANG-grade quality."</h4>
+                    <p>The quality-bar variant has the worst score (88.2) and the highest variance (stdev 15.0, CV 17.0%). Demanding impossibly high standards makes output LESS consistent, not better. If you need higher quality, use a better model&mdash;don't try to motivate the current model with aspirational language.</p>
+                </div>
+
+                <div class="rule-card">
+                    <h4>4. Anchoring is a human bias, not an AI feature.</h4>
+                    <p>Humans respond to anchors because we have variable effort levels and adjust based on perceived difficulty. AI models don't. They operate at their capability ceiling regardless of the expectations you set. Techniques from human psychology don't transfer to LLMs.</p>
+                </div>
+
+                <h2>Limitations</h2>
+
+                <ul>
+                    <li><strong>Four anchoring variants tested.</strong> We tested high anchors, negative anchors, quality bars, and no anchor. There may be other formulations (low anchors, specific numeric targets) that behave differently, though the pattern across all variants suggests anchoring itself is ineffective.</li>
+                    <li><strong>Single-file tasks.</strong> These are isolated coding tasks. Anchoring might affect how the model approaches multi-file architectural decisions differently than single-function implementations.</li>
+                    <li><strong>Claude models only.</strong> Other model families (GPT-4, Gemini, etc.) may respond to anchoring differently. But the consistency across Haiku, Sonnet, and Opus suggests this is a fundamental property of how LLMs work.</li>
+                    <li><strong>No combined strategies tested.</strong> We didn't test anchoring combined with other prompt strategies (like <a href="persona-sweep-experiment.html">personas</a> or <a href="chain-of-thought-experiment.html">chain-of-thought</a>). Interaction effects could exist.</li>
+                    <li><strong>Scoring rubric ceiling.</strong> Our rubric has a maximum score of 100. If anchoring affects aspirations beyond the rubric's measurement range, we wouldn't detect it. But given that no variant even approached the ceiling, this seems unlikely.</li>
+                </ul>
+
+                <h2>Try It Yourself</h2>
+
+                <p>The anchoring experiment configuration and all data are open source:</p>
+
+                <pre><code>pip install claude-benchmark
+
+# Run the anchoring experiment
+claude-benchmark experiment run experiments/anchoring.toml
+
+# Generate the report
+claude-benchmark report
+
+# See the results
+open results/*/report.html</code></pre>
+
+                <p>You can also define your own anchoring variants in the experiment TOML and test them against your specific task types. If you find an anchoring strategy that actually moves quality, I'd like to see the data.</p>
+
+                <p>Full experiment configuration: <a href="https://github.com/jchilcher/claude-benchmark/blob/main/experiments/anchoring.toml" target="_blank" rel="noopener">experiments/anchoring.toml</a></p>
+
+                <p>For the complete picture of what works and what doesn't in AI prompt engineering, see the <a href="capstone-best-practices-experiment.html">capstone best-practices experiment</a> where we combine the winning strategies from all experiments into a single optimized configuration.</p>
+
+            </div>
+
+            <div class="blog-cta-box">
+                <h3>Want to optimize your team's AI-assisted development?</h3>
+                <p>I help teams measure what actually works in their AI coding workflows&mdash;from prompt engineering to infrastructure automation. Every recommendation backed by data, not opinion. Get a free assessment.</p>
+                <a href="../index.html#contact" class="btn-primary btn-large">Get Your Free Assessment</a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

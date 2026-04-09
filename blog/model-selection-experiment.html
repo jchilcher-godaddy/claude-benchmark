@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="I ran 2,160 benchmarks comparing Claude Haiku, Sonnet, and Opus across 4 task types. No single model wins everything. The data reveals a task-aware routing strategy that beats picking any one model.">
+    <meta name="keywords" content="Claude model selection, Haiku vs Sonnet vs Opus, AI coding benchmarks, model routing, Claude Code, prompt engineering, code quality, developer tools">
+    <meta property="og:title" content="No Single Claude Model Wins Everything. 2,160 Runs Exposed the Tradeoffs.">
+    <meta property="og:description" content="2,160 benchmark runs across 3 Claude models and 4 task types. Opus dominates instruction-following, Sonnet excels at bug fixes, Haiku leads refactoring. No model wins overall.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/model-selection-experiment.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/model-selection-experiment.html">
+    <title>No Single Claude Model Wins Everything. 2,160 Runs Exposed the Tradeoffs. - TechLoom</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "No Single Claude Model Wins Everything. 2,160 Runs Exposed the Tradeoffs.",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-03-18",
+        "dateModified": "2026-03-18",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "2,160 benchmark runs comparing Claude Haiku, Sonnet, and Opus across 4 task types. No single model dominates. Task-aware routing yields better results than picking any one model.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/model-selection-experiment.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Model Selection Experiment",
+                "item": "https://techloom.it/blog/model-selection-experiment.html"
+            }
+        ]
+    }
+    </script>
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th, .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            color: #111827;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose code {
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+        .blog-prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .blog-prose pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Model Selection Experiment</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">March 18, 2026</span>
+                    <span class="blog-tag">AI Tooling</span>
+                    <span class="blog-tag">Experiments</span>
+                </div>
+                <h1>No Single Claude Model Wins Everything. 2,160 Runs Exposed the Tradeoffs.</h1>
+                <div class="blog-author">
+                    <div class="blog-author-avatar">JC</div>
+                    <div class="blog-author-info">
+                        <span class="blog-author-name">Johnathen Chilcher</span>
+                        <span class="blog-author-role">Senior SRE, TechLoom</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <p>The conventional wisdom is simple: use the biggest model you can afford. Opus for quality, Haiku for speed, Sonnet when you want something in between. The assumption is that model capability scales linearly&mdash;more parameters, better code. I assumed the same thing before I ran this experiment.</p>
+
+                <p>Then I ran 2,160 benchmarks and the data told a completely different story.</p>
+
+                <p>There is no best Claude model. There is a best model <em>for each task type</em>. Opus dominates instruction-following with near-zero variance. Sonnet produces the best bug fixes. And Haiku&mdash;the cheapest, fastest model&mdash;leads on refactoring. The overall scores land in a 1.5-point band so tight it's practically noise. But underneath that average, the task-level differences are dramatic.</p>
+
+                <h2>Experiment Design</h2>
+
+                <p>This is the fifth experiment in the <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a> series. The <a href="claudemd-benchmark-results.html">first study</a> tested CLAUDE.md instruction content (1,188 runs). The <a href="chain-of-thought-experiment.html">second</a> tested chain-of-thought prompting (270 runs). The <a href="politeness-sweep-experiment.html">third</a> tested prompt tone (810 runs). The fourth tested temperature settings. This one holds prompting strategy constant and isolates the variable developers argue about most: <strong>which model to use</strong>.</p>
+
+                <h3>The Test Matrix</h3>
+
+                <table>
+                    <tr>
+                        <th>Dimension</th>
+                        <th>Values</th>
+                    </tr>
+                    <tr>
+                        <td>Models</td>
+                        <td>Claude Haiku 4.5, Claude Sonnet 4.6, Claude Opus 4.6</td>
+                    </tr>
+                    <tr>
+                        <td>Profile</td>
+                        <td>empty (no CLAUDE.md)</td>
+                    </tr>
+                    <tr>
+                        <td>Task Types</td>
+                        <td>Bug fix, Code generation, Instruction following, Refactoring</td>
+                    </tr>
+                    <tr>
+                        <td>Tasks</td>
+                        <td>12 (3 per task type)</td>
+                    </tr>
+                    <tr>
+                        <td>Variants</td>
+                        <td>bare, model-tuned</td>
+                    </tr>
+                    <tr>
+                        <td>Repetitions</td>
+                        <td>30 per combination</td>
+                    </tr>
+                    <tr>
+                        <td>Total runs</td>
+                        <td><strong>2,160</strong></td>
+                    </tr>
+                </table>
+
+                <p>The &ldquo;bare&rdquo; variant uses the raw task prompt. The &ldquo;model-tuned&rdquo; variant wraps it with model-specific framing&mdash;adjusting the prompt to play to each model&rsquo;s documented strengths. Thirty repetitions per combination gives us reliable variance estimates. Zero runs failed across all 2,160 executions.</p>
+
+                <h2>Overall Results: A Surprisingly Tight Race</h2>
+
+                <img src="images/model-selection/executive-summary.png" alt="Executive summary showing all three models scoring between 92.35 and 93.88 composite, a tight 1.53-point spread">
+                <p class="image-caption">Executive summary from the benchmark report: Haiku, Opus, and Sonnet land within 1.5 points of each other.</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>Bare Score</th>
+                        <th>Tuned Score</th>
+                        <th>Average</th>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td><strong>93.88</strong></td>
+                        <td>93.43</td>
+                        <td>93.66</td>
+                    </tr>
+                    <tr>
+                        <td>Opus</td>
+                        <td>93.26</td>
+                        <td><strong>93.86</strong></td>
+                        <td>93.56</td>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td>92.35</td>
+                        <td>93.35</td>
+                        <td>92.85</td>
+                    </tr>
+                </table>
+
+                <div class="result-highlight">
+                    <strong>All three models score between 92.35 and 93.88.</strong> That&rsquo;s a 1.53-point spread. If you picked any single model and used it for everything, you&rsquo;d get roughly the same aggregate result. The &ldquo;bigger model = better code&rdquo; assumption doesn&rsquo;t hold at the composite level.
+                </div>
+
+                <p>Haiku technically leads on bare prompts. Opus leads with tuning. But these differences are small enough to be noise at the aggregate level. The real story is underneath.</p>
+
+                <h2>The Real Story: Task-Type Specialization</h2>
+
+                <img src="images/model-selection/heatmap.png" alt="Heatmap showing variant scores broken down by task and model, with clear specialization patterns">
+                <p class="image-caption">Variant x Task heatmap: each model has distinct strengths. The color bands tell the story before you read a single number.</p>
+
+                <p>The averages hide dramatic per-task-type differences. Each model has a clear strength area:</p>
+
+                <table>
+                    <tr>
+                        <th>Task Type</th>
+                        <th>Best Model</th>
+                        <th>Score</th>
+                        <th>Worst Model</th>
+                        <th>Score</th>
+                        <th>Gap</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Bug fixes</strong></td>
+                        <td>Sonnet (tuned)</td>
+                        <td>98.95</td>
+                        <td>Haiku</td>
+                        <td>~96</td>
+                        <td>~3 pts</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Code generation</strong></td>
+                        <td>Sonnet (tuned)</td>
+                        <td>97.42</td>
+                        <td>Haiku</td>
+                        <td>~95</td>
+                        <td>~2.5 pts</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Instruction following</strong></td>
+                        <td>Opus</td>
+                        <td>95.32</td>
+                        <td>Sonnet</td>
+                        <td>88.93</td>
+                        <td><strong>~6 pts</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Refactoring</strong></td>
+                        <td>Haiku</td>
+                        <td>93.07</td>
+                        <td>Opus (bare)</td>
+                        <td>85.06</td>
+                        <td><strong>~8 pts</strong></td>
+                    </tr>
+                </table>
+
+                <div class="result-warning">
+                    <strong>The task-level gaps dwarf the overall differences.</strong> While the aggregate spread is 1.5 points, individual task types show 6&ndash;8 point gaps between the best and worst model. Picking the wrong model for a task type costs you far more than any prompt engineering variable I&rsquo;ve measured.
+                </div>
+
+                <p><strong>Sonnet owns execution tasks.</strong> Bug fixes (98.95 tuned, stdev 1.12) and code generation (97.42 tuned) are Sonnet&rsquo;s territory. When the task has a clear correct answer&mdash;pass the tests, generate working code&mdash;Sonnet delivers with the highest scores and lowest variance.</p>
+
+                <p><strong>Opus owns compliance tasks.</strong> Instruction-following at 95.32 average, with a standard deviation of 0.05&ndash;1.52 across tasks. That near-zero variance is remarkable. When you need the model to follow specific constraints&mdash;output format, naming conventions, architectural rules&mdash;Opus does it every single time.</p>
+
+                <p><strong>Haiku owns restructuring tasks.</strong> Refactoring at 93.07 is the biggest surprise. The cheapest model produces the best refactored code. Meanwhile, Opus (bare) scores only 85.06 on refactoring&mdash;the worst task-model combination in the entire experiment.</p>
+
+                <img src="images/model-selection/radar-charts.png" alt="Radar charts comparing sub-metric scores for Haiku, Opus, and Sonnet, showing different strength profiles">
+                <p class="image-caption">Per-model radar charts: Opus&rsquo;s test pass rate dominates, Haiku&rsquo;s LLM quality stands out, and all three share the same complexity weakness.</p>
+
+                <h2>Per-Task Deep Dive: Variance Tells the Real Story</h2>
+
+                <p>Averages can mislead. What matters in practice is: <em>how often does this model produce a bad result?</em></p>
+
+                <p>The variance data reveals starkly different reliability profiles:</p>
+
+                <table>
+                    <tr>
+                        <th>Task</th>
+                        <th>Model</th>
+                        <th>Avg Score</th>
+                        <th>Stdev</th>
+                        <th>Interpretation</th>
+                    </tr>
+                    <tr>
+                        <td>instruction-03</td>
+                        <td>Opus</td>
+                        <td>~95</td>
+                        <td><strong>0.05</strong></td>
+                        <td>Essentially deterministic</td>
+                    </tr>
+                    <tr>
+                        <td>instruction-03</td>
+                        <td>Haiku</td>
+                        <td>~90</td>
+                        <td><strong>20.79</strong></td>
+                        <td>Wildly inconsistent</td>
+                    </tr>
+                    <tr>
+                        <td>bug-fix-03</td>
+                        <td>Sonnet (tuned)</td>
+                        <td>~99</td>
+                        <td><strong>0.86</strong></td>
+                        <td>Near-perfect reliability</td>
+                    </tr>
+                    <tr>
+                        <td>bug-fix-02</td>
+                        <td>Haiku</td>
+                        <td>91.53</td>
+                        <td><strong>11.54</strong></td>
+                        <td>Frequently botched</td>
+                    </tr>
+                    <tr>
+                        <td>bug-fix-02</td>
+                        <td>Sonnet</td>
+                        <td>98.21</td>
+                        <td><strong>3.37</strong></td>
+                        <td>Consistently strong</td>
+                    </tr>
+                </table>
+
+                <p>Look at instruction-03: Opus&rsquo;s stdev of 0.05 means every single run produced virtually the same output. Haiku&rsquo;s stdev of 20.79 means some runs scored in the 70s while others scored perfectly. Same task, same prompt, same repetition count&mdash;completely different reliability. If you&rsquo;re building an automation pipeline that routes to Claude, this is the data that should inform your model choice. It&rsquo;s not about the average. It&rsquo;s about the worst case.</p>
+
+                <img src="images/model-selection/composite-bar.png" alt="Bar chart of composite scores by model and variant, showing tight overall clustering with task-level divergence">
+                <p class="image-caption">Composite score bar chart: the tight clustering at the aggregate level masks the dramatic task-type differences underneath.</p>
+
+                <h2>Sub-Score Analysis</h2>
+
+                <p>The composite score blends four sub-metrics. Breaking those apart reveals where each model&rsquo;s strengths actually come from:</p>
+
+                <table>
+                    <tr>
+                        <th>Sub-Score</th>
+                        <th>Haiku</th>
+                        <th>Sonnet</th>
+                        <th>Opus</th>
+                    </tr>
+                    <tr>
+                        <td>Test pass rate</td>
+                        <td>97.58%</td>
+                        <td>97.85%</td>
+                        <td><strong>99.84%</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Lint score</td>
+                        <td>~98%</td>
+                        <td>~98%</td>
+                        <td>~98%</td>
+                    </tr>
+                    <tr>
+                        <td>Complexity</td>
+                        <td>~80</td>
+                        <td>~77</td>
+                        <td>~82</td>
+                    </tr>
+                    <tr>
+                        <td>LLM quality</td>
+                        <td><strong>94.0</strong></td>
+                        <td>~92</td>
+                        <td>91.4</td>
+                    </tr>
+                </table>
+
+                <img src="images/model-selection/test-pass-rate-bar.png" alt="Bar chart of test pass rates by model, showing Opus at 99.84% leading Sonnet and Haiku">
+                <p class="image-caption">Test pass rate breakdown: Opus&rsquo;s near-perfect 99.84% is the clearest model differentiation in the sub-scores.</p>
+
+                <div class="result-highlight">
+                    <strong>Opus has the best test pass rate at 99.84%.</strong> That means across all 2,160 runs, Opus almost never produces functionally incorrect code. The 2.3% gap vs. Haiku (97.58%) is small in percentage terms but significant in practice&mdash;it&rsquo;s the difference between &ldquo;always works&rdquo; and &ldquo;occasionally fails.&rdquo;
+                </div>
+
+                <p><strong>Haiku wins on perceived quality.</strong> Its LLM quality score of 94.0 (vs. Opus&rsquo;s 91.4) means an LLM judge rates Haiku&rsquo;s code as more readable and well-structured. Haiku tends to produce cleaner, more idiomatic code&mdash;it just occasionally produces code that doesn&rsquo;t pass the tests.</p>
+
+                <p><strong>All models struggle with complexity.</strong> Scores in the 77&ndash;82 range mean every model generates code with higher cyclomatic complexity than ideal. This is the one dimension where none of the models have cracked it. Generated code tends toward more branching, more nesting, more conditions than a human would write. Model selection doesn&rsquo;t fix this.</p>
+
+                <p><strong>Lint is a non-factor.</strong> All three models hit ~98%. Clean syntax is a solved problem for modern LLMs.</p>
+
+                <img src="images/model-selection/statistical-comparison.png" alt="Statistical comparison table showing significance tests between model-variant pairs">
+                <p class="image-caption">Full statistical comparison from the benchmark report: pairwise significance tests across all model-variant combinations.</p>
+
+                <h2>Does Tuning Help?</h2>
+
+                <p>Each task had a &ldquo;bare&rdquo; variant (raw prompt) and a &ldquo;model-tuned&rdquo; variant (prompt adjusted for the specific model&rsquo;s strengths). The tuning deltas:</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>Bare Score</th>
+                        <th>Tuned Score</th>
+                        <th>Delta</th>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td>92.35</td>
+                        <td>93.35</td>
+                        <td><strong>+1.00</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Opus</td>
+                        <td>93.26</td>
+                        <td>93.86</td>
+                        <td>+0.59</td>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td>93.88</td>
+                        <td>93.43</td>
+                        <td><strong>&minus;0.45</strong></td>
+                    </tr>
+                </table>
+
+                <div class="result-warning">
+                    <strong>Tuning is model-dependent.</strong> Sonnet benefits most (+1.0 point, primarily on bug fixes and code gen). Opus gets a modest boost (+0.59, mainly in refactoring where it jumps from 85 to ~90). But Haiku actually degrades with tuning (&minus;0.45)&mdash;the model-specific framing may be over-constraining a model that already performs well with minimal guidance.
+                </div>
+
+                <p>This fits a pattern from the series: smaller models tend to be more sensitive to prompt framing, but not always in the direction you&rsquo;d expect. Haiku&rsquo;s best results come from leaving it alone. Sonnet benefits from tailored prompts. Opus is somewhere in between.</p>
+
+                <h2>How This Fits the Bigger Picture</h2>
+
+                <p>Five experiments, over 4,600 total runs. Here&rsquo;s the updated variable effect hierarchy:</p>
+
+                <table>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Effect Size</th>
+                        <th>Direction</th>
+                        <th>Source</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Task-aware model routing (best vs. worst per task)</strong></td>
+                        <td><strong>~6&ndash;8 points</strong></td>
+                        <td><strong>Positive</strong></td>
+                        <td><strong>This study (2,160 runs)</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Model selection overall (best vs. worst)</td>
+                        <td>~1.5 points</td>
+                        <td>Mixed</td>
+                        <td>This study (2,160 runs)</td>
+                    </tr>
+                    <tr>
+                        <td>Prompt tone (warm vs. bare)</td>
+                        <td>~1.3&ndash;1.5 points</td>
+                        <td>Positive</td>
+                        <td><a href="politeness-sweep-experiment.html">Politeness study</a></td>
+                    </tr>
+                    <tr>
+                        <td>CLAUDE.md instructions (best vs. worst)</td>
+                        <td>~1.4 points</td>
+                        <td>Mixed</td>
+                        <td><a href="claudemd-benchmark-results.html">CLAUDE.md study</a></td>
+                    </tr>
+                    <tr>
+                        <td>Model-specific prompt tuning</td>
+                        <td>~0.5&ndash;1.0 points</td>
+                        <td>Mixed</td>
+                        <td>This study (2,160 runs)</td>
+                    </tr>
+                    <tr>
+                        <td>Chain-of-thought (bare vs. CoT)</td>
+                        <td>~0.5&ndash;1.1 points</td>
+                        <td>Negative</td>
+                        <td><a href="chain-of-thought-experiment.html">CoT study</a></td>
+                    </tr>
+                </table>
+
+                <img src="images/model-selection/scatter-efficiency.png" alt="Scatter plot of token efficiency across models and variants, showing quality vs cost tradeoffs">
+                <p class="image-caption">Token efficiency scatter: Haiku delivers competitive quality at a fraction of the token cost. Sonnet occupies the middle ground.</p>
+
+                <p>Task-aware model routing is by far the largest effect I&rsquo;ve measured. Picking the right model for the right task type yields a 6&ndash;8 point improvement over picking the wrong one&mdash;roughly 4&ndash;5&times; the impact of any prompt engineering technique. Blindly choosing a model overall barely matters (1.5 points), but choosing <em>per-task</em> matters enormously.</p>
+
+                <h2>What This Means: Task-Aware Model Routing</h2>
+
+                <p>The practical takeaway is a simple routing heuristic:</p>
+
+                <table>
+                    <tr>
+                        <th>Task Type</th>
+                        <th>Route To</th>
+                        <th>Why</th>
+                    </tr>
+                    <tr>
+                        <td>Bug fixes</td>
+                        <td><strong>Sonnet</strong> (with tuning)</td>
+                        <td>98.95 avg, stdev 1.12. Highest accuracy, lowest variance.</td>
+                    </tr>
+                    <tr>
+                        <td>Code generation</td>
+                        <td><strong>Sonnet</strong> (with tuning)</td>
+                        <td>97.42 avg. Clean, working code on the first try.</td>
+                    </tr>
+                    <tr>
+                        <td>Instruction following</td>
+                        <td><strong>Opus</strong></td>
+                        <td>95.32 avg, stdev near zero. When compliance matters, Opus is deterministic.</td>
+                    </tr>
+                    <tr>
+                        <td>Refactoring</td>
+                        <td><strong>Haiku</strong></td>
+                        <td>93.07 avg. Best restructuring quality at the lowest cost.</td>
+                    </tr>
+                </table>
+
+                <p>This routing strategy would yield an effective composite score higher than any single model achieves alone. And it comes with a cost benefit: two of the four routes go to Sonnet or Haiku, which are significantly cheaper than Opus. You&rsquo;d spend less money <em>and</em> get better results than using Opus for everything.</p>
+
+                <p>The caveat: this requires classifying your task before routing it. In practice, most development tasks map cleanly to these categories. &ldquo;Fix this failing test&rdquo; is a bug fix. &ldquo;Add this endpoint&rdquo; is code generation. &ldquo;Follow these 12 formatting rules&rdquo; is instruction following. &ldquo;Clean up this module&rdquo; is refactoring. The classification doesn&rsquo;t need to be perfect&mdash;even rough routing beats no routing.</p>
+
+                <h2>How This Compares to Public Benchmarks</h2>
+
+                <p>Before you take my routing table at face value, it&rsquo;s worth asking: does it match what everyone else is seeing? I dug into Anthropic&rsquo;s official guidance, public coding benchmarks, and community consensus. The short answer: our results agree on some things and sharply diverge on others.</p>
+
+                <h3>What Anthropic Says</h3>
+
+                <p>Anthropic&rsquo;s own model page describes the lineup as a clear capability tier:</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>Official Description</th>
+                        <th>Pricing (per MTok)</th>
+                    </tr>
+                    <tr>
+                        <td>Opus 4.6</td>
+                        <td>&ldquo;The most intelligent model for building agents and coding&rdquo;</td>
+                        <td>$5 / $25</td>
+                    </tr>
+                    <tr>
+                        <td>Sonnet 4.6</td>
+                        <td>&ldquo;The best combination of speed and intelligence&rdquo;</td>
+                        <td>$3 / $15</td>
+                    </tr>
+                    <tr>
+                        <td>Haiku 4.5</td>
+                        <td>&ldquo;The fastest model with near-frontier intelligence&rdquo;</td>
+                        <td>$1 / $5</td>
+                    </tr>
+                </table>
+
+                <p>The implied hierarchy is Opus &gt; Sonnet &gt; Haiku. Pay more, get better code. Anthropic recommends Opus for &ldquo;complex coding tasks, extended research, and agent workflows,&rdquo; Sonnet for &ldquo;daily development,&rdquo; and Haiku for &ldquo;real-time, low-latency&rdquo; use cases. The messaging frames Haiku as the budget option you use when speed matters more than quality.</p>
+
+                <h3>What Public Benchmarks Show</h3>
+
+                <p>The major public coding benchmarks reinforce this hierarchy:</p>
+
+                <table>
+                    <tr>
+                        <th>Benchmark</th>
+                        <th>Opus</th>
+                        <th>Sonnet</th>
+                        <th>Haiku</th>
+                        <th>What It Tests</th>
+                    </tr>
+                    <tr>
+                        <td>SWE-bench Verified</td>
+                        <td>~76.8%</td>
+                        <td>~75.6%</td>
+                        <td>73.3%</td>
+                        <td>Resolving real GitHub issues in open-source Python repos</td>
+                    </tr>
+                    <tr>
+                        <td>Terminal-Bench 2.0</td>
+                        <td>Industry-leading</td>
+                        <td>&mdash;</td>
+                        <td>40&ndash;42%</td>
+                        <td>Real-world agentic coding in terminal environments</td>
+                    </tr>
+                    <tr>
+                        <td>Aider Polyglot (with thinking)</td>
+                        <td>72.0%</td>
+                        <td>61.3%</td>
+                        <td>28.0%*</td>
+                        <td>225 Exercism exercises across 6 languages</td>
+                    </tr>
+                </table>
+
+                <p><em>*Aider tested Haiku 3.5, not Haiku 4.5. Haiku 4.5 would likely score significantly higher.</em></p>
+
+                <p>Every public benchmark tells the same story: Opus wins, Sonnet is close behind, Haiku trails at a distance. The gap is especially large on aider&rsquo;s polyglot benchmark (72% vs 28%), though that comparison is unfair since it pits a current-gen Opus against a prior-gen Haiku.</p>
+
+                <h3>Where Our Data Diverges</h3>
+
+                <p>And here&rsquo;s where 2,160 runs of focused coding tasks tell a different story:</p>
+
+                <table>
+                    <tr>
+                        <th>Claim</th>
+                        <th>Public Consensus</th>
+                        <th>Our Data</th>
+                    </tr>
+                    <tr>
+                        <td>Overall ranking</td>
+                        <td>Opus &gt; Sonnet &gt; Haiku</td>
+                        <td>Haiku 93.88 &asymp; Opus 93.26 &asymp; Sonnet 92.35</td>
+                    </tr>
+                    <tr>
+                        <td>Best at bug fixes</td>
+                        <td>Opus (most capable)</td>
+                        <td><strong>Sonnet</strong> (98.95 tuned)</td>
+                    </tr>
+                    <tr>
+                        <td>Best at code gen</td>
+                        <td>Opus (most capable)</td>
+                        <td><strong>Sonnet</strong> (97.42 tuned)</td>
+                    </tr>
+                    <tr>
+                        <td>Best at instruction following</td>
+                        <td>Opus (most capable)</td>
+                        <td><strong>Opus</strong> &mdash; confirmed, with near-zero variance</td>
+                    </tr>
+                    <tr>
+                        <td>Best at refactoring</td>
+                        <td>Opus (most capable)</td>
+                        <td><strong>Haiku</strong> (93.07 vs Opus 85.06)</td>
+                    </tr>
+                    <tr>
+                        <td>Haiku&rsquo;s role</td>
+                        <td>Budget fallback for speed-sensitive work</td>
+                        <td><strong>Genuine quality leader</strong> on refactoring; ties overall</td>
+                    </tr>
+                </table>
+
+                <div class="result-danger">
+                    <strong>The &ldquo;bigger model = better code&rdquo; assumption holds on complex, multi-step benchmarks. It breaks down on focused, single-task work.</strong> SWE-bench asks models to navigate entire codebases, identify root causes, and submit multi-file patches. Aider&rsquo;s benchmark tests multi-language Exercism exercises. These are complex, open-ended problems where raw reasoning power matters. Our benchmark tests the kind of work developers actually do most: fix this one bug, generate this one function, follow these formatting rules, clean up this one module.
+                </div>
+
+                <h3>Why the Discrepancy?</h3>
+
+                <p>Three factors explain why our results diverge from the standard hierarchy:</p>
+
+                <p><strong>1. Task complexity selects for different strengths.</strong> SWE-bench and Terminal-Bench test multi-step, multi-file problems that reward sustained reasoning across long contexts. Our tasks are single-turn, focused, and well-defined. On focused work, Opus&rsquo;s extra reasoning power doesn&rsquo;t just go unused&mdash;it can actively hurt. Anthropic themselves note in their prompting guide that Opus 4.6 &ldquo;does significantly more upfront exploration&rdquo; and has &ldquo;a tendency to overengineer.&rdquo; That tendency is exactly what tanks its refactoring score: when the task is &ldquo;simplify this code,&rdquo; a model that adds abstraction layers is doing the opposite.</p>
+
+                <p><strong>2. Haiku 4.5 is dramatically underestimated.</strong> Most public benchmarks (including aider&rsquo;s leaderboard) haven&rsquo;t tested Haiku 4.5 yet. The Haiku scores people cite are from the much weaker Haiku 3.5. But Anthropic&rsquo;s own announcement says Haiku 4.5 &ldquo;matches Claude Sonnet 4&rsquo;s capabilities at one-third the cost&rdquo; and hit 73.3% on SWE-bench&mdash;within 3 points of Opus. In our data, Haiku isn&rsquo;t just competitive; it wins outright on refactoring and ties the overall composite. The &ldquo;budget model&rdquo; framing doesn&rsquo;t match reality anymore.</p>
+
+                <p><strong>3. Variance matters more than averages.</strong> Public benchmarks report a single pass rate. They don&rsquo;t typically report standard deviation, min/max, or per-run reliability. Our 30-rep-per-combination design reveals that Opus&rsquo;s instruction-following dominance isn&rsquo;t about being 6 points smarter on average&mdash;it&rsquo;s about having a stdev of 0.05 versus Haiku&rsquo;s 20.79. That reliability dimension is invisible in single-shot benchmarks but critical in production.</p>
+
+                <h3>One Interesting Alignment</h3>
+
+                <p>Our finding that Opus dominates instruction-following does align with one unexpected data point. Gamma, a presentation tool, <a href="https://www.anthropic.com/news/claude-haiku-4-5" target="_blank" rel="noopener">reported</a> that Haiku 4.5 &ldquo;outperformed our current models on instruction-following for slide text generation, achieving 65% accuracy versus 44% from our premium tier model.&rdquo; At first glance that contradicts our data. But Gamma&rsquo;s &ldquo;instruction following&rdquo; means formatting slide text&mdash;a structured output task. Our instruction-following tasks test coding constraints: naming conventions, architectural rules, output format compliance. Different kinds of instructions surface different model strengths. Even within &ldquo;instruction following,&rdquo; the task specifics determine which model wins.</p>
+
+                <div class="result-highlight">
+                    <strong>The takeaway: don&rsquo;t trust any single benchmark&mdash;including this one.</strong> Public benchmarks measure complex, multi-step software engineering. Our benchmark measures focused, single-task coding. Both are valid. Neither tells the whole story. The practical lesson is that model rankings are task-dependent, and the only way to know which model is best for <em>your</em> work is to measure it on <em>your</em> tasks.
+                </div>
+
+                <h2>Limitations</h2>
+
+                <ul>
+                    <li><strong>12 tasks, same task set as prior experiments.</strong> These results are robust within this task set, but a broader range of tasks (especially harder ones) might shift the rankings. The patterns are consistent enough across tasks within each type that I&rsquo;m reasonably confident, but more data would strengthen the case.</li>
+                    <li><strong>Single-turn only.</strong> Real development involves multi-turn conversations where context accumulates. A model that&rsquo;s worse on single-turn tasks might excel when it can ask clarifying questions or iterate. This measures first-shot quality only.</li>
+                    <li><strong>Empty profile only.</strong> All runs used no CLAUDE.md. Model routing might interact with instruction content&mdash;Haiku with specific refactoring guidance could be even better, or the gap might shrink. That interaction is untested.</li>
+                    <li><strong>Tuning variants are coarse.</strong> The &ldquo;model-tuned&rdquo; prompts are a single attempt at model-specific framing, not an exhaustive search. Better tuned prompts might change the delta significantly, especially for Haiku where the current tuning hurts.</li>
+                    <li><strong>Cost and latency not measured.</strong> I tracked quality only. In practice, model selection also depends on cost per token and response time. A full cost-quality tradeoff analysis would make the routing recommendation more actionable.</li>
+                </ul>
+
+                <h2>Try It Yourself</h2>
+
+                <p>The full experiment configuration and all 2,160 runs are in the <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a> repository. Run the model selection experiment against your own tasks:</p>
+
+                <pre><code>git clone https://github.com/jchilcher/claude-benchmark.git
+cd claude-benchmark
+pip install -e .
+
+# Run the model selection experiment
+claude-benchmark experiment run experiments/model-selection.yaml
+
+# Generate the report
+claude-benchmark experiment report results/experiment-model-selection-*/</code></pre>
+
+                <p>Or define your own task types and model combinations. The interesting question isn&rsquo;t whether my routing heuristic is right for your codebase&mdash;it&rsquo;s whether <em>any</em> single model is right for all your tasks. I&rsquo;d bet it isn&rsquo;t. The data is there to prove it.</p>
+
+            </div>
+
+            <div class="blog-cta-box">
+                <h3>Want to benchmark your own AI coding workflows?</h3>
+                <p>I help teams measure and optimize their AI-assisted development processes&mdash;from prompt engineering to model routing strategies. Get a free assessment to find where data-driven decisions can improve your output quality.</p>
+                <a href="../index.html#contact" class="btn-primary btn-large">Get Your Free Assessment</a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="I tested 4 persona variants across 1,080 benchmark runs. One persona helps. One hurts. Two do nothing. Here's the data on whether giving Claude a persona improves code quality.">
+    <meta name="keywords" content="AI personas, Claude Code, prompt engineering, persona prompting, code quality, benchmarking, system prompts, developer tools, senior engineer persona">
+    <meta property="og:title" content="Does Giving Claude a Persona Actually Help? (1,080 Benchmarks)">
+    <meta property="og:description" content="I tested 4 persona variants across 1,080 benchmark runs. One persona helps. One hurts. Two do nothing. Here's what the data says.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/persona-sweep-experiment.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/persona-sweep-experiment.html">
+    <title>Does Giving Claude a Persona Actually Help? (1,080 Benchmarks) - TechLoom</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Does Giving Claude a Persona Actually Help? (1,080 Benchmarks)",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-03-19",
+        "dateModified": "2026-03-19",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "A data-driven analysis of persona prompting based on 1,080 benchmark runs across 4 persona variants and 3 Claude models.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/persona-sweep-experiment.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Persona Sweep Experiment",
+                "item": "https://techloom.it/blog/persona-sweep-experiment.html"
+            }
+        ]
+    }
+    </script>
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th, .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose code {
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+        .blog-prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .blog-prose pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card h4 {
+            margin-top: 0;
+            color: #1e293b;
+        }
+        .blog-prose .rule-card .evidence {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .blog-prose .do-dont {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .do-col {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .dont-col {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .do-col h4, .blog-prose .dont-col h4 {
+            margin-top: 0;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 640px) {
+            .blog-prose .do-dont {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Persona Sweep Experiment</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">March 19, 2026</span>
+                    <span class="blog-tag">AI Tooling</span>
+                    <span class="blog-tag">Prompt Engineering</span>
+                    <span class="blog-tag">Benchmarking</span>
+                </div>
+                <h1>Does Giving Claude a Persona Actually Help? (1,080 Benchmarks)</h1>
+                <div class="blog-author">
+                    <div class="blog-author-avatar">JC</div>
+                    <div class="blog-author-info">
+                        <span class="blog-author-name">Johnathen Chilcher</span>
+                        <span class="blog-author-role">Senior SRE, TechLoom</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <p>"You are a senior software engineer with 15 years of experience." If you've spent any time in prompt engineering circles, you've seen this advice. Persona prompting&mdash;giving the AI a role before asking it to write code&mdash;is one of the most commonly recommended techniques for getting better output from LLMs.</p>
+
+                <p>I ran 1,080 benchmarks to find out if it actually works. The answer: <strong>one persona helps, one hurts, and two do absolutely nothing.</strong></p>
+
+                <p>This is the fourth experiment in our <a href="effective-ai-coding-prompts.html">benchmark series</a>, following the <a href="chain-of-thought-experiment.html">chain-of-thought</a>, <a href="model-selection-experiment.html">model selection</a>, and <a href="politeness-sweep-experiment.html">politeness sweep</a> studies. The methodology is the same: controlled experiments with statistical analysis, run across Claude Haiku, Sonnet, and Opus. All data is open source at <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a>.</p>
+
+                <h2>Experiment Design</h2>
+
+                <p>I tested four persona variants, each prepended to the system prompt before the coding task:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Persona Text</th>
+                    </tr>
+                    <tr>
+                        <td><strong>no-persona</strong> (control)</td>
+                        <td><em>No persona text. Bare task prompt only.</em></td>
+                    </tr>
+                    <tr>
+                        <td><strong>senior-engineer</strong></td>
+                        <td>"You are a senior software engineer with 15 years of experience..."</td>
+                    </tr>
+                    <tr>
+                        <td><strong>code-reviewer</strong></td>
+                        <td>"You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability..."</td>
+                    </tr>
+                    <tr>
+                        <td><strong>mentor</strong></td>
+                        <td>"You are a patient mentor helping a junior developer..."</td>
+                    </tr>
+                </table>
+
+                <p>Each variant was run across 3 models (Haiku, Sonnet, Opus), 3 task types (bug-fix, code-gen, refactoring), and 30 repetitions per combination. That's 4 &times; 3 &times; 3 &times; 30 = <strong>1,080 runs</strong>.</p>
+
+                <h2>The Scoreboard</h2>
+
+                <p>Here are the overall results, ranked by composite score:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Composite Score</th>
+                        <th>Stdev</th>
+                        <th>Delta from Control</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>code-reviewer</strong></td>
+                        <td><strong>95.1</strong></td>
+                        <td>6.7</td>
+                        <td><strong>+1.0</strong></td>
+                    </tr>
+                    <tr>
+                        <td>no-persona (control)</td>
+                        <td>94.1</td>
+                        <td>8.0</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>senior-engineer</td>
+                        <td>94.1</td>
+                        <td>7.7</td>
+                        <td>0.0</td>
+                    </tr>
+                    <tr style="background: #fef2f2;">
+                        <td><strong>mentor</strong></td>
+                        <td><strong>93.6</strong></td>
+                        <td>8.8</td>
+                        <td><strong>-0.5</strong></td>
+                    </tr>
+                </table>
+
+                <p>The spread is only 1.5 points from best to worst. Personas are not a game-changer. But in that narrow band, there are real patterns worth understanding.</p>
+
+                <h2>The Winner: Code-Reviewer</h2>
+
+                <p>The code-reviewer persona is the only variant that consistently outperformed the control. Not by a huge margin, but reliably:</p>
+
+                <div class="result-highlight">
+                    <strong>Code-reviewer: +1.0 overall, lowest variance (stdev 6.7 vs 8.0), highest LLM quality score (96.7 vs 94.8).</strong> It's not just slightly better on average&mdash;it's the most <em>reliable</em> persona, with fewer catastrophic low-scoring runs than any other variant.
+                </div>
+
+                <p>The key word in the persona is <em>meticulous</em>, and the focus on "correctness, edge cases, and maintainability" aligns perfectly with what the scoring rubric rewards. This isn't the model being smarter&mdash;it's the model allocating more attention to the exact dimensions being measured.</p>
+
+                <p>Code-reviewer by model:</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>Code-Reviewer</th>
+                        <th>No-Persona</th>
+                        <th>Delta</th>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td>95.6</td>
+                        <td>95.6</td>
+                        <td>0.0</td>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td>95.1</td>
+                        <td>94.1</td>
+                        <td>+1.0</td>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>Opus</strong></td>
+                        <td><strong>94.6</strong></td>
+                        <td><strong>92.6</strong></td>
+                        <td><strong>+2.0</strong></td>
+                    </tr>
+                </table>
+
+                <p>Opus responds the most to the code-reviewer persona. We'll come back to why in the model-specific section.</p>
+
+                <h2>The Loser: Mentor</h2>
+
+                <p>The mentor persona&mdash;"you are a patient mentor helping a junior developer"&mdash;was the worst performer across the board.</p>
+
+                <div class="result-danger">
+                    <strong>Mentor: -0.5 overall, highest variance (stdev 8.8), worst LLM quality (93.5).</strong> On Opus specifically, mentor scored 89.8 with a stdev of 13.8&mdash;a catastrophic combination of low scores and wild inconsistency.
+                </div>
+
+                <p>Why does telling Claude to be a "patient mentor" hurt code quality? The persona shifts the model's optimization target. Instead of writing the best possible code, it writes code optimized for <em>teaching</em>&mdash;more verbose, more explanatory, sometimes over-simplified. A mentor wouldn't write a terse, elegant solution. A mentor would write something a junior developer can easily follow. Those are different goals, and the scoring rubric rewards the former.</p>
+
+                <p>The damage on Opus is particularly severe:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Opus Score</th>
+                        <th>Opus Stdev</th>
+                    </tr>
+                    <tr>
+                        <td>code-reviewer</td>
+                        <td>94.6</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>no-persona</td>
+                        <td>92.6</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>senior-engineer</td>
+                        <td>&mdash;</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr style="background: #fef2f2;">
+                        <td><strong>mentor</strong></td>
+                        <td><strong>89.8</strong></td>
+                        <td><strong>13.8</strong></td>
+                    </tr>
+                </table>
+
+                <p>A stdev of 13.8 means some Opus+mentor runs scored in the 70s. For a model that scores 92.6 by default, that's a persona-induced regression of nearly 3 points on average, with individual runs dropping 15+ points. The mentor persona doesn't just lower the ceiling&mdash;it blows out the floor.</p>
+
+                <h2>The Non-Events: Senior-Engineer and No-Persona</h2>
+
+                <p>Here's the finding that should stop the most popular persona advice in its tracks:</p>
+
+                <div class="result-warning">
+                    <strong>"You are a senior software engineer" scored exactly 94.1&mdash;identical to no persona at all.</strong> The most commonly recommended persona prompt for coding tasks is statistically indistinguishable from saying nothing.
+                </div>
+
+                <p>This makes sense if you think about what the persona actually communicates. "You are a senior software engineer with 15 years of experience" tells Claude to... write code like a senior engineer. Which is what it already does. The instruction is <a href="effective-ai-coding-prompts.html">redundant with the model's training</a>, just like telling it to "use descriptive variable names" or "handle edge cases." Claude doesn't have a junior developer mode that the senior-engineer persona unlocks. It's already writing at its maximum capability.</p>
+
+                <p>The stdev tells a slightly more interesting story: 7.7 for senior-engineer vs 8.0 for no-persona. A marginal reduction in variance, but not enough to matter in practice.</p>
+
+                <h2>Where Personas Matter: Task-Type Analysis</h2>
+
+                <p>The overall averages hide where personas actually make a difference. Not all task types respond equally:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Bug-Fix</th>
+                        <th>Code-Gen</th>
+                        <th>Refactoring</th>
+                    </tr>
+                    <tr>
+                        <td>no-persona</td>
+                        <td>~97-98</td>
+                        <td>~96-97</td>
+                        <td>87.1</td>
+                    </tr>
+                    <tr>
+                        <td>senior-engineer</td>
+                        <td>~97-98</td>
+                        <td>~96-97</td>
+                        <td>~87-88</td>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>code-reviewer</strong></td>
+                        <td>~97-98</td>
+                        <td>~96-97</td>
+                        <td><strong>90.0</strong></td>
+                    </tr>
+                    <tr style="background: #fef2f2;">
+                        <td><strong>mentor</strong></td>
+                        <td>~97-98</td>
+                        <td>~96-97</td>
+                        <td><strong>86.0</strong></td>
+                    </tr>
+                </table>
+
+                <p>Bug-fix and code-gen tasks show a <strong>ceiling effect</strong>. All variants score 96-98, and there's no room for personas to add value. The model already nails these tasks.</p>
+
+                <p>Refactoring is where the action is:</p>
+
+                <div class="result-highlight">
+                    <strong>Code-reviewer on refactoring: 90.0 vs no-persona 87.1 (+2.9).</strong> This is the largest persona-driven improvement in the entire dataset. The "focus on correctness, edge cases, and maintainability" framing specifically helps on tasks that require restructuring existing code without breaking functionality.
+                </div>
+
+                <p>Meanwhile, the mentor persona on refactoring scores 86.0&mdash;the worst combination in the dataset. When refactoring, you want the model to be ruthlessly precise about preserving behavior while improving structure. A "patient mentor" optimizes for the wrong thing entirely.</p>
+
+                <p>This pattern mirrors what we found in the <a href="effective-ai-coding-prompts.html">main prompt study</a>: instructions hurt on easy tasks (ceiling effect) and help on hard ones (refactoring, instruction-following). Personas follow the same rule.</p>
+
+                <h2>Model-Specific Responses</h2>
+
+                <p>Different models react to personas in fundamentally different ways:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Haiku</th>
+                        <th>Sonnet</th>
+                        <th>Opus</th>
+                    </tr>
+                    <tr>
+                        <td>no-persona</td>
+                        <td>95.6</td>
+                        <td>94.1</td>
+                        <td>92.6</td>
+                    </tr>
+                    <tr>
+                        <td>code-reviewer</td>
+                        <td>95.6</td>
+                        <td>95.1</td>
+                        <td>94.6</td>
+                    </tr>
+                    <tr>
+                        <td>senior-engineer</td>
+                        <td>&mdash;</td>
+                        <td>&mdash;</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>mentor</td>
+                        <td>&mdash;</td>
+                        <td>&mdash;</td>
+                        <td>89.8</td>
+                    </tr>
+                </table>
+
+                <p><strong>Haiku</strong> is stable. It scores 95.6 with both no-persona and code-reviewer. Personas barely move the needle&mdash;Haiku appears to largely ignore them, processing the task prompt with the same approach regardless of role framing.</p>
+
+                <p><strong>Sonnet</strong> shows moderate responsiveness. Code-reviewer lifts it by +1.0, but the other personas have minimal effect. Sonnet is the Goldilocks model: responsive enough to benefit from a good persona, resistant enough to not be harmed by a bad one.</p>
+
+                <p><strong>Opus swings wildly.</strong> It gains +2.0 from code-reviewer but <em>loses</em> 2.8 from mentor. Opus is the most capable model in isolation, but it's also the most sensitive to persona framing. When you give Opus a persona, it commits fully&mdash;for better or worse.</p>
+
+                <div class="result-warning">
+                    <strong>Opus is the high-beta model for persona prompting.</strong> It has the most to gain from a well-chosen persona (code-reviewer: +2.0) and the most to lose from a poorly chosen one (mentor: -2.8, stdev 13.8). If you're going to use personas with Opus, choose carefully.
+                </div>
+
+                <p>This finding connects to the <a href="model-selection-experiment.html">model selection experiment</a>: Opus's sensitivity to prompt framing means model choice and persona choice are not independent decisions. The right persona depends on the model, and vice versa.</p>
+
+                <h2>LLM Quality Analysis</h2>
+
+                <p>Beyond the composite score, we also measure LLM-judged code quality&mdash;a separate evaluation of how clean, idiomatic, and well-structured the output is:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>LLM Quality Score</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>code-reviewer</strong></td>
+                        <td><strong>96.7</strong></td>
+                    </tr>
+                    <tr>
+                        <td>senior-engineer</td>
+                        <td>95.0</td>
+                    </tr>
+                    <tr>
+                        <td>no-persona</td>
+                        <td>94.8</td>
+                    </tr>
+                    <tr style="background: #fef2f2;">
+                        <td><strong>mentor</strong></td>
+                        <td><strong>93.5</strong></td>
+                    </tr>
+                </table>
+
+                <p>The LLM quality ranking perfectly mirrors the composite ranking, with a wider spread. Code-reviewer produces the cleanest code (+1.9 over control). Mentor produces the least clean (-1.3). The "focus on correctness and maintainability" framing translates directly into measurably better code structure.</p>
+
+                <p>Interestingly, senior-engineer scores 95.0 on LLM quality&mdash;slightly above no-persona's 94.8&mdash;even though they're identical on composite score. The persona nudges code style marginally without affecting functional correctness. A distinction without a practical difference.</p>
+
+                <h2>Practical Implications</h2>
+
+                <p>So what should you actually do with this data?</p>
+
+                <div class="rule-card">
+                    <h4>1. If you use one persona, make it code-reviewer.</h4>
+                    <p>It's the only persona that consistently helps across models and task types. The gain is modest (+1.0 overall) but the variance reduction (stdev 6.7 vs 8.0) means fewer bad outlier runs. For automated workflows where consistency matters more than peak performance, that's valuable.</p>
+                </div>
+
+                <div class="rule-card">
+                    <h4>2. Never use mentor personas for production code generation.</h4>
+                    <p>The mentor persona optimizes for pedagogical clarity, not code quality. It hurts overall (-0.5), destroys Opus (-2.8), and produces the highest variance in the dataset. If you want Claude to explain code, use a mentor persona in a separate conversation. Don't use it when generating code you'll ship.</p>
+                </div>
+
+                <div class="rule-card">
+                    <h4>3. "Senior engineer" is a waste of tokens.</h4>
+                    <p>It scores identically to no persona. The most popular persona prompt for coding does literally nothing. Save the tokens for <a href="effective-ai-coding-prompts.html">project-specific context</a> that Claude can't infer from training.</p>
+                </div>
+
+                <div class="rule-card">
+                    <h4>4. Reserve personas for refactoring tasks.</h4>
+                    <p>Bug-fix and code-gen tasks hit a ceiling regardless of persona. Refactoring is where code-reviewer earns its +2.9 advantage. If you're dynamically constructing prompts, consider adding the code-reviewer persona only for refactoring and restructuring tasks.</p>
+                </div>
+
+                <div class="rule-card">
+                    <h4>5. Be especially careful with Opus.</h4>
+                    <p>Opus responds the most dramatically to personas&mdash;both positively and negatively. A code-reviewer persona gives Opus +2.0. A mentor persona gives it -2.8 with catastrophic variance. <a href="politeness-sweep-experiment.html">Like politeness</a>, persona effects are amplified on the most capable model.</p>
+                </div>
+
+                <h2>Limitations</h2>
+
+                <ul>
+                    <li><strong>Four personas tested.</strong> There are infinite possible persona formulations. "Meticulous code reviewer" works&mdash;would "expert systems architect" or "security auditor" work differently? We tested the most common patterns, not all patterns.</li>
+                    <li><strong>Single-file tasks.</strong> These are isolated coding tasks, not multi-file codebase navigation. Personas might affect how Claude approaches large-scale architectural decisions differently than single-function implementations.</li>
+                    <li><strong>Scoring rubric alignment.</strong> Code-reviewer's persona text ("correctness, edge cases, maintainability") closely mirrors what our scoring rubric rewards. The persona may be effective partly because it aligns the model with the evaluator, not because it improves absolute code quality. In production, your "evaluator" is your team's standards&mdash;align accordingly.</li>
+                    <li><strong>Claude models only.</strong> Other model families may respond to personas differently. GPT-4 and Gemini may have different sensitivity profiles.</li>
+                    <li><strong>No interaction effects tested.</strong> We tested personas in isolation. Combining a persona with other prompt strategies (like <a href="chain-of-thought-experiment.html">chain-of-thought</a> or <a href="context-pollution-experiment.html">context padding</a>) could produce different results.</li>
+                </ul>
+
+                <h2>Try It Yourself</h2>
+
+                <p>The persona experiment configuration and all data are open source:</p>
+
+                <pre><code>pip install claude-benchmark
+
+# Run the persona sweep
+claude-benchmark experiment run experiments/persona.toml
+
+# Generate the report
+claude-benchmark report
+
+# See the results
+open results/*/report.html</code></pre>
+
+                <p>You can also define your own persona variants in the experiment TOML and test them against your specific task types. If you find a persona that beats code-reviewer, I'd genuinely like to see the data.</p>
+
+                <p>Full experiment configuration: <a href="https://github.com/jchilcher/claude-benchmark/blob/main/experiments/persona.toml" target="_blank" rel="noopener">experiments/persona.toml</a></p>
+
+                <p>For the complete picture of what works and what doesn't in AI prompt engineering, see the <a href="capstone-best-practices-experiment.html">capstone best-practices experiment</a> where we combine the winning strategies from all five experiments into a single optimized configuration.</p>
+
+            </div>
+
+            <div class="blog-cta-box">
+                <h3>Want to optimize your team's AI-assisted development?</h3>
+                <p>I help teams measure what actually works in their AI coding workflows&mdash;from prompt engineering to infrastructure automation. Every recommendation backed by data, not opinion. Get a free assessment.</p>
+                <a href="../index.html#contact" class="btn-primary btn-large">Get Your Free Assessment</a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+name = "overspecification-cascade"
+description = """Hypothesis: Minimal task specification matches or beats exhaustive upfront technical \
+constraints. Anthropic's harness design blog warns 'over-specification: detailed upfront technical \
+requirements cascade errors' with newer models. Tests specification rigidity as an isolated variable, \
+distinct from claudemd-length (general guideline quantity) and specificity-level (concrete vs vague). \
+This tests whether dictating HOW to solve (algorithms, structures, patterns) hurts vs just stating \
+WHAT to solve."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Minimal spec: just the task (bare) ---
+[[variants]]
+label = "minimal"
+
+# --- Moderate spec: name the pattern or approach ---
+[[variants]]
+label = "moderate-spec"
+prompt_prefix = "Use clean, idiomatic Python. Choose appropriate data structures for the problem. Handle errors with specific exception types. "
+
+# --- Heavy spec: dictate implementation details ---
+[[variants]]
+label = "heavy-spec"
+prompt_prefix = "Use a class-based design with a dataclass for any structured data. Implement input validation as a separate method. Use a dictionary for lookups. Raise ValueError for type/range issues and KeyError for missing items. Return None instead of raising for optional lookups. Use list comprehensions for any filtering or transformation. "
+
+# --- Exhaustive spec: dictate everything ---
+[[variants]]
+label = "exhaustive-spec"
+prompt_prefix = "Use a class-based design with a frozen dataclass for all structured data. Implement input validation as a @staticmethod. Use a dictionary with string keys for all lookups. Raise ValueError with the format 'Invalid {param}: {value}' for type/range issues. Raise KeyError with the format '{key} not found in {collection}' for missing items. Return Optional types and None instead of raising for optional lookups. Use list comprehensions for filtering and generator expressions for transformation. Implement __repr__ and __eq__ on all classes. Use functools.lru_cache for any repeated computation. Add logging at DEBUG level for function entry/exit. "

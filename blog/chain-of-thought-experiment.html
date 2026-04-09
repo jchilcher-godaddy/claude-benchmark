@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="I ran 270 benchmarks testing whether chain-of-thought prompting improves AI-generated code. Across all three Claude models, explicit CoT instructions consistently made code worse.">
+    <meta name="keywords" content="chain of thought, CoT prompting, Claude Code, benchmarking, AI coding, prompt engineering, code quality, developer tools">
+    <meta property="og:title" content="Chain-of-Thought Prompting Makes Code Worse. I Have 270 Runs to Prove It.">
+    <meta property="og:description" content="270 benchmark runs across 3 Claude models testing bare, cot-prefix, and cot-detailed prompting. Every CoT variant scored lower than no instruction at all.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/chain-of-thought-experiment.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/chain-of-thought-experiment.html">
+    <title>Chain-of-Thought Prompting Makes Code Worse. I Have 270 Runs to Prove It. - TechLoom</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Chain-of-Thought Prompting Makes Code Worse. I Have 270 Runs to Prove It.",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-03-12",
+        "dateModified": "2026-03-12",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "270 benchmark runs testing chain-of-thought prompting across 3 Claude models. Every CoT variant scored lower than the bare baseline.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/chain-of-thought-experiment.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Chain-of-Thought Experiment",
+                "item": "https://techloom.it/blog/chain-of-thought-experiment.html"
+            }
+        ]
+    }
+    </script>
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th, .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose code {
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+        .blog-prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .blog-prose pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Chain-of-Thought Experiment</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">March 12, 2026</span>
+                    <span class="blog-tag">AI Tooling</span>
+                    <span class="blog-tag">Experiments</span>
+                </div>
+                <h1>Chain-of-Thought Prompting Makes Code Worse. I Have 270 Runs to Prove It.</h1>
+                <div class="blog-author">
+                    <div class="blog-author-avatar">JC</div>
+                    <div class="blog-author-info">
+                        <span class="blog-author-name">Johnathen Chilcher</span>
+                        <span class="blog-author-role">Senior SRE, TechLoom</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <p>"Think step by step." It's one of the most widely repeated pieces of prompt engineering advice. Add a chain-of-thought (CoT) instruction to your system prompt and the model reasons more carefully, produces better output, gets higher scores on benchmarks. It's become an article of faith in the AI tooling community.</p>
+
+                <p>After <a href="claudemd-benchmark-results.html">my last round of benchmarks</a> showed that CLAUDE.md instructions generally don't help with generic coding tasks, I wanted to test an even more fundamental assumption: does asking Claude to think before it codes actually produce better code?</p>
+
+                <p>I ran 270 benchmarks to find out. The answer is no.</p>
+
+                <h2>Experiment Design</h2>
+
+                <p>Using the same <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a> framework from the previous study, I set up a controlled experiment comparing three prompting strategies across three Claude models and three coding tasks.</p>
+
+                <h3>The Three Variants</h3>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>What It Does</th>
+                    </tr>
+                    <tr>
+                        <td><code>bare</code></td>
+                        <td>No chain-of-thought instruction. The model receives only the task prompt. This is the control.</td>
+                    </tr>
+                    <tr>
+                        <td><code>cot-prefix</code></td>
+                        <td>A light CoT nudge: "Think step by step before writing your solution." One sentence prepended to the task.</td>
+                    </tr>
+                    <tr>
+                        <td><code>cot-detailed</code></td>
+                        <td>An explicit reasoning scaffold: "First analyze the requirements, then plan your approach, then implement, then verify your solution handles edge cases." A structured multi-step instruction.</td>
+                    </tr>
+                </table>
+
+                <h3>The Test Matrix</h3>
+
+                <table>
+                    <tr>
+                        <th>Dimension</th>
+                        <th>Values</th>
+                    </tr>
+                    <tr>
+                        <td>Models</td>
+                        <td>Claude Haiku 4.5, Claude Sonnet 4.6, Claude Opus 4.6</td>
+                    </tr>
+                    <tr>
+                        <td>Profile</td>
+                        <td>empty (no CLAUDE.md)</td>
+                    </tr>
+                    <tr>
+                        <td>Tasks</td>
+                        <td>bug-fix-01, code-gen-01, refactor-01</td>
+                    </tr>
+                    <tr>
+                        <td>Variants</td>
+                        <td>bare, cot-prefix, cot-detailed</td>
+                    </tr>
+                    <tr>
+                        <td>Repetitions</td>
+                        <td>10 per combination</td>
+                    </tr>
+                    <tr>
+                        <td>Total runs</td>
+                        <td>270</td>
+                    </tr>
+                </table>
+
+                <p>Ten repetitions per combination is significantly more than the three-per-combination runs in the original CLAUDE.md study. I wanted tighter confidence intervals for smaller effect sizes. With 10 runs, I can detect differences of roughly 1.5 points with reasonable statistical power.</p>
+
+                <p>All runs used the <code>empty</code> profile&mdash;no CLAUDE.md at all&mdash;to isolate the CoT effect from any interaction with system instructions. The previous study established that empty is the strongest baseline, so comparing against it is the hardest possible test.</p>
+
+                <h2>Results: CoT Never Wins</h2>
+
+                <img src="images/chain-of-thought/executive-summary.png" alt="Executive summary showing bare baseline as best variant, with CoT variants scoring lower across all models">
+                <p class="image-caption">Executive summary from the benchmark report: bare wins on every model. CoT never helps.</p>
+
+                <p>Here's the headline number. Average composite score across all tasks, 10 runs each:</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>bare</th>
+                        <th>cot-prefix</th>
+                        <th>cot-detailed</th>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td><strong>95.3</strong></td>
+                        <td>94.9</td>
+                        <td>94.7</td>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td><strong>96.0</strong></td>
+                        <td>95.8</td>
+                        <td>95.8</td>
+                    </tr>
+                    <tr>
+                        <td>Opus</td>
+                        <td><strong>94.6</strong></td>
+                        <td>93.5</td>
+                        <td>93.4</td>
+                    </tr>
+                </table>
+
+                <div class="result-danger">
+                    <strong>Every CoT variant scored lower than bare on every model.</strong> The deltas range from -0.23 (Sonnet/cot-prefix) to -1.14 (Opus/cot-detailed). Chain-of-thought prompting consistently degraded code quality across the board.
+                </div>
+
+                <h3>Delta from Bare Baseline</h3>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>cot-prefix</th>
+                        <th>cot-detailed</th>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td>-0.41</td>
+                        <td>-0.63</td>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td>-0.23</td>
+                        <td>-0.28</td>
+                    </tr>
+                    <tr>
+                        <td>Opus</td>
+                        <td>-1.05</td>
+                        <td><strong>-1.14</strong></td>
+                    </tr>
+                </table>
+
+                <p>Two patterns jump out. First, <code>cot-detailed</code> is worse than <code>cot-prefix</code> on every model. More explicit reasoning instructions produce worse code than a light nudge, which produces worse code than no instruction at all. Second, the more capable the model, the larger the penalty&mdash;Opus takes the biggest hit.</p>
+
+                <h3>Task-Level Breakdown</h3>
+
+                <img src="images/chain-of-thought/heatmap.png" alt="Heatmap showing variant scores broken down by task, with refactor-01 showing the largest CoT penalty">
+                <p class="image-caption">Variant x Task heatmap: refactor-01 is where CoT does real damage. Bug-fix and code-gen are saturated.</p>
+
+                <p>The overall numbers hide a ceiling effect. Let's break it down by task:</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>Variant</th>
+                        <th>bug-fix-01</th>
+                        <th>code-gen-01</th>
+                        <th>refactor-01</th>
+                    </tr>
+                    <tr>
+                        <td rowspan="3">Haiku</td>
+                        <td>bare</td>
+                        <td>98.5</td>
+                        <td>98.0</td>
+                        <td>89.5</td>
+                    </tr>
+                    <tr>
+                        <td>cot-prefix</td>
+                        <td>98.5</td>
+                        <td>98.0</td>
+                        <td>88.3</td>
+                    </tr>
+                    <tr>
+                        <td>cot-detailed</td>
+                        <td>98.5</td>
+                        <td>97.7</td>
+                        <td>87.9</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="3">Sonnet</td>
+                        <td>bare</td>
+                        <td>98.5</td>
+                        <td>97.7</td>
+                        <td>91.9</td>
+                    </tr>
+                    <tr>
+                        <td>cot-prefix</td>
+                        <td>98.5</td>
+                        <td>97.1</td>
+                        <td>91.9</td>
+                    </tr>
+                    <tr>
+                        <td>cot-detailed</td>
+                        <td>98.5</td>
+                        <td>95.8</td>
+                        <td>93.0</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="3">Opus</td>
+                        <td>bare</td>
+                        <td>98.5</td>
+                        <td>98.5</td>
+                        <td>86.8</td>
+                    </tr>
+                    <tr>
+                        <td>cot-prefix</td>
+                        <td>98.5</td>
+                        <td>98.5</td>
+                        <td>83.6</td>
+                    </tr>
+                    <tr>
+                        <td>cot-detailed</td>
+                        <td>98.5</td>
+                        <td>98.5</td>
+                        <td>83.3</td>
+                    </tr>
+                </table>
+
+                <p>Bug-fix-01 scored a perfect 98.5 across <em>all 90 runs</em>&mdash;every model, every variant, every repetition. There is zero variance. The task is saturated. Code-gen-01 is nearly as flat. The entire signal in this experiment comes from <strong>refactor-01</strong>, the only task hard enough to differentiate prompting strategies.</p>
+
+                <div class="result-warning">
+                    <strong>On refactor-01, Opus dropped 3.5 points with CoT.</strong> From 86.8 (bare) to 83.3 (cot-detailed). That's the largest single effect in this experiment. The most capable model was hurt the most by explicit reasoning instructions on the hardest task.
+                </div>
+
+                <h3>The Sonnet Exception</h3>
+
+                <p>Sonnet is the one model that shows a mixed signal. On refactor-01 specifically, <code>cot-detailed</code> scored 93.0 versus bare's 91.9&mdash;a +1.1 improvement. But this gain was fully offset by a -1.9 drop on code-gen-01 (95.8 vs. 97.7). The net effect is still negative.</p>
+
+                <p>This suggests that CoT instructions can redirect a model's attention toward certain quality dimensions (architecture, structure) at the cost of others (conciseness, directness). For refactoring&mdash;where planning the restructuring is genuinely valuable&mdash;the tradeoff occasionally pays off. For code generation&mdash;where the model just needs to execute a spec cleanly&mdash;the extra deliberation adds noise.</p>
+
+                <h2>Why CoT Hurts Code Generation</h2>
+
+                <p>Chain-of-thought prompting was developed for and validated on reasoning tasks: math problems, logic puzzles, multi-step inference. Tasks where the model might skip a step or lose track of intermediate results. "Think step by step" forces it to show its work, and that discipline catches errors.</p>
+
+                <p>Code generation is different. These models don't struggle with the <em>reasoning</em> part of coding&mdash;they struggle with the <em>taste</em> part. Writing clean code, choosing good abstractions, knowing when to stop refactoring. These are judgment calls, not reasoning chains. Telling a model to "first analyze, then plan, then implement" doesn't improve judgment. It just adds an overhead step that can introduce its own problems:</p>
+
+                <ul>
+                    <li><strong>Over-engineering.</strong> When told to "plan your approach," models tend to design more elaborate solutions than necessary. The planning step primes them toward abstraction and structure, which is counterproductive when the best solution is straightforward.</li>
+                    <li><strong>Self-constraint.</strong> Explicit reasoning steps can lock the model into a suboptimal approach early. Once it has "analyzed the requirements" and committed to a plan in its reasoning, it's less likely to pivot to a simpler solution mid-implementation.</li>
+                    <li><strong>Attention dilution.</strong> Every token of meta-instruction is a token not spent on the actual task. For a model that already reasons internally (which all modern Claude models do), the CoT instruction is redundant at best and distracting at worst.</li>
+                </ul>
+
+                <h3>The Opus Effect</h3>
+
+                <p>The most striking finding is that Opus&mdash;the most capable model&mdash;suffered the largest quality penalty from CoT. This makes sense if you think about what CoT does: it imposes a reasoning structure from outside. A less capable model might benefit from that structure because it compensates for weaker internal reasoning. A highly capable model already has sophisticated internal reasoning&mdash;the external structure interferes with it.</p>
+
+                <p>This is the cognitive equivalent of giving a chess grandmaster a "first consider all captures, then consider all checks" checklist. The checklist might help a club player, but it constrains the grandmaster's pattern recognition. The grandmaster already evaluates positions holistically; forcing sequential analysis makes them worse.</p>
+
+                <p>Opus's 3.5-point drop on refactor-01 suggests exactly this dynamic. Refactoring requires holistic judgment about code structure&mdash;seeing the whole shape of the solution and reshaping it. Step-by-step instructions fragment that holistic view.</p>
+
+                <h2>Variance and Consistency</h2>
+
+                <img src="images/chain-of-thought/radar-charts.png" alt="Radar charts comparing variant scores across metrics for Haiku, Opus, and Sonnet models">
+                <p class="image-caption">Per-model radar charts: Opus shows the clearest CoT penalty, Haiku and Sonnet are tighter.</p>
+
+                <p>Beyond average scores, the variance tells a story too:</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>Variant</th>
+                        <th>refactor-01 StdDev</th>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td>bare</td>
+                        <td>3.6</td>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td>cot-prefix</td>
+                        <td>3.5</td>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td>cot-detailed</td>
+                        <td>3.8</td>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td>bare</td>
+                        <td>2.3</td>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td>cot-prefix</td>
+                        <td>2.0</td>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td>cot-detailed</td>
+                        <td>2.1</td>
+                    </tr>
+                    <tr>
+                        <td>Opus</td>
+                        <td>bare</td>
+                        <td>3.2</td>
+                    </tr>
+                    <tr>
+                        <td>Opus</td>
+                        <td>cot-prefix</td>
+                        <td>2.7</td>
+                    </tr>
+                    <tr>
+                        <td>Opus</td>
+                        <td>cot-detailed</td>
+                        <td>2.2</td>
+                    </tr>
+                </table>
+
+                <p>For Opus, CoT did reduce variance&mdash;standard deviation dropped from 3.2 to 2.2. But it reduced variance by pulling down the ceiling, not by raising the floor. Opus's best bare run scored 90.2; its best cot-detailed run scored 87.1. The consistency came at the cost of never reaching the higher scores that unconstrained reasoning could achieve.</p>
+
+                <div class="result-highlight">
+                    <strong>CoT made Opus more consistent by making it consistently worse.</strong> If you value predictability over peak performance, that's a tradeoff worth understanding&mdash;but it's not the tradeoff most people intend when they add "think step by step" to their prompts.
+                </div>
+
+                <img src="images/chain-of-thought/statistical-comparison.png" alt="Statistical comparison table showing p-values and effect sizes for all variant pairs">
+                <p class="image-caption">Full statistical comparison from the benchmark report, including effect sizes and confidence intervals.</p>
+
+                <h2>Connection to the CLAUDE.md Study</h2>
+
+                <p>This result reinforces the central finding from the <a href="claudemd-benchmark-results.html">previous 1,188-run benchmark</a>: for generic coding tasks, additional instructions degrade quality. The mechanism is the same whether the instruction is "use snake_case" or "think step by step"&mdash;you're adding information the model already has, and the redundancy introduces noise.</p>
+
+                <p>The correlation between instruction token count and quality from Phase 2 of that study was <em>r</em> = -0.95. CoT instructions are just more tokens on the same curve. They follow the same pattern: every additional token of meta-instruction marginally decreases quality on tasks the model already handles well.</p>
+
+                <p>But just as the CLAUDE.md study found that targeted instructions help on specific weaknesses (workflow instructions lifted Opus's instruction-following score by +5.8), there may be coding scenarios where CoT genuinely helps. The candidates would be tasks requiring genuine multi-step reasoning that the model gets wrong without prompting&mdash;complex debugging chains, multi-file dependency analysis, or architecture decisions with cascading constraints. These tasks weren't in this benchmark.</p>
+
+                <img src="images/chain-of-thought/scatter-efficiency.png" alt="Scatter plot showing token efficiency across variants, with bare baseline winning on both quality and token usage">
+                <p class="image-caption">Token efficiency scatter: CoT costs more tokens and produces worse code. Lose-lose.</p>
+
+                <h2>What This Means for Your Prompts</h2>
+
+                <ol>
+                    <li><strong>Don't add "think step by step" to coding prompts by default.</strong> On these three tasks across three models, it never helped and usually hurt. The models already reason internally. The instruction is redundant.</li>
+                    <li><strong>More detailed CoT instructions are worse, not better.</strong> <code>cot-detailed</code> scored lower than <code>cot-prefix</code> on every model. If you're going to use CoT, keep it minimal. The more structure you impose, the more you constrain the model's natural reasoning.</li>
+                    <li><strong>Capable models are hurt more than weaker ones.</strong> Opus suffered a 1.14-point overall penalty; Sonnet only 0.28. If you're using a top-tier model, CoT instructions are actively counterproductive.</li>
+                    <li><strong>Save CoT for genuine reasoning challenges.</strong> Math, logic, multi-step inference, ambiguous requirements that need decomposition. Don't use it for "write a function that does X"&mdash;the model doesn't need help reasoning through implementation.</li>
+                    <li><strong>Measure, don't assume.</strong> CoT is one of those techniques everyone "knows" works because it works on reasoning benchmarks. But coding isn't a reasoning benchmark. The only way to know if a prompting technique helps your specific workflow is to measure the output.</li>
+                </ol>
+
+                <h2>Limitations</h2>
+
+                <ul>
+                    <li><strong>Three tasks isn't enough.</strong> Two of them were saturated (98.5 across all runs). The signal comes from a single refactoring task. A broader task set&mdash;especially tasks involving complex reasoning chains&mdash;might show different results.</li>
+                    <li><strong>Single-file only.</strong> Real-world coding involves navigating codebases, understanding dependencies, and planning across files. CoT might genuinely help with multi-step planning in those scenarios.</li>
+                    <li><strong>No extended thinking.</strong> This tests CoT as a system prompt instruction, not Claude's native extended thinking feature. Extended thinking operates differently&mdash;it gives the model dedicated reasoning space without consuming output tokens. That's a different experiment.</li>
+                    <li><strong>Generic tasks only.</strong> These are domain-agnostic coding problems. Domain-specific tasks with unfamiliar requirements might benefit from explicit reasoning scaffolds.</li>
+                </ul>
+
+                <h2>Try It Yourself</h2>
+
+                <p>The experiment configuration and all 270 runs are available in the <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a> repository. Run the experiment against your own tasks:</p>
+
+                <pre><code>pip install claude-benchmark
+
+# Run the chain-of-thought experiment
+claude-benchmark experiment run experiments/chain-of-thought.yaml
+
+# Generate the report
+claude-benchmark experiment report results/experiment-chain-of-thought-*/</code></pre>
+
+                <p>Or define your own variants. If you find a coding task where CoT consistently helps, I'd genuinely like to see it. That would tell us something interesting about where the boundary lies between tasks that benefit from explicit reasoning and tasks that don't.</p>
+
+            </div>
+
+            <div class="blog-cta-box">
+                <h3>Want to benchmark your own AI coding workflows?</h3>
+                <p>I help teams measure and optimize their AI-assisted development processes&mdash;from prompt engineering to infrastructure automation. Get a free assessment to find where data-driven decisions can improve your output quality.</p>
+                <a href="../index.html#contact" class="btn-primary btn-large">Get Your Free Assessment</a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

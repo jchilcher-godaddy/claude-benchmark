@@ -41,21 +41,36 @@ claude-benchmark report results/
 | Command | Description |
 |---------|-------------|
 | `run` | Execute benchmark tasks against a CLAUDE.md configuration |
+| `experiment` | Run a multi-variant experiment from a TOML configuration file |
 | `report` | Generate an HTML report from one or more result sets |
+| `compare` | Compare results across cataloged runs with statistical analysis |
+| `rescore` | Re-run scoring on existing results (e.g., after judge recalibration) |
+| `calibrate` | Calibrate and compare LLM judge models |
+| `catalog` | View and filter the catalog of completed benchmark runs |
+| `intake` | Import external benchmark results into the catalog |
 | `export` | Export raw results data as JSON |
 | `new-task` | Scaffold a new benchmark task |
 | `profiles` | List available benchmark profiles |
 
 ## Scoring
 
-Each task is scored across four dimensions:
+Each task receives a **composite score (0-100)** combining automated static analysis with LLM-as-judge evaluation:
 
-| Dimension | Weight | Method |
+```
+composite = (static_score x 0.50) + (llm_score x 0.50)
+```
+
+**Static analysis** (50% of composite) combines three sub-scores:
+
+| Sub-score | Weight | Method |
 |-----------|--------|--------|
-| Test pass rate | 40% | pytest against task-specific test suite |
-| Code quality | 20% | ruff lint rule compliance |
-| Complexity | 20% | radon cyclomatic complexity analysis |
-| LLM judge | 20% | Claude evaluation of code quality and instruction adherence |
+| Test pass rate | 50% of static | pytest against task-specific test suite |
+| Lint cleanliness | 30% of static | ruff lint violations per LOC |
+| Cyclomatic complexity | 20% of static | radon complexity analysis |
+
+**LLM judge** (50% of composite) evaluates code readability, architecture quality, instruction adherence, and correctness reasoning on a 1-5 scale.
+
+See [docs/scoring-methodology.md](docs/scoring-methodology.md) for detailed formulas and [docs/judge-selection.md](docs/judge-selection.md) for judge calibration data.
 
 ## Task Types
 

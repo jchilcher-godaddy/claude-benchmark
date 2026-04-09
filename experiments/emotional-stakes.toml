@@ -1,0 +1,32 @@
+name = "emotional-stakes"
+description = "Test whether consequence framing (high stakes, incentives, accountability) affects code quality."
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+[[variants]]
+label = "neutral"
+
+[[variants]]
+label = "high-stakes"
+system_prompt_extra = "This code will run in a safety-critical production system. Correctness and robustness are paramount. Every edge case must be handled."
+
+[[variants]]
+label = "tip-incentive"
+prompt_prefix = "I'll tip $500 for excellent, production-quality code. "
+
+[[variants]]
+label = "accountability"
+system_prompt_extra = "A senior staff engineer will carefully review every line of your code for correctness, style, and maintainability."
+
+[[variants]]
+label = "low-stakes"
+prompt_prefix = "This is just a quick prototype, don't overthink it. "

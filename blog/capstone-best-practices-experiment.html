@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="We tested every common AI coding 'best practice' against how developers actually prompt. 8 variants, 3 models, 12 tasks, 6,480 benchmarks. The gap is 1.4 points. Most advice isn't worth the tokens.">
+    <meta name="keywords" content="AI prompts, Claude Code, prompt engineering, best practices, benchmarking, chain of thought, temperature, persona, code quality, developer tools">
+    <meta property="og:title" content="We Tested Every 'Best Practice' Against How Developers Actually Prompt (6,480 Benchmarks)">
+    <meta property="og:description" content="8 prompt variants, 3 Claude models, 12 tasks, 6,480 runs. The entire spread is 1.4 points. Here's what the data says about every piece of prompting advice you've heard.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/capstone-best-practices-experiment.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/capstone-best-practices-experiment.html">
+    <title>We Tested Every 'Best Practice' Against How Developers Actually Prompt (6,480 Benchmarks) - TechLoom</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "We Tested Every 'Best Practice' Against How Developers Actually Prompt (6,480 Benchmarks)",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-03-19",
+        "dateModified": "2026-03-19",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "We tested every common AI coding best practice against how developers actually prompt. 8 variants, 3 models, 12 tasks, 6,480 benchmarks.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/capstone-best-practices-experiment.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Capstone Best Practices Experiment",
+                "item": "https://techloom.it/blog/capstone-best-practices-experiment.html"
+            }
+        ]
+    }
+    </script>
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th, .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose code {
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+        .blog-prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .blog-prose pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card h4 {
+            margin-top: 0;
+            color: #1e293b;
+        }
+        .blog-prose .rule-card .evidence {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .blog-prose .do-dont {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .do-col {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .dont-col {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .do-col h4, .blog-prose .dont-col h4 {
+            margin-top: 0;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 640px) {
+            .blog-prose .do-dont {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Capstone Best Practices Experiment</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">March 19, 2026</span>
+                    <span class="blog-tag">AI Tooling</span>
+                    <span class="blog-tag">Prompt Engineering</span>
+                    <span class="blog-tag">Benchmarking</span>
+                </div>
+                <h1>We Tested Every "Best Practice" Against How Developers Actually Prompt (6,480 Benchmarks)</h1>
+                <div class="blog-author">
+                    <div class="blog-author-avatar">JC</div>
+                    <div class="blog-author-info">
+                        <span class="blog-author-name">Johnathen Chilcher</span>
+                        <span class="blog-author-role">Senior SRE, TechLoom</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <p>We tested every "best practice" against how developers actually prompt. The gap is 1.4 points across 6,480 runs. Most advice isn't worth the tokens.</p>
+
+                <p>This is the capstone. Over the past several weeks, we've run six separate experiments&mdash;<a href="effective-ai-coding-prompts.html">CLAUDE.md profiles</a>, <a href="chain-of-thought-experiment.html">chain-of-thought</a>, <a href="model-selection-experiment.html">model selection</a>, <a href="politeness-sweep-experiment.html">politeness</a>, <a href="context-pollution-experiment.html">context pollution</a>, <a href="persona-sweep-experiment.html">persona assignment</a>&mdash;totaling over 10,000 benchmark runs. Each experiment isolated one variable. This experiment stacks them all together and asks the only question that matters: <strong>does the evidence-based approach actually beat how developers naturally prompt?</strong></p>
+
+                <p>We built eight prompt variants representing the full spectrum: from zero-setup ("just ask Claude") to stacking every piece of common advice we could find. Then we ran each variant across 3 models, 12 tasks, and 30 repetitions. 6,480 total runs. Here's what happened.</p>
+
+                <h2>The Cast of Characters</h2>
+
+                <p>Eight variants. Each represents a real developer archetype or a specific combination of advice from our experiments.</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Description</th>
+                        <th>What It Tests</th>
+                    </tr>
+                    <tr>
+                        <td><strong>bare-default</strong></td>
+                        <td>Zero setup. Just ask Claude. No system prompt, no prefix, default temperature.</td>
+                        <td>The control. How good is Claude out of the box?</td>
+                    </tr>
+                    <tr>
+                        <td><strong>terse-coder</strong></td>
+                        <td>temp=0. Nothing else. The "pragmatic developer" who read one forum post.</td>
+                        <td>The most common single tweak developers make.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>prompt-engineer</strong></td>
+                        <td>CoT prefix ("Think step by step") + verbose system prompt with style, architecture, error handling, and testing rules. ~500 tokens.</td>
+                        <td>The developer who follows widely-repeated advice.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>kitchen-sink</strong></td>
+                        <td>Stacks ALL common advice: detailed CoT prefix + temp=0 + the same verbose system prompt.</td>
+                        <td>What happens when you combine every "best practice" at once?</td>
+                    </tr>
+                    <tr>
+                        <td><strong>best-practices</strong></td>
+                        <td>Evidence-based: warm framing ("Could you please"), temp=1.0, code-reviewer persona. ~30 tokens of system prompt. No CoT.</td>
+                        <td>Our experiment-derived optimal stack.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>tuned-haiku</strong></td>
+                        <td>best-practices + Haiku-specific structural guidance (type hints, brief plan, single responsibility).</td>
+                        <td>Model-specific tuning for Haiku.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>tuned-sonnet</strong></td>
+                        <td>best-practices + Sonnet-specific minimal guidance ("clean, idiomatic Python").</td>
+                        <td>Model-specific tuning for Sonnet.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>tuned-opus</strong></td>
+                        <td>best-practices + Opus-specific simplicity guidance ("elegant simplicity, readability over cleverness").</td>
+                        <td>Model-specific tuning for Opus.</td>
+                    </tr>
+                </table>
+
+                <p>The first four variants represent how developers actually prompt in the wild. The last four represent what our data says you <em>should</em> do. Let's see if the data-driven approach earns its keep.</p>
+
+                <h2>The Scoreboard</h2>
+
+                <p>Here's the composite score for all 8 variants, sorted best to worst.</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Composite</th>
+                        <th>Stdev</th>
+                        <th>Min</th>
+                        <th>N</th>
+                    </tr>
+                    <tr>
+                        <td><strong>tuned-haiku</strong></td>
+                        <td><strong>94.8</strong></td>
+                        <td>4.7</td>
+                        <td>65.8</td>
+                        <td>360</td>
+                    </tr>
+                    <tr>
+                        <td>tuned-sonnet</td>
+                        <td>94.2</td>
+                        <td>8.3</td>
+                        <td>43.8</td>
+                        <td>360</td>
+                    </tr>
+                    <tr>
+                        <td>best-practices</td>
+                        <td>94.1</td>
+                        <td>7.6</td>
+                        <td>43.8</td>
+                        <td>1,080</td>
+                    </tr>
+                    <tr>
+                        <td>terse-coder</td>
+                        <td>94.0</td>
+                        <td>7.0</td>
+                        <td>49.6</td>
+                        <td>1,080</td>
+                    </tr>
+                    <tr>
+                        <td>bare-default</td>
+                        <td>93.9</td>
+                        <td>7.1</td>
+                        <td>43.8</td>
+                        <td>1,080</td>
+                    </tr>
+                    <tr>
+                        <td>prompt-engineer</td>
+                        <td>93.9</td>
+                        <td>7.8</td>
+                        <td>49.2</td>
+                        <td>1,080</td>
+                    </tr>
+                    <tr>
+                        <td>tuned-opus</td>
+                        <td>93.5</td>
+                        <td>8.2</td>
+                        <td>53.2</td>
+                        <td>360</td>
+                    </tr>
+                    <tr>
+                        <td>kitchen-sink</td>
+                        <td>93.4</td>
+                        <td>8.4</td>
+                        <td>46.2</td>
+                        <td>1,080</td>
+                    </tr>
+                </table>
+
+                <div class="result-warning">
+                    <strong>The entire spread is 1.4 points.</strong> From the best variant (tuned-haiku, 94.8) to the worst (kitchen-sink, 93.4), the gap is 1.4 points on a 100-point scale. Across 6,480 runs. Every piece of prompting advice you've ever read fights over a 1.4-point window.
+                </div>
+
+                <p>Let that sink in. The developer who just fires off a bare prompt (93.9) lands 0.1 points behind the developer who spent hours crafting a verbose system prompt with CoT and style rules (93.9). The "prompt-engineer" variant literally ties with doing nothing.</p>
+
+                <p>But the averages don't tell the whole story.</p>
+
+                <h2>What the Averages Hide</h2>
+
+                <h3>LLM Quality: Where the Real Gap Lives</h3>
+
+                <p>The composite score blends multiple rubric dimensions. When we isolate <strong>LLM Quality</strong>&mdash;the dimension that measures how well the model understood and solved the problem&mdash;the picture shifts.</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>LLM Quality</th>
+                    </tr>
+                    <tr>
+                        <td><strong>tuned-haiku</strong></td>
+                        <td><strong>95.8</strong></td>
+                    </tr>
+                    <tr>
+                        <td>tuned-sonnet</td>
+                        <td>94.7</td>
+                    </tr>
+                    <tr>
+                        <td>best-practices</td>
+                        <td>94.0</td>
+                    </tr>
+                    <tr>
+                        <td>bare-default</td>
+                        <td>92.8</td>
+                    </tr>
+                    <tr>
+                        <td>prompt-engineer</td>
+                        <td>92.6</td>
+                    </tr>
+                    <tr>
+                        <td>terse-coder</td>
+                        <td>92.5</td>
+                    </tr>
+                    <tr>
+                        <td>tuned-opus</td>
+                        <td>91.3</td>
+                    </tr>
+                    <tr>
+                        <td>kitchen-sink</td>
+                        <td>90.7</td>
+                    </tr>
+                </table>
+
+                <div class="result-highlight">
+                    <strong>The LLM Quality gap is 5.1 points</strong> (tuned-haiku 95.8 vs. kitchen-sink 90.7). The evidence-based variants consistently produce higher-quality solutions. The composite score compresses this because other dimensions (formatting, completeness) are less sensitive to prompting strategy.
+                </div>
+
+                <p>The best-practices family (best-practices, tuned-haiku, tuned-sonnet) dominates the top three LLM Quality slots. The "common advice" family (terse-coder, prompt-engineer, kitchen-sink) clusters at the bottom. The signal is there&mdash;it's just masked in the composite.</p>
+
+                <h3>By Task Category: Refactoring Is Where It Matters</h3>
+
+                <p>Breaking results by task type reveals where prompt strategy actually makes a difference.</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Bug-Fix</th>
+                        <th>Code-Gen</th>
+                        <th>Instruction</th>
+                        <th>Refactor</th>
+                    </tr>
+                    <tr>
+                        <td>bare-default</td>
+                        <td>97.8</td>
+                        <td>95.7</td>
+                        <td>92.8</td>
+                        <td>89.2</td>
+                    </tr>
+                    <tr>
+                        <td>best-practices</td>
+                        <td>97.2</td>
+                        <td>95.9</td>
+                        <td>91.5</td>
+                        <td><strong>92.0</strong></td>
+                    </tr>
+                    <tr>
+                        <td>terse-coder</td>
+                        <td>96.6</td>
+                        <td>96.9</td>
+                        <td>93.5</td>
+                        <td>88.8</td>
+                    </tr>
+                    <tr>
+                        <td>prompt-engineer</td>
+                        <td>95.1</td>
+                        <td>96.9</td>
+                        <td>94.0</td>
+                        <td>89.5</td>
+                    </tr>
+                    <tr>
+                        <td>kitchen-sink</td>
+                        <td>95.7</td>
+                        <td>97.1</td>
+                        <td>94.7</td>
+                        <td>86.1</td>
+                    </tr>
+                    <tr>
+                        <td>tuned-haiku</td>
+                        <td>96.8</td>
+                        <td>95.5</td>
+                        <td>93.1</td>
+                        <td><strong>93.7</strong></td>
+                    </tr>
+                    <tr>
+                        <td>tuned-sonnet</td>
+                        <td>98.7</td>
+                        <td>97.5</td>
+                        <td>88.8</td>
+                        <td>91.8</td>
+                    </tr>
+                    <tr>
+                        <td>tuned-opus</td>
+                        <td>94.4</td>
+                        <td>94.9</td>
+                        <td><strong>95.9</strong></td>
+                        <td>88.7</td>
+                    </tr>
+                </table>
+
+                <p>Three things jump out:</p>
+
+                <div class="result-highlight">
+                    <strong>Refactoring is where best-practices wins.</strong> best-practices scores 92.0 on refactoring vs. bare-default's 89.2 (+2.8 points). tuned-haiku reaches 93.7 (+4.5 over bare). Meanwhile, kitchen-sink collapses to 86.1&mdash;a full 7.6 points below tuned-haiku. If you refactor code with AI, how you prompt matters.
+                </div>
+
+                <div class="result-danger">
+                    <strong>Kitchen-sink destroys refactoring performance.</strong> At 86.1, it's the worst refactoring score in the table by a wide margin. Stacking verbose instructions + CoT + temp=0 actively confuses the model on tasks requiring structural judgment. This aligns with our <a href="context-pollution-experiment.html">context pollution findings</a>&mdash;irrelevant context degrades refactoring by up to 7.5 points.
+                </div>
+
+                <div class="result-warning">
+                    <strong>tuned-opus owns instruction-following.</strong> At 95.9, it's the highest instruction score across all variants. Opus with a simplicity-focused persona excels at precise specification compliance. But it pays for this by lagging on bug-fix (94.4) and refactoring (88.7).
+                </div>
+
+                <p>The pattern is consistent with everything we've seen across experiments: bug-fix and code-gen are "solved" task types where prompting barely moves the needle. Refactoring and instruction-following are where strategy matters&mdash;and where the wrong strategy can actively hurt.</p>
+
+                <h2>The Ranked Playbook</h2>
+
+                <p>Based on 6,480 runs across this experiment and the 10,000+ from preceding experiments, here is every piece of prompting advice ranked by impact. Tier 1 first.</p>
+
+                <h3>Tier 1: Free Wins (Stop Doing Things That Hurt)</h3>
+
+                <div class="rule-card">
+                    <h4>Stop stacking instructions.</h4>
+                    <p>kitchen-sink is the worst variant at 93.4 composite and 90.7 LLM Quality. It stacks CoT + temp=0 + verbose system prompt&mdash;exactly what forum posts recommend. Each piece of advice is individually marginal. Together they're actively harmful. The verbose system prompt adds ~600 tokens of noise. The CoT prefix fragments reasoning. temp=0 eliminates sampling diversity. Combined, they produce the worst LLM Quality score and the worst refactoring performance (86.1) in the entire experiment.</p>
+                    <div class="evidence"><strong>Evidence:</strong> kitchen-sink: composite 93.4, stdev 8.4, LLM Quality 90.7, refactor 86.1. Worst on three of four metrics. <em>6,480 runs.</em></div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>Don't force temp=0.</h4>
+                    <p>"Set temperature to 0 for deterministic coding" is everywhere. In our data, terse-coder (temp=0, nothing else) scores 94.0&mdash;virtually identical to bare-default (93.9). The <a href="chain-of-thought-experiment.html">temperature sweep</a> found temp=1.0 marginally best with the lowest standard deviation. temp=0 doesn't hurt much on its own, but it doesn't help either, and it's one of the ingredients that makes kitchen-sink toxic.</p>
+                    <div class="evidence"><strong>Evidence:</strong> terse-coder 94.0 vs. bare-default 93.9 (+0.1). Temperature sweep: temp=1.0 lowest stdev. <em>6,480 + temperature sweep runs.</em></div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>Skip chain-of-thought for code.</h4>
+                    <p>prompt-engineer includes "Think step by step" and scores 93.9&mdash;identical to bare-default. Our <a href="chain-of-thought-experiment.html">dedicated CoT experiment</a> found every CoT variant scored lower than bare across all models. Opus suffered the most (-1.14 for detailed CoT). CoT works for math puzzles. It fragments the holistic pattern recognition that code generation requires.</p>
+                    <div class="evidence"><strong>Evidence:</strong> prompt-engineer 93.9 = bare-default 93.9. CoT experiment: every variant negative, Opus -1.14. <em>6,480 + 270 CoT runs.</em></div>
+                </div>
+
+                <h3>Tier 2: Small Edge (Do These Things)</h3>
+
+                <div class="rule-card">
+                    <h4>Use a code-reviewer persona.</h4>
+                    <p>"You are a meticulous code reviewer" is the single system prompt instruction in our best-practices variant. The <a href="persona-sweep-experiment.html">persona sweep experiment</a> found code-reviewer adds +1.0 composite and +2.9 on refactoring. It's the only persona that consistently helped across all models and task types. It primes the model toward correctness and edge-case coverage without constraining its approach.</p>
+                    <div class="evidence"><strong>Evidence:</strong> Persona sweep: code-reviewer +1.0 composite, +2.9 refactoring. best-practices (which uses code-reviewer) LLM Quality 94.0 vs. bare-default 92.8 (+1.2). <em>Persona sweep + 6,480 runs.</em></div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>Use warm framing.</h4>
+                    <p>"Could you please" as a prompt prefix. The <a href="politeness-sweep-experiment.html">politeness sweep</a> found warm framing adds +1.5 points and produces the best floor scores across models. It's not about being polite to the AI&mdash;it's about framing the task as a collaborative request rather than a terse command. The framing cue shifts the model's response distribution toward more careful, considered output.</p>
+                    <div class="evidence"><strong>Evidence:</strong> Politeness sweep: warm framing +1.5 composite, best min scores. <em>Politeness sweep runs.</em></div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>Use default temperature (1.0).</h4>
+                    <p>Leave temperature at 1.0. Don't set it to 0. Our temperature sweep found 1.0 marginally best with the lowest standard deviation. The sampling diversity at temp=1.0 means the model explores more solution space, occasionally finding better approaches. At temp=0, it always takes the highest-probability path&mdash;which is usually good but never surprising.</p>
+                    <div class="evidence"><strong>Evidence:</strong> Temperature sweep: 1.0 lowest stdev, marginally highest composite. <em>Temperature sweep runs.</em></div>
+                </div>
+
+                <h3>Tier 3: Conditional (Model/Task Specific)</h3>
+
+                <div class="rule-card">
+                    <h4>Tune Haiku with structural guidance for refactoring.</h4>
+                    <p>tuned-haiku adds type hints, brief planning, and single-responsibility reminders to the best-practices base. It barely beats best-practices overall (+0.1 composite), but it reaches 93.7 on refactoring&mdash;a +4.5 point lift over bare-default's 89.2. Haiku benefits from structural scaffolding because its internal model of code architecture is less developed. If you use Haiku for refactoring (and you should&mdash;it's cheaper), this guidance is worth the tokens.</p>
+                    <div class="evidence"><strong>Evidence:</strong> tuned-haiku: composite 94.8, refactor 93.7. bare-default refactor: 89.2. Delta: +4.5 on refactoring. <em>360 runs.</em></div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>Use tuned-opus for instruction-heavy tasks.</h4>
+                    <p>tuned-opus scores 95.9 on instruction tasks&mdash;the highest instruction score across all variants. Opus with "prioritize correctness and elegant simplicity" excels at precise specification compliance. But it's mediocre elsewhere (94.4 bug-fix, 88.7 refactor). Use it when the task is about following a spec, not when it's about restructuring code.</p>
+                    <div class="evidence"><strong>Evidence:</strong> tuned-opus instruction: 95.9 (best). tuned-opus refactor: 88.7 (below average). <em>360 runs.</em></div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>Target refactoring specifically.</h4>
+                    <p>Refactoring shows the biggest variance across approaches: 86.1 (kitchen-sink) to 93.7 (tuned-haiku), a 7.6-point spread. Bug-fix ranges only 4.3 points. Code-gen only 2.6. If you're going to invest effort in prompt optimization, invest it on refactoring tasks. That's where the ROI lives.</p>
+                    <div class="evidence"><strong>Evidence:</strong> Refactor spread: 7.6 points. Bug-fix spread: 4.3. Code-gen spread: 2.6. Instruction spread: 7.1. <em>6,480 runs.</em></div>
+                </div>
+
+                <h3>Tier 4: Not Worth It</h3>
+
+                <div class="rule-card">
+                    <h4>Verbose style/architecture rules.</h4>
+                    <p>prompt-engineer packs ~500+ tokens of style rules, architecture principles, error handling guidelines, and testing advice into the system prompt. Result: 93.9&mdash;identical to bare-default. All that effort, all those tokens, zero gain. This is consistent with our <a href="effective-ai-coding-prompts.html">CLAUDE.md experiments</a> where we found r=-0.95 between instruction token count and quality. Claude already knows how to code. Telling it again doesn't help.</p>
+                    <div class="evidence"><strong>Evidence:</strong> prompt-engineer 93.9 = bare-default 93.9. CLAUDE.md experiment: r=-0.95 token-to-quality correlation. <em>6,480 + 1,458 runs.</em></div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>temp=0 "for deterministic coding."</h4>
+                    <p>No benefit. terse-coder (temp=0 only) scores 0.1 above bare-default&mdash;within noise. And when combined with other advice (kitchen-sink), it contributes to the worst overall result.</p>
+                    <div class="evidence"><strong>Evidence:</strong> terse-coder 94.0 vs. bare-default 93.9 (+0.1, within noise). <em>6,480 runs.</em></div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>CoT scaffolding for code generation.</h4>
+                    <p>"Think step by step" does nothing for code. "Before writing any code, analyze the requirements step by step" does nothing for code. Save the tokens.</p>
+                    <div class="evidence"><strong>Evidence:</strong> prompt-engineer (CoT prefix) = bare-default. kitchen-sink (detailed CoT) = worst variant. <em>6,480 runs.</em></div>
+                </div>
+
+                <h2>Risk Profile: Floors, Ceilings, and Variance</h2>
+
+                <p>Averages are great, but in production you care about worst-case behavior. Here's what the variance tells us.</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Composite</th>
+                        <th>Stdev</th>
+                        <th>Min</th>
+                    </tr>
+                    <tr>
+                        <td>tuned-haiku</td>
+                        <td>94.8</td>
+                        <td><strong>4.7</strong></td>
+                        <td>65.8</td>
+                    </tr>
+                    <tr>
+                        <td>terse-coder</td>
+                        <td>94.0</td>
+                        <td>7.0</td>
+                        <td>49.6</td>
+                    </tr>
+                    <tr>
+                        <td>bare-default</td>
+                        <td>93.9</td>
+                        <td>7.1</td>
+                        <td>43.8</td>
+                    </tr>
+                    <tr>
+                        <td>best-practices</td>
+                        <td>94.1</td>
+                        <td>7.6</td>
+                        <td>43.8</td>
+                    </tr>
+                    <tr>
+                        <td>prompt-engineer</td>
+                        <td>93.9</td>
+                        <td>7.8</td>
+                        <td>49.2</td>
+                    </tr>
+                    <tr>
+                        <td>tuned-opus</td>
+                        <td>93.5</td>
+                        <td>8.2</td>
+                        <td>53.2</td>
+                    </tr>
+                    <tr>
+                        <td>tuned-sonnet</td>
+                        <td>94.2</td>
+                        <td>8.3</td>
+                        <td>43.8</td>
+                    </tr>
+                    <tr>
+                        <td>kitchen-sink</td>
+                        <td>93.4</td>
+                        <td><strong>8.4</strong></td>
+                        <td>46.2</td>
+                    </tr>
+                </table>
+
+                <p>tuned-haiku has the tightest variance (stdev 4.7) by a wide margin. It's not just the best average&mdash;it's the most consistent. kitchen-sink has the widest variance (8.4) and the worst average. More instructions don't just fail to help; they make output <em>less predictable</em>.</p>
+
+                <div class="result-highlight">
+                    <strong>For automated pipelines, tuned-haiku is the standout.</strong> Highest average, lowest variance, cheapest model. If your use case is batch code generation where consistency matters more than peak performance, tuned-haiku on Haiku is the clear winner.
+                </div>
+
+                <h2>The Cost Story</h2>
+
+                <p>Every token in a system prompt costs money and context window. Here's what you're paying for each approach.</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Extra Tokens</th>
+                        <th>Composite Delta</th>
+                        <th>LLM Quality Delta</th>
+                        <th>Cost per Point</th>
+                    </tr>
+                    <tr>
+                        <td>bare-default</td>
+                        <td>0</td>
+                        <td>&mdash;</td>
+                        <td>&mdash;</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>best-practices</td>
+                        <td>~30</td>
+                        <td>+0.2</td>
+                        <td>+1.2</td>
+                        <td>25 tokens/point</td>
+                    </tr>
+                    <tr>
+                        <td>prompt-engineer</td>
+                        <td>~500+</td>
+                        <td>+0.0</td>
+                        <td>-0.2</td>
+                        <td>Infinite (no gain)</td>
+                    </tr>
+                    <tr>
+                        <td>kitchen-sink</td>
+                        <td>~600+</td>
+                        <td>-0.5</td>
+                        <td>-2.1</td>
+                        <td>Negative (pays to hurt)</td>
+                    </tr>
+                </table>
+
+                <div class="result-danger">
+                    <strong>kitchen-sink costs ~600 tokens to make output worse.</strong> You're paying for a 0.5-point composite drop and a 2.1-point LLM Quality drop. That's not "not worth it"&mdash;it's actively destructive. Every token in that verbose system prompt is working against you.
+                </div>
+
+                <p>best-practices costs ~30 tokens&mdash;a single sentence of system prompt and a three-word prefix. For that, you get +0.2 composite and +1.2 LLM Quality. That's the most efficient prompt investment in the entire dataset. The ratio of signal to token cost is unmatched.</p>
+
+                <h2>Model-Specific Results</h2>
+
+                <p>How does best-practices perform relative to bare-default on each model?</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>bare-default</th>
+                        <th>best-practices</th>
+                        <th>Delta</th>
+                    </tr>
+                    <tr>
+                        <td>Haiku</td>
+                        <td>94.7</td>
+                        <td>95.3</td>
+                        <td><strong>+0.6</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Sonnet</td>
+                        <td>93.1</td>
+                        <td>94.2</td>
+                        <td><strong>+1.1</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Opus</td>
+                        <td>93.8</td>
+                        <td>92.9</td>
+                        <td><strong>-0.9</strong></td>
+                    </tr>
+                </table>
+
+                <div class="result-warning">
+                    <strong>Opus resists the best-practices template.</strong> It's the only model where best-practices scores below bare-default (-0.9). This is consistent with our <a href="model-selection-experiment.html">model selection findings</a>&mdash;Opus has strong internal preferences and pushes back against prompting that doesn't align with them. Sonnet benefits the most (+1.1), confirming that even models we previously described as "best left alone" respond to the right minimal intervention.
+                </div>
+
+                <p>The model-tuned variants exist precisely because one-size-fits-all doesn't work. tuned-opus adjusts the persona toward simplicity rather than meticulous review, which aligns better with Opus's internal preferences. The lesson: if you use multiple models, your prompt strategy should vary with them.</p>
+
+                <h2>Cross-Experiment Synthesis</h2>
+
+                <p>This is the capstone. Here's how every experiment we've run connects to these results.</p>
+
+                <table>
+                    <tr>
+                        <th>Experiment</th>
+                        <th>Key Finding</th>
+                        <th>How It Shows Up Here</th>
+                    </tr>
+                    <tr>
+                        <td><a href="effective-ai-coding-prompts.html">CLAUDE.md Profiles</a></td>
+                        <td>r=-0.95 between instruction tokens and quality. Empty beats every profile.</td>
+                        <td>prompt-engineer (500+ tokens of instructions) ties bare-default. kitchen-sink (600+ tokens) is worst.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="chain-of-thought-experiment.html">Chain of Thought</a></td>
+                        <td>Every CoT variant hurt. Opus suffered most (-1.14).</td>
+                        <td>prompt-engineer's "Think step by step" adds nothing. kitchen-sink's detailed CoT is part of the toxic cocktail.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="model-selection-experiment.html">Model Selection</a></td>
+                        <td>Models have distinct response profiles. One-size-fits-all is suboptimal.</td>
+                        <td>Opus resists best-practices (-0.9). tuned-haiku leads on consistency. tuned-opus leads on instruction tasks. Each model needs different guidance.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="politeness-sweep-experiment.html">Politeness Sweep</a></td>
+                        <td>Warm framing ("Could you please") adds +1.5 points with best floor scores.</td>
+                        <td>best-practices uses warm framing as its prefix. It's part of why best-practices family outperforms on LLM Quality.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="context-pollution-experiment.html">Context Pollution</a></td>
+                        <td>Irrelevant context degrades refactoring by up to -7.5 points.</td>
+                        <td>kitchen-sink's verbose system prompt acts as context pollution. Its refactoring score (86.1) is the worst in the table, consistent with the -7.5 finding.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="persona-sweep-experiment.html">Persona Sweep</a></td>
+                        <td>Code-reviewer persona: +1.0 composite, +2.9 refactoring. Only persona that helped across all models.</td>
+                        <td>best-practices uses code-reviewer as its sole persona. It's the backbone of the evidence-based approach.</td>
+                    </tr>
+                </table>
+
+                <p>Every experiment pointed in the same direction: less is more, specificity beats verbosity, and the few things that help are small, targeted interventions. This capstone confirms that the individual findings compose correctly&mdash;the evidence-based stack works as expected when assembled, and the common-advice stack fails as predicted.</p>
+
+                <h2>Limitations</h2>
+
+                <ul>
+                    <li><strong>Single-file tasks.</strong> All 12 tasks are self-contained. Real-world coding involves navigating multi-file codebases where project-specific CLAUDE.md context (build commands, project structure) adds value we can't measure here.</li>
+                    <li><strong>Generic coding tasks.</strong> These are domain-agnostic problems. Tasks with specialized domain requirements, unfamiliar APIs, or complex business logic may respond differently.</li>
+                    <li><strong>Single-turn only.</strong> Each run is one prompt, one response. In multi-turn conversations, system prompt tokens compound&mdash;making the cost story even more favorable for minimalist approaches.</li>
+                    <li><strong>Claude models only.</strong> All runs used Claude Haiku 4.5, Sonnet 4.6, and Opus 4.6. GPT, Gemini, and open-source models may respond very differently to these same strategies.</li>
+                    <li><strong>LLM-as-judge scoring.</strong> Code quality is assessed by another LLM. While our rubric is calibrated and consistent, it introduces a layer of subjectivity that human review would not.</li>
+                    <li><strong>30 reps per cell.</strong> With 30 repetitions per variant-model-task combination, we have reasonable statistical power for detecting medium effects, but small effects (under ~0.5 points) may be noise.</li>
+                </ul>
+
+                <h2>Try It Yourself</h2>
+
+                <p>The benchmark tool, all 8 variants, and the experiment configuration are open source.</p>
+
+                <pre><code>pip install claude-benchmark
+
+# Run the capstone experiment
+claude-benchmark experiment run experiments/capstone-best-practices.toml
+
+# Or test your own prompt against bare-default
+claude-benchmark run --profile path/to/your/CLAUDE.md
+
+# Generate the report
+claude-benchmark report
+
+# See the data
+open results/*/report.html</code></pre>
+
+                <p>If your custom prompt strategy beats best-practices on your tasks, you've found something genuinely useful. If it doesn't, you've just freed up ~570 tokens of context window (the difference between kitchen-sink and best-practices) for the conversation that actually matters.</p>
+
+                <p>All data, experiment configs, and methodology: <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">github.com/jchilcher/claude-benchmark</a></p>
+
+                <h2>What a Good Prompt Actually Looks Like</h2>
+
+                <p>After 6,480 runs and 8 experiments, here's the concrete setup that performed best. Copy this and modify it for your project. The entire "optimization" is 3 lines of configuration and a 1-sentence persona.</p>
+
+                <h3>The System Prompt (CLAUDE.md)</h3>
+
+                <pre><code># Project: inventory-api
+
+- Stack: Python 3.12, FastAPI, SQLAlchemy 2.0 (async), PostgreSQL 16
+- Build: `make dev` / `make test` / `make lint`
+- Source: src/inventory/ | Tests: tests/ (mirrors source tree)
+- Auth: Bearer tokens validated by middleware in src/inventory/auth.py
+- IDs: ULIDs (python-ulid), not UUIDs
+- All timestamps UTC, stored as timestamptz, serialized ISO 8601
+- API contract: {"data": ..., "meta": {}, "errors": []}
+- Currently migrating from sync to async endpoints (tracked in MIGRATION.md)
+
+You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write.</code></pre>
+
+                <p>That's it. No style rules, no "use snake_case," no "think step by step," no architecture principles. Just project facts Claude can't know from training, plus the one persona that moved the needle.</p>
+
+                <h3>The Prompt Pattern</h3>
+
+                <pre><code>Could you please [your actual request here]</code></pre>
+
+                <p>Warm framing. Default temperature (1.0). No CoT prefix. The "Could you please" costs 4 tokens and contributed to the best floor scores in the <a href="politeness-sweep-experiment.html">politeness sweep</a>.</p>
+
+                <h3>Copy-Paste Test Scenario</h3>
+
+                <p>Want to see this in action? Here's a self-contained test you can run right now. Save this as <code>test_prompt.py</code> and send it to Claude with the system prompt above:</p>
+
+                <pre><code># test_prompt.py — a refactoring task (the category with the biggest variance)
+# Ask Claude to refactor this with the system prompt above.
+
+def get_inventory_report(db, warehouse_id, start_date, end_date, include_zero_stock):
+    """Generate inventory report for a warehouse within a date range."""
+    results = db.execute(
+        "SELECT * FROM inventory WHERE warehouse_id = :wid", {"wid": warehouse_id}
+    )
+    items = []
+    for row in results:
+        if row.last_updated >= start_date and row.last_updated <= end_date:
+            if include_zero_stock or row.quantity > 0:
+                category = db.execute(
+                    "SELECT name FROM categories WHERE id = :cid",
+                    {"cid": row.category_id}
+                ).first()
+                supplier = db.execute(
+                    "SELECT name, lead_time_days FROM suppliers WHERE id = :sid",
+                    {"sid": row.supplier_id}
+                ).first()
+                item = {
+                    "sku": row.sku,
+                    "name": row.name,
+                    "quantity": row.quantity,
+                    "category": category.name if category else "Unknown",
+                    "supplier_name": supplier.name if supplier else "Unknown",
+                    "lead_time": supplier.lead_time_days if supplier else None,
+                    "value": row.quantity * row.unit_price,
+                    "low_stock": True if row.quantity < row.reorder_point else False,
+                    "last_updated": row.last_updated.isoformat(),
+                }
+                if row.quantity == 0:
+                    item["days_out_of_stock"] = (end_date - row.last_updated).days
+                items.append(item)
+
+    total_value = 0
+    low_stock_count = 0
+    out_of_stock_count = 0
+    for item in items:
+        total_value = total_value + item["value"]
+        if item["low_stock"]:
+            low_stock_count = low_stock_count + 1
+        if item["quantity"] == 0:
+            out_of_stock_count = out_of_stock_count + 1
+
+    return {
+        "warehouse_id": warehouse_id,
+        "period": {"start": start_date.isoformat(), "end": end_date.isoformat()},
+        "items": sorted(items, key=lambda x: x["value"], reverse=True),
+        "summary": {
+            "total_items": len(items),
+            "total_value": total_value,
+            "low_stock_count": low_stock_count,
+            "out_of_stock_count": out_of_stock_count,
+        }
+    }</code></pre>
+
+                <p>Send this prompt:</p>
+
+                <pre><code>Could you please refactor get_inventory_report in test_prompt.py? It has N+1 query
+problems, deep nesting, and mixes data access with business logic. Keep the return
+contract identical.</code></pre>
+
+                <h3>What to Look For</h3>
+
+                <p>Compare the output against a bare prompt (no system message, no "Could you please"). In our benchmarks, the differences showed up most clearly in:</p>
+
+                <ul>
+                    <li><strong>LLM quality</strong> — best-practices scored 94.0 vs. bare-default's 92.8. The code reads more like a human wrote it.</li>
+                    <li><strong>Refactoring specifically</strong> — 92.0 vs. 89.2 (+2.8 points). The evidence-based setup produces cleaner decomposition.</li>
+                    <li><strong>Consistency</strong> — run it 5 times each way. The best-practices output varies less. Fewer "what was it thinking?" outliers.</li>
+                </ul>
+
+                <div class="result-highlight">
+                    <strong>The entire optimization is ~40 tokens of system prompt beyond project context.</strong> One persona sentence, one 4-token prefix, and the discipline to leave everything else out. That's what 6,480 benchmarks say is worth doing.
+                </div>
+
+                <p>All data, experiment configs, and methodology: <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">github.com/jchilcher/claude-benchmark</a></p>
+
+            </div>
+
+            <div class="blog-cta-box">
+                <h3>Want to optimize your team's AI-assisted development?</h3>
+                <p>I help teams measure what actually works in their AI coding workflows&mdash;from prompt engineering to infrastructure automation. Every recommendation backed by data, not opinion. Get a free assessment.</p>
+                <a href="../index.html#contact" class="btn-primary btn-large">Get Your Free Assessment</a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

@@ -289,8 +289,46 @@ def run(
         "--strict-scoring",
         help="Fail run if any scorer errors (for CI). Default: graceful degradation.",
     ),
+    temperature: Optional[float] = typer.Option(
+        None,
+        "--temperature",
+        help="Temperature for model generation (0.0-1.0). Applied to all runs.",
+    ),
+    retry_failures: bool = typer.Option(
+        False,
+        "--retry-failures",
+        help="Re-run previously failed runs instead of skipping them on resume.",
+    ),
+    gocode: bool = typer.Option(
+        False,
+        "--gocode",
+        help="Use GoCode API endpoint instead of AWS Bedrock. "
+        "Requires ANTHROPIC_BASE_URL and GOCODE_API_TOKEN env vars.",
+    ),
 ) -> None:
     """Run benchmark tasks against CLAUDE.md profiles with parallel execution."""
+    if gocode:
+        from claude_benchmark.execution.client import validate_gocode_env
+
+        missing = validate_gocode_env()
+        if missing:
+            console.print(f"[red]Error:[/red] --gocode requires: {', '.join(missing)}")
+            raise typer.Exit(1)
+    else:
+        from claude_benchmark.execution.client import (
+            attempt_sso_login,
+            validate_bedrock_credentials,
+        )
+
+        cred_error = validate_bedrock_credentials()
+        if cred_error:
+            console.print(f"\n[yellow]AWS credential issue:[/yellow] {cred_error}")
+            if attempt_sso_login(console):
+                console.print()  # blank line before continuing
+            else:
+                console.print("[red]Cannot proceed without valid AWS credentials.[/red]")
+                raise typer.Exit(1)
+
     # 1. Load tasks
     task_proxies = _load_tasks(task)
 
@@ -314,6 +352,16 @@ def run(
         results_dir=results_dir,
     )
 
+    # 5b. Apply temperature to all runs if specified
+    if temperature is not None:
+        for r in matrix:
+            r.temperature = temperature
+
+    # 5c. Apply gocode backend to all runs if specified
+    if gocode:
+        for r in matrix:
+            r.use_gocode = True
+
     # 6. Apply filters (for narrowing within the already-loaded matrix)
     filtered = filter_runs(
         matrix,
@@ -325,7 +373,7 @@ def run(
     # 7. Check for resume
     skipped_count = 0
     if results_dir.exists():
-        completed = detect_completed_runs(results_dir)
+        completed = detect_completed_runs(results_dir, retry_failures=retry_failures)
         if completed:
             skipped_count = len(filtered) - len(
                 filter_remaining_runs(filtered, completed)
@@ -363,8 +411,24 @@ def run(
 
     is_tty = Console().is_terminal
 
+    def _make_auth_handler(dashboard_ref=None):
+        """Create auth error callback that pauses the dashboard for terminal interaction."""
+        from claude_benchmark.execution.client import attempt_sso_login
+
+        def handler(error_msg: str) -> bool:
+            live = getattr(dashboard_ref, "_live", None) if dashboard_ref else None
+            if live is not None:
+                live.stop()
+            success = attempt_sso_login(console)
+            if live is not None:
+                live.start()
+            return success
+
+        return handler
+
     if is_tty:
         dashboard = Dashboard(total_runs=len(filtered), concurrency=concurrency)
+        auth_handler = _make_auth_handler(dashboard_ref=dashboard)
 
         async def _execute_with_dashboard() -> list:
             async def _run_fn(progress_cb):
@@ -373,6 +437,7 @@ def run(
                     concurrency=concurrency,
                     cost_tracker=cost_tracker,
                     progress=progress_cb,
+                    on_auth_error=auth_handler,
                 )
 
             results = []
@@ -405,6 +470,7 @@ def run(
             raise typer.Exit(1)
     else:
         log_output = LogLineOutput()
+        auth_handler = _make_auth_handler()
 
         async def _execute_log_mode() -> list:
             return await run_benchmark_parallel(
@@ -412,6 +478,7 @@ def run(
                 concurrency=concurrency,
                 cost_tracker=cost_tracker,
                 progress=log_output,
+                on_auth_error=auth_handler,
             )
 
         try:
@@ -477,6 +544,23 @@ def run(
         total_runs=len(results) + skipped_count,
     )
 
+    # 14c. Auto-intake into catalog
+    try:
+        from claude_benchmark.catalog.store import (
+            default_catalog_path,
+            intake_run,
+            load_catalog,
+            save_catalog,
+        )
+
+        cat_path = default_catalog_path()
+        cat = load_catalog(cat_path)
+        entry = intake_run(cat, results_dir, name=None, tags=[], run_id=None, force=True)
+        save_catalog(cat, cat_path)
+        console.print(f"  Cataloged as: [bold]{entry.run_id}[/bold]")
+    except Exception:
+        pass  # Don't fail the run if intake fails
+
     # 15. Print final summary
     elapsed = time.monotonic() - start_time
     succeeded = sum(1 for r in results if r.status == "success")
@@ -503,5 +587,13 @@ def run(
                 console.print(
                     f"  {variant_key}: {mean:.1f} (95% CI: {ci_lower:.1f}-{ci_upper:.1f})"
                 )
+
+    # Print auth failure guidance if applicable
+    auth_failures = [r for r in results if r.error and "aws_credentials_expired" in r.error]
+    if auth_failures:
+        console.print(
+            f"\n[red bold]{len(auth_failures)} run(s) failed due to AWS credential errors.[/red bold]"
+        )
+        console.print("  To retry: [bold]aws sso login[/bold] then re-run with [bold]--retry-failures[/bold]")
 
     console.print(f"\n[bold]Results:[/bold] {results_dir}")

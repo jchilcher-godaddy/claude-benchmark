@@ -1,0 +1,41 @@
+name = "planning-before-action"
+description = """Hypothesis: Natural-language task decomposition ('state your plan, then implement') \
+outperforms both bare prompts and generic CoT, especially on complex tasks. Anthropic's tool-use \
+blog recommends 'output reasoning BEFORE tool calls.' This tests planning-as-task-decomposition, \
+distinct from CoT (generic reasoning) and skeleton-of-thought (structural outlines). The key \
+difference: planning focuses on WHAT to build and WHY, not HOW to think."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Bare baseline ---
+[[variants]]
+label = "bare"
+
+# --- CoT control (replicated from cot experiment for direct comparison) ---
+[[variants]]
+label = "cot-control"
+prompt_prefix = "Think step by step. "
+
+# --- Plan-what: state what you will build ---
+[[variants]]
+label = "plan-what"
+prompt_prefix = "First, write a brief plan listing the key components you will build and any edge cases to handle. Then implement your solution. "
+
+# --- Plan-why: state your approach and rationale ---
+[[variants]]
+label = "plan-why"
+prompt_prefix = "Before coding, briefly explain your chosen approach and why it is the right design for this problem. Then implement. "
+
+# --- Plan-decompose: break into subtasks ---
+[[variants]]
+label = "plan-decompose"
+prompt_prefix = "Break this task into 2-4 concrete subtasks. List them. Then implement each subtask in order. "

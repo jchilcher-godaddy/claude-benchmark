@@ -1,0 +1,19 @@
+name = "scoring-sensitivity"
+description = "Validate scoring pipeline sensitivity by comparing normal output against deliberately degraded prompting. If sabotage variants don't score significantly lower, the scoring pipeline cannot distinguish quality levels."
+
+[defaults]
+tasks = ["code-gen-02", "bug-fix-02", "refactor-02", "instruction-02"]
+models = ["sonnet"]
+profiles = ["empty"]
+reps = 30
+
+[[variants]]
+label = "control"
+
+[[variants]]
+label = "sabotage-mild"
+prompt_prefix = "Write the simplest possible solution. Do not add error handling, type hints, or docstrings. Use short variable names."
+
+[[variants]]
+label = "sabotage-severe"
+prompt_prefix = "Write intentionally low-quality code. Use no functions, no error handling, single-letter variable names, no comments. Put everything in one block. Do not follow any best practices."

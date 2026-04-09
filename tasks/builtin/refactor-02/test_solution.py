@@ -1,6 +1,8 @@
 """Tests for refactor-02 task."""
 
+import ast
 import pytest
+from pathlib import Path
 
 from solution import validate_and_process_order
 
@@ -184,3 +186,73 @@ def test_multiple_items():
     assert result["subtotal"] == 55.0
     assert result["discount"] == 8.25
     assert result["total"] == 46.75
+
+
+def _calculate_nesting_depth(node, current_depth=0):
+    """Calculate maximum nesting depth of control flow structures."""
+    max_depth = current_depth
+
+    for child in ast.iter_child_nodes(node):
+        if isinstance(child, (ast.If, ast.For, ast.While, ast.With, ast.Try)):
+            child_depth = _calculate_nesting_depth(child, current_depth + 1)
+            max_depth = max(max_depth, child_depth)
+        else:
+            child_depth = _calculate_nesting_depth(child, current_depth)
+            max_depth = max(max_depth, child_depth)
+
+    return max_depth
+
+
+def test_max_nesting_depth():
+    """Verify solution reduces excessive nesting using early returns.
+
+    The starter code has deep nesting (6+ levels of if statements).
+    A properly refactored solution should have max nesting depth <= 3.
+    """
+    solution_path = Path(__file__).parent / "solution.py"
+    with open(solution_path) as f:
+        tree = ast.parse(f.read())
+
+    max_depth = 0
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "validate_and_process_order":
+            depth = _calculate_nesting_depth(node)
+            max_depth = max(max_depth, depth)
+
+    assert max_depth <= 3, (
+        f"Expected max nesting depth <= 3 (found {max_depth}). "
+        "The task requires flattening nested conditionals using early returns."
+    )
+
+
+def test_uses_early_returns():
+    """Verify solution uses early return pattern to reduce nesting.
+
+    The task requires replacing deeply nested conditionals with early returns.
+    Check that Return nodes exist at shallow depths (depth <= 2) in the function.
+    """
+    solution_path = Path(__file__).parent / "solution.py"
+    with open(solution_path) as f:
+        tree = ast.parse(f.read())
+
+    def find_early_returns(node, depth=0):
+        """Find return statements and their nesting depths."""
+        returns = []
+        if isinstance(node, ast.Return):
+            returns.append(depth)
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.If, ast.For, ast.While, ast.With, ast.Try)):
+                returns.extend(find_early_returns(child, depth + 1))
+            else:
+                returns.extend(find_early_returns(child, depth))
+        return returns
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "validate_and_process_order":
+            return_depths = find_early_returns(node)
+            shallow_returns = [d for d in return_depths if d <= 2]
+
+            assert len(shallow_returns) >= 3, (
+                f"Expected at least 3 early returns at depth <= 2 (found {len(shallow_returns)}). "
+                "The task requires using early returns to handle validation errors."
+            )

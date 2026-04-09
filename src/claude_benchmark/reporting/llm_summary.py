@@ -192,6 +192,11 @@ def _call_claude(
         model,
         "--system-prompt",
         system_prompt,
+        # Disable all setting sources (user, project, local) so that
+        # ~/.claude/CLAUDE.md and project-level CLAUDE.md files don't
+        # inject user hooks/instructions that pollute the summary.
+        "--setting-sources",
+        "",
     ]
 
     env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}

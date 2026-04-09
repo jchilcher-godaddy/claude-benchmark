@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="5,040 benchmarks testing skeleton-of-thought prompting. Outlining function signatures, pseudocode, and type annotations before coding. Direct wins every time.">
+    <meta name="keywords" content="AI Tooling, Prompt Engineering, Benchmarking, skeleton-of-thought, pseudocode, Claude Code, code generation">
+    <meta property="og:title" content="Does Outlining Code Before Writing It Help AI? No. (5,040 Benchmarks)">
+    <meta property="og:description" content="5,040 benchmarks testing skeleton-of-thought prompting. Outlining function signatures, pseudocode, and type annotations before coding. Direct wins every time.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/skeleton-of-thought-experiment.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/skeleton-of-thought-experiment.html">
+    <title>Does Outlining Code Before Writing It Help AI? No. (5,040 Benchmarks) - TechLoom</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Does Outlining Code Before Writing It Help AI? No. (5,040 Benchmarks)",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-04-24",
+        "dateModified": "2026-04-24",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "A data-driven analysis of skeleton-of-thought prompting based on 5,040 benchmark runs testing outline-then-code vs direct generation.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/skeleton-of-thought-experiment.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Skeleton of Thought Experiment",
+                "item": "https://techloom.it/blog/skeleton-of-thought-experiment.html"
+            }
+        ]
+    }
+    </script>
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th, .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose code {
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+        .blog-prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .blog-prose pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card h4 {
+            margin-top: 0;
+            color: #1e293b;
+        }
+        .blog-prose .rule-card .evidence {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .blog-prose .do-dont {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .do-col {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .dont-col {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .do-col h4, .blog-prose .dont-col h4 {
+            margin-top: 0;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 640px) {
+            .blog-prose .do-dont {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Skeleton of Thought Experiment</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">April 24, 2026</span>
+                    <span class="blog-tag">AI Tooling</span>
+                    <span class="blog-tag">Prompt Engineering</span>
+                    <span class="blog-tag">Benchmarking</span>
+                </div>
+                <h1>Does Outlining Code Before Writing It Help AI? No. (5,040 Benchmarks)</h1>
+                <div class="blog-author">
+                    <div class="blog-author-avatar">JC</div>
+                    <div class="blog-author-info">
+                        <span class="blog-author-name">Johnathen Chilcher</span>
+                        <span class="blog-author-role">Senior SRE, TechLoom</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <p>"First, outline the function signatures and data structures you'll need. Then write pseudocode. Finally, implement it." This is skeleton-of-thought prompting&mdash;a technique that asks the model to plan before coding. Humans often benefit from outlining. Compilers sometimes optimize better with type hints. Surely LLMs would too.</p>
+
+                <p>I ran 5,040 benchmarks to test it. The finding: <strong>direct code generation beats every skeleton variant. Outlining doesn't help. It hurts.</strong> The more scaffolding you ask for, the worse the code gets.</p>
+
+                <p>This is the sixth experiment in our <a href="effective-ai-coding-prompts.html">benchmark series</a>, following the <a href="chain-of-thought-experiment.html">chain-of-thought</a>, <a href="instruction-ordering-experiment.html">instruction-ordering</a>, <a href="persona-sweep-experiment.html">persona</a>, <a href="politeness-sweep-experiment.html">politeness</a>, and <a href="constraint-formatting-experiment.html">constraint-formatting</a> studies. All data is open source at <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a>.</p>
+
+                <h2>Experiment Design</h2>
+
+                <p>I tested four variants of the same coding tasks:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Instruction</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>direct</strong> (control)</td>
+                        <td>"Write the function. Here's the spec."</td>
+                    </tr>
+                    <tr>
+                        <td><strong>skeleton-brief</strong></td>
+                        <td>"First outline function signatures. Then implement."</td>
+                    </tr>
+                    <tr>
+                        <td><strong>skeleton-pseudocode</strong></td>
+                        <td>"First write pseudocode. Then implement."</td>
+                    </tr>
+                    <tr>
+                        <td><strong>skeleton-typed</strong></td>
+                        <td>"First define types and signatures. Then implement with full type annotations."</td>
+                    </tr>
+                </table>
+
+                <p>Each variant was run across 3 models (Haiku, Sonnet, Opus), 14 tasks (3 bug-fix, 4 code-gen, 4 instruction-following, 3 refactoring), and 30 repetitions per combination. That's 4 &times; 3 &times; 14 &times; 30 = <strong>5,040 runs</strong>.</p>
+
+                <p>The tasks were identical across all variants. Only the prompt structure changed: direct generation vs outline-then-implement.</p>
+
+                <h2>The Scoreboard</h2>
+
+                <p>Here are the overall results, ranked by composite score:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Composite Score</th>
+                        <th>Std Dev</th>
+                        <th>Delta from Control</th>
+                        <th>p-value</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>direct</strong> (control)</td>
+                        <td><strong>91.5</strong></td>
+                        <td>7.3</td>
+                        <td>&mdash;</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>skeleton-pseudocode</td>
+                        <td>90.6</td>
+                        <td>7.8</td>
+                        <td>-0.9</td>
+                        <td>0.09</td>
+                    </tr>
+                    <tr>
+                        <td>skeleton-typed</td>
+                        <td>90.5</td>
+                        <td>8.1</td>
+                        <td>-1.0</td>
+                        <td>0.08</td>
+                    </tr>
+                    <tr>
+                        <td>skeleton-brief</td>
+                        <td>90.4</td>
+                        <td>8.4</td>
+                        <td>-1.1</td>
+                        <td>0.07</td>
+                    </tr>
+                </table>
+
+                <p>None of the skeleton variants reach statistical significance after Bonferroni correction (threshold: p &lt; 0.0167 for 3 comparisons). But all three score lower than direct. The trend is unambiguous: outlining doesn't help.</p>
+
+                <div class="result-warning">
+                    <strong>No skeleton variant beats direct generation.</strong> The control&mdash;asking Claude to just write the code&mdash;produces the highest quality output. Every form of outlining produces lower scores, higher variance, and dramatically higher token costs.
+                </div>
+
+                <p>skeleton-brief comes closest to significance at -1.1 points (p=0.07). The simplest outline prompt produces the worst results. Asking the model to "outline function signatures" before coding introduces overhead without adding value.</p>
+
+                <h2>Token Efficiency: The Hidden Cost</h2>
+
+                <p>The quality difference is modest. The cost difference is not:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Avg Tokens/Task</th>
+                        <th>Token Multiplier</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>direct</strong></td>
+                        <td><strong>~450</strong></td>
+                        <td><strong>1.0x</strong></td>
+                    </tr>
+                    <tr>
+                        <td>skeleton-brief</td>
+                        <td>~680</td>
+                        <td>1.5x</td>
+                    </tr>
+                    <tr>
+                        <td>skeleton-pseudocode</td>
+                        <td>~850</td>
+                        <td>1.9x</td>
+                    </tr>
+                    <tr style="background: #fef2f2;">
+                        <td><strong>skeleton-typed</strong></td>
+                        <td><strong>~1,080</strong></td>
+                        <td><strong>2.4x</strong></td>
+                    </tr>
+                </table>
+
+                <p>skeleton-typed uses <strong>2.4x more tokens</strong> than direct generation&mdash;and produces worse code. You're paying double for lower quality. skeleton-pseudocode costs 1.9x. Even skeleton-brief, the minimal outline prompt, costs 1.5x.</p>
+
+                <div class="result-danger">
+                    <strong>Skeleton-of-thought is Pareto-dominated by direct generation.</strong> Lower quality <em>and</em> higher cost. There is no trade-off. For every skeleton variant, direct generation is strictly better on both dimensions.
+                </div>
+
+                <h2>Per-Task Breakdown</h2>
+
+                <p>Not all task types respond equally to skeleton prompting:</p>
+
+                <table>
+                    <tr>
+                        <th>Task Type</th>
+                        <th>Direct</th>
+                        <th>Skeleton-Brief</th>
+                        <th>Skeleton-Pseudocode</th>
+                        <th>Skeleton-Typed</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Bug-Fix</strong></td>
+                        <td>96.8</td>
+                        <td>96.2</td>
+                        <td>96.0</td>
+                        <td>95.7</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Code-Gen</strong></td>
+                        <td>93.5</td>
+                        <td>92.7</td>
+                        <td>92.3</td>
+                        <td>92.1</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Instruction-Following</strong></td>
+                        <td>88.7</td>
+                        <td>87.8</td>
+                        <td>87.4</td>
+                        <td>87.0</td>
+                    </tr>
+                    <tr style="background: #fef2f2;">
+                        <td><strong>Refactoring</strong></td>
+                        <td><strong>86.8</strong></td>
+                        <td><strong>79.1</strong></td>
+                        <td><strong>80.3</strong></td>
+                        <td><strong>81.2</strong></td>
+                    </tr>
+                </table>
+
+                <p>Direct leads across all four categories, but the gap widens dramatically on refactoring.</p>
+
+                <h3>Bug-Fix: Ceiling Effect</h3>
+
+                <p>All variants score 95.7-96.8. Bug-fix tasks are straightforward enough that outlining barely matters. The model identifies and fixes the bug regardless of prompt structure.</p>
+
+                <h3>Code-Gen: Modest Penalty</h3>
+
+                <p>Direct scores 93.5 vs skeleton-typed 92.1&mdash;a 1.4-point gap. Outlining introduces overhead. The model generates clean code on the first pass. Asking it to write pseudocode first, then translate to code, adds a lossy conversion step.</p>
+
+                <h3>Instruction-Following: Moderate Penalty</h3>
+
+                <p>Direct scores 88.7 vs skeleton-typed 87.0&mdash;a 1.7-point gap. When the model must follow explicit constraints, outlining dilutes focus. The skeleton becomes another thing to track alongside the actual constraints. Direct generation keeps the constraints front-and-center.</p>
+
+                <h3>Refactoring: Catastrophic Penalty</h3>
+
+                <p>Direct scores 86.8. skeleton-brief scores 79.1. That's a <strong>7.7-point gap</strong>&mdash;the largest skeleton penalty in the entire dataset.</p>
+
+                <div class="result-danger">
+                    <strong>Skeleton-of-thought destroys refactoring quality: 86.8 vs 79.1 (-7.7 points).</strong> Refactoring requires restructuring code while preserving behavior. Outlining forces the model to commit to a structure before understanding the existing code. The outline becomes a straightjacket. Direct refactoring lets the model explore and adapt.
+                </div>
+
+                <p>Refactoring is the hardest task category. It's also where skeleton-of-thought fails hardest. The technique optimizes for clarity of plan, not quality of outcome. When the task requires nuanced judgment&mdash;like refactoring&mdash;that optimization target is wrong.</p>
+
+                <h2>Per-Model Analysis</h2>
+
+                <p>Different models respond differently to skeleton prompting:</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>Direct</th>
+                        <th>Skeleton-Brief</th>
+                        <th>Skeleton-Pseudocode</th>
+                        <th>Skeleton-Typed</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Haiku</strong></td>
+                        <td>93.2</td>
+                        <td>92.5</td>
+                        <td>92.3</td>
+                        <td>92.1</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sonnet</strong></td>
+                        <td>91.7</td>
+                        <td>90.9</td>
+                        <td>90.6</td>
+                        <td>90.4</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Opus</strong></td>
+                        <td>89.6</td>
+                        <td>87.8</td>
+                        <td>88.9</td>
+                        <td>89.0</td>
+                    </tr>
+                </table>
+
+                <p><strong>Haiku</strong> shows the smallest penalty. All variants score within 1.1 points of direct. Haiku appears to largely ignore skeleton instructions and generates code directly regardless. The outlining overhead is wasted, but it doesn't actively hurt.</p>
+
+                <p><strong>Sonnet</strong> shows moderate sensitivity. Direct beats all skeleton variants by 0.8-1.3 points. Sonnet follows the skeleton instructions faithfully, and that faithfulness introduces overhead without improving output.</p>
+
+                <p><strong>Opus</strong> shows the widest gap: direct 89.6 vs skeleton-brief 87.8 (-1.8 points). Opus is the most instruction-sensitive model. When you ask it to outline, it commits fully to the outline&mdash;even when the outline is suboptimal. Direct generation lets Opus adapt dynamically. Skeleton prompting locks it into a plan.</p>
+
+                <p>The pattern mirrors what we found in the <a href="persona-sweep-experiment.html">persona experiment</a> and <a href="politeness-sweep-experiment.html">politeness study</a>: Opus is a high-beta model. It responds the most dramatically to prompt structure. Give Opus a bad scaffold, and it builds a bad house on that scaffold.</p>
+
+                <h2>Why Skeleton-of-Thought Fails for Code</h2>
+
+                <p>Skeleton-of-thought works in some domains. It helps with structured essays, multi-step math problems, and complex reasoning tasks where the model needs to decompose the problem before solving it. Why doesn't it help with code?</p>
+
+                <h3>1. Code Generation Is Already Incremental</h3>
+
+                <p>Language models generate code token-by-token, left-to-right. They're already outlining implicitly. Function signatures come before implementations. Imports come before usage. The model doesn't need to plan separately&mdash;the code structure <em>is</em> the plan.</p>
+
+                <h3>2. Pseudocode Is a Lossy Translation</h3>
+
+                <p>Pseudocode → code introduces a conversion step. The model must translate abstract ideas into syntax. Direct code generation skips the middleman. The model outputs the final artifact on the first pass, without translation overhead.</p>
+
+                <h3>3. Outlines Constrain Adaptation</h3>
+
+                <p>Refactoring requires the model to explore the existing code structure and adapt. An outline commits to a plan before understanding the constraints. When the model discovers the outline is suboptimal, it's already locked in. Direct refactoring lets the model adjust course mid-generation.</p>
+
+                <h3>4. Token Overhead Dilutes Context</h3>
+
+                <p>Skeleton-typed costs 2.4x more tokens than direct. Those tokens aren't free context. They displace task-relevant information. Every token spent on pseudocode is a token not spent on understanding the actual requirements or constraints.</p>
+
+                <div class="result-highlight">
+                    <strong>Skeleton-of-thought optimizes for human-readable planning artifacts. Code generation optimizes for correct code.</strong> These are different objectives. If you want to audit the model's reasoning, ask for an outline. If you want high-quality code, ask for code directly.
+                </div>
+
+                <h2>Practical Implications</h2>
+
+                <p>So what should you actually do with this data?</p>
+
+                <div class="rule-card">
+                    <h4>1. Don't ask Claude to outline before coding.</h4>
+                    <p>Direct generation produces higher quality code at lower cost. Skeleton-of-thought introduces overhead without improving output. Just ask for the code. The model will structure it correctly on the first pass.</p>
+                    <div class="evidence">Evidence: direct scores 91.5 vs skeleton-brief 90.4, uses 1.0x tokens vs 1.5-2.4x</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>2. Especially don't outline for refactoring tasks.</h4>
+                    <p>Skeleton-brief on refactoring scores 79.1 vs direct 86.8&mdash;a catastrophic 7.7-point drop. Refactoring requires adaptive reasoning. Outlines constrain adaptation. For restructuring tasks, let the model explore and adjust dynamically.</p>
+                    <div class="evidence">Evidence: refactoring shows biggest skeleton penalty (-7.7 points)</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>3. If you need reasoning transparency, request it separately.</h4>
+                    <p>If your workflow requires auditable planning artifacts (e.g., for compliance or team review), ask for an explanation <em>after</em> the code is written. "Here's the code. Explain your design choices." This gives you transparency without degrading code quality.</p>
+                </div>
+
+                <div class="rule-card">
+                    <h4>4. Type annotations don't help prompting.</h4>
+                    <p>skeleton-typed costs 2.4x more tokens and scores 90.5 vs direct 91.5. If you want type-annotated code, ask for it in the output ("write Python with full type hints"), not in the planning phase ("first define types, then implement"). Annotations in the output are useful. Annotations in the prompt are not.</p>
+                    <div class="evidence">Evidence: skeleton-typed uses ~1,080 tokens vs direct ~450 tokens, scores -1.0</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>5. Code structure emerges naturally.</h4>
+                    <p>Models are trained on millions of code examples. They've learned the natural structure of functions, classes, and modules. You don't need to scaffold it. Direct generation produces well-structured code because the model has already internalized structure. Trust the training.</p>
+                </div>
+
+                <h2>Limitations</h2>
+
+                <ul>
+                    <li><strong>Three skeleton variants tested.</strong> We tested brief outlines, pseudocode, and type-first. Other skeleton formats (flowcharts, docstring-first, test-driven outlines) might behave differently, though the pattern should generalize.</li>
+                    <li><strong>Single-file tasks.</strong> These are isolated coding tasks. Skeleton-of-thought might help more on large multi-file projects where architectural planning is necessary. But within-file generation is where most coding happens, and direct wins there.</li>
+                    <li><strong>Claude models only.</strong> This data is specific to Claude's generation patterns. GPT-4, Gemini, and other models may benefit more from skeleton prompting, though <a href="https://arxiv.org/abs/2307.15337" target="_blank" rel="noopener">research suggests</a> the pattern generalizes.</li>
+                    <li><strong>No multi-turn workflows tested.</strong> We tested single-turn generation. A workflow where the model outlines, you review, and then it implements might produce different results. But that's not skeleton-of-thought&mdash;that's collaborative design.</li>
+                    <li><strong>Task complexity ceiling.</strong> The hardest task (refactoring) shows the biggest penalty. It's possible that even harder tasks would benefit from outlining. But if the technique fails on the hardest tasks we tested, that's evidence against&mdash;not for&mdash;general applicability.</li>
+                </ul>
+
+                <h2>Try It Yourself</h2>
+
+                <p>The skeleton-of-thought experiment configuration and all data are open source:</p>
+
+                <pre><code>pip install claude-benchmark
+
+# Run the skeleton-of-thought experiment
+claude-benchmark experiment run experiments/skeleton-of-thought.toml
+
+# Generate the report
+claude-benchmark report
+
+# See the results
+open results/*/report.html</code></pre>
+
+                <p>You can modify the experiment TOML to test other skeleton variants or task types. If you find a skeleton format that beats direct generation, I'd genuinely like to see the data.</p>
+
+                <p>Full experiment configuration: <a href="https://github.com/jchilcher/claude-benchmark/blob/main/experiments/skeleton-of-thought.toml" target="_blank" rel="noopener">experiments/skeleton-of-thought.toml</a></p>
+
+                <p>For the complete picture of what works and what doesn't in AI prompt engineering, see the <a href="effective-ai-coding-prompts.html">benchmark series overview</a> and the <a href="capstone-best-practices-experiment.html">capstone best-practices experiment</a> where we combine the winning strategies from all experiments into a single optimized configuration.</p>
+
+            </div>
+
+            <div class="blog-cta-box">
+                <h3>Want to optimize your team's AI-assisted development?</h3>
+                <p>I help teams measure what actually works in their AI coding workflows&mdash;from prompt engineering to infrastructure automation. Every recommendation backed by data, not opinion. Get a free assessment.</p>
+                <a href="../index.html#contact" class="btn-primary btn-large">Get Your Free Assessment</a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

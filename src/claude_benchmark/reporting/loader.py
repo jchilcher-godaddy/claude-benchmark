@@ -33,6 +33,25 @@ from claude_benchmark.reporting.models import (
 logger = logging.getLogger(__name__)
 
 
+def load_manifest(results_dir: Path) -> dict:
+    """Load manifest.json from a results directory.
+
+    Args:
+        results_dir: Path to a results directory containing manifest.json.
+
+    Returns:
+        Parsed manifest dict, or empty dict if manifest is missing/corrupt.
+    """
+    manifest_path = Path(results_dir) / "manifest.json"
+    if not manifest_path.exists():
+        return {}
+    try:
+        return json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        logger.warning("Failed to read manifest.json: %s", exc)
+        return {}
+
+
 def load_results_dir(results_dir: Path) -> BenchmarkResults:
     """Walk results directory and assemble BenchmarkResults.
 
@@ -57,13 +76,7 @@ def load_results_dir(results_dir: Path) -> BenchmarkResults:
         )
 
     # 1. Read manifest for metadata (optional)
-    manifest: dict = {}
-    manifest_path = results_dir / "manifest.json"
-    if manifest_path.exists():
-        try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError) as exc:
-            logger.warning("Failed to read manifest.json: %s", exc)
+    manifest = load_manifest(results_dir)
 
     # 2. Discover all run files (both naming conventions)
     storage_files = list(results_dir.rglob("run_*.json"))
@@ -99,10 +112,17 @@ def load_results_dir(results_dir: Path) -> BenchmarkResults:
             metadata=_build_metadata(manifest, total_runs=0),
         )
 
-    # 4. Group runs by (profile, task)
+    # 4. Group runs by (profile_key, task)
+    #    When variant_label is present (experiment runs), use it in the profile
+    #    key so each variant appears as a distinct series in charts/tables.
     grouped: dict[tuple[str, str], list[ReportRunResult]] = defaultdict(list)
+    has_variants = any(run.variant_label for run in parsed_runs)
     for run in parsed_runs:
-        grouped[(run.profile, run.task)].append(run)
+        if has_variants and run.variant_label:
+            profile_key = f"{run.profile}:{run.variant_label}"
+        else:
+            profile_key = run.profile
+        grouped[(profile_key, run.task)].append(run)
 
     # 5. Build TaskResult for each group
     task_results_by_profile: dict[str, dict[str, TaskResult]] = defaultdict(dict)
@@ -134,21 +154,27 @@ def load_results_dir(results_dir: Path) -> BenchmarkResults:
             total_tokens=total_tokens,
         )
 
-    # 7. Derive models/tasks lists from parsed data (more reliable than manifest alone)
+    # 7. Derive models/tasks/variants lists from parsed data
     all_models = sorted({run.model for run in parsed_runs})
     all_tasks = sorted({run.task for run in parsed_runs})
+    all_variants = sorted({run.variant_label for run in parsed_runs if run.variant_label})
 
     # Union of manifest and discovered: never hide data that exists on disk
     manifest_models = manifest.get("models") or []
     models_list = sorted(set(manifest_models) | set(all_models))
     manifest_tasks = manifest.get("tasks") or []
     tasks_list = sorted(set(manifest_tasks) | set(all_tasks))
+    manifest_variants = manifest.get("variants") or []
+    variants_list = sorted(set(manifest_variants) | set(all_variants))
 
     return BenchmarkResults(
         profiles=profiles,
         models=models_list,
         tasks=tasks_list,
-        metadata=_build_metadata(manifest, total_runs=len(parsed_runs), models=models_list),
+        metadata=_build_metadata(
+            manifest, total_runs=len(parsed_runs), models=models_list,
+            variants=variants_list,
+        ),
     )
 
 
@@ -413,6 +439,7 @@ def _parse_parallel_run(data: dict, path: Path) -> ReportRunResult:
         success=data.get("status") == "success",
         error=data.get("error"),
         output_dir=data.get("output_dir"),
+        variant_label=data.get("variant_label"),
     )
 
 
@@ -544,6 +571,7 @@ def _build_metadata(
     manifest: dict,
     total_runs: int,
     models: list[str] | None = None,
+    variants: list[str] | None = None,
 ) -> ReportMetadata:
     """Build ReportMetadata from manifest dict and actual run count.
 
@@ -552,10 +580,12 @@ def _build_metadata(
         total_runs: Number of parsed run files.
         models: Resolved models list (union of manifest + discovered).
             Falls back to manifest ``models`` if not provided.
+        variants: Resolved variant labels list.
     """
     return ReportMetadata(
         date=str(manifest.get("timestamp", "")),
         models_tested=models if models is not None else manifest.get("models", []),
+        variants=variants if variants is not None else manifest.get("variants", []),
         profile_count=len(manifest.get("profiles", [])),
         total_runs=total_runs,
         wall_clock_seconds=0.0,

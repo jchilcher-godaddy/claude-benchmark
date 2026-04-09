@@ -1,0 +1,71 @@
+name = "behavioral-constraints"
+description = """Hypothesis: Explicit DO/DON'T behavioral constraints improve agent-style execution \
+by setting clear boundaries. The anti-pattern profile showed negative-space guidance is effective. \
+This tests whether agent-specific behavioral rules (scope limits, tool discipline, deviation \
+handling) improve output quality. Distinct from specificity-level (which tested instruction \
+concreteness) — this tests behavioral boundaries and constraint framing."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- No constraints (bare) ---
+[[variants]]
+label = "bare"
+
+# --- DO rules only (positive constraints) ---
+[[variants]]
+label = "do-only"
+system_prompt_extra = """DO:
+- Write your solution to the expected output file
+- Handle all edge cases mentioned in the requirements
+- Use type hints on every function signature
+- Test your solution mentally against the provided test cases
+- Keep your implementation focused on exactly what was asked"""
+
+# --- DON'T rules only (negative constraints) ---
+[[variants]]
+label = "dont-only"
+system_prompt_extra = """DON'T:
+- Don't add features beyond what was requested
+- Don't leave functions without type hints
+- Don't silently swallow exceptions
+- Don't use bare except clauses
+- Don't add unnecessary comments or docstrings to trivial code
+- Don't over-engineer or add premature abstractions"""
+
+# --- Both DO and DON'T (balanced constraints) ---
+[[variants]]
+label = "balanced"
+system_prompt_extra = """DO:
+- Write your solution to the expected output file
+- Handle all edge cases mentioned in the requirements
+- Use type hints on every function signature
+- Keep your implementation focused on exactly what was asked
+
+DON'T:
+- Don't add features beyond what was requested
+- Don't silently swallow exceptions
+- Don't use bare except clauses
+- Don't over-engineer or add premature abstractions"""
+
+# --- Scope-boundary constraints (agent-specific) ---
+[[variants]]
+label = "scope-bounded"
+system_prompt_extra = """Scope Boundaries:
+- ONLY modify the file(s) specified in the requirements
+- ONLY implement what is explicitly requested — no extras
+- If requirements are ambiguous, choose the simplest interpretation
+- If you cannot complete a requirement, note it clearly rather than guessing
+
+Quality Gates:
+- Every function MUST have type hints on parameters and return type
+- Every error path MUST raise a specific exception with a message
+- Every edge case mentioned in requirements MUST be handled"""

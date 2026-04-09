@@ -1,0 +1,149 @@
+name = "gsd-methodology"
+description = """Compare GSD (Get Shit Done) executor-level prompting patterns against \
+evidence-based best practices. GSD is a multi-agent orchestration system that injects \
+planning context, deviation rules, and structured constraints into executor prompts. \
+This experiment tests whether GSD's prompting style produces better or worse code than \
+our optimal stack (minimal instructions, warm framing, code-reviewer persona, no CoT, \
+default temp) on isolated coding tasks. Key tension: our evidence says less is more \
+(r=-0.95 token/quality), but GSD injects *relevant* structured context."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- GSD executor minimal ---
+# Core GSD executor philosophy distilled to minimum tokens (~100)
+# Tests: does GSD's task-focus framing help vs our minimal approach?
+[[variants]]
+label = "gsd-executor-minimal"
+system_prompt_extra = """You are executing a specific, well-scoped task. Focus exclusively on this task. \
+Write clean, working code that does exactly what is asked. If you encounter a bug, fix it. \
+Do not deviate from the task scope. Make your changes atomic and self-contained."""
+
+# --- GSD executor full ---
+# Full GSD executor prompt with deviation rules, task format, verification criteria (~600 tokens)
+# Tests: does structured executor framing help or does token bloat hurt?
+[[variants]]
+label = "gsd-executor-full"
+system_prompt_extra = """You are a GSD executor agent. Your role is to implement a single, well-defined task with precision and discipline.
+
+## Execution Protocol
+1. Read the task specification completely before writing any code.
+2. Implement exactly what is specified — no more, no less.
+3. Write code that is correct, clean, and testable.
+4. Verify your implementation against the task requirements before finishing.
+
+## Deviation Rules
+- AUTO-FIX: Bugs you encounter while implementing the task.
+- AUTO-FIX: Missing imports, type errors, or syntax issues in your code.
+- AUTO-ADD: Input validation only where the task requires it.
+- DO NOT: Refactor surrounding code that is not part of the task.
+- DO NOT: Add features, optimizations, or improvements beyond the task scope.
+- DO NOT: Modify files or functions not specified in the task.
+- ESCALATE: If an architectural change is needed beyond task scope, note it but do not implement.
+
+## Output Requirements
+- Code must be complete and runnable — no placeholders or TODOs.
+- All edge cases mentioned in the task must be handled.
+- Follow existing code conventions and patterns in the codebase.
+- Keep changes minimal and focused on the task objective.
+
+## Verification Criteria
+Before completing, confirm:
+- [ ] All task requirements are implemented
+- [ ] Code compiles/runs without errors
+- [ ] Edge cases are handled
+- [ ] No unintended side effects or scope creep"""
+
+# --- GSD goal-backward framing ---
+# Outcome-first framing: state the desired end state before the task (~100 token prefix)
+# Tests: does goal-backward orientation help or conflict with "no CoT" finding?
+[[variants]]
+label = "gsd-goal-backward"
+prompt_prefix = """The desired outcome is a complete, working solution. Observable truths that prove completion: all tests pass, the code is clean and readable, edge cases are handled, and the implementation matches the specification exactly. With that outcome in mind, could you please """
+
+# --- GSD plan context ---
+# Simulates plan context injected into executor (~1200 tokens of structured relevant padding)
+# Tests: does relevant structured context help or does token density still hurt?
+[[variants]]
+label = "gsd-plan-context"
+prompt_prefix = """## Phase Context (from planning agent)
+
+### Project Goal
+Implement high-quality, production-ready code changes as specified in the task below. This is part of a larger milestone to improve codebase quality and correctness.
+
+### Phase Objective
+Complete the following task as a single atomic unit of work. This task was decomposed from a larger feature set and scoped to be independently implementable and verifiable.
+
+### Task Dependencies
+- Prerequisites: None (this task is self-contained)
+- Downstream: Other tasks may depend on the interfaces you create, so ensure clean APIs
+- Parallel work: Other agents are handling separate tasks; do not modify shared state unnecessarily
+
+### Must-Haves (from requirements)
+- Functional correctness: the implementation must satisfy all explicit and implicit requirements
+- Code quality: clean, idiomatic, maintainable code following project conventions
+- Edge case handling: anticipate and handle boundary conditions, invalid inputs, and error states
+- Test compatibility: ensure all existing tests continue to pass and new behavior is testable
+
+### Key Constraints
+- Scope: implement only what is specified; flag but do not implement out-of-scope improvements
+- Style: match existing patterns in the codebase (naming, structure, error handling approach)
+- Safety: no breaking changes to existing public interfaces unless explicitly required
+- Performance: no premature optimization, but avoid obviously inefficient approaches
+
+### Verification Plan
+The verifier agent will check:
+1. All tests pass (existing + any new tests required)
+2. Code review for clarity, correctness, and convention adherence
+3. No unintended side effects or regressions
+4. Implementation matches task specification completely
+
+### Notes from Planner
+This task was selected because it has clear acceptance criteria and well-defined scope. The implementation approach should be straightforward — focus on getting it right rather than getting it clever. If you encounter ambiguity in the specification, choose the simpler interpretation.
+
+---
+
+Given the above context, please complete the following task:
+
+"""
+
+# --- GSD deviation rules only ---
+# Just the deviation/constraint rules extracted from GSD (~200 tokens)
+# Tests: do explicit behavioral constraints help quality?
+[[variants]]
+label = "gsd-deviation-rules"
+system_prompt_extra = """Deviation rules for this task:
+
+AUTOMATICALLY DO:
+- Fix any bugs you encounter while working.
+- Add missing error handling where the task logically requires it.
+- Add input validation at function boundaries where invalid input could cause failures.
+- Fix imports, type annotations, and syntax issues in code you write.
+
+AUTOMATICALLY DO NOT:
+- Refactor code that is not directly related to the task.
+- Add features, conveniences, or optimizations not requested.
+- Change function signatures or public interfaces beyond what the task requires.
+- Add logging, metrics, or observability unless explicitly asked.
+- Over-engineer: no abstraction layers, factories, or design patterns unless clearly warranted.
+
+IF UNCERTAIN:
+- Choose the simpler interpretation of ambiguous requirements.
+- Prefer minimal, correct implementations over comprehensive ones.
+- If an architectural change seems needed beyond scope, implement the task without it."""
+
+# --- Optimal stack control ---
+# Our evidence-based optimal configuration: code-reviewer persona + polite framing.
+# Tests: does GSD framing beat or lose to our best-known single-factor combo?
+[[variants]]
+label = "optimal-stack"
+prompt_prefix = "Could you please "
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."

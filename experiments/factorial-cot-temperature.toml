@@ -1,0 +1,26 @@
+name = "factorial-cot-temperature"
+description = "2x2 factorial design crossing chain-of-thought prompting with temperature. Tests whether CoT and temperature interact (e.g., CoT might help more at higher temperature). Requires interaction effect analysis beyond simple pairwise comparison."
+
+[defaults]
+tasks = ["code-gen-02", "code-gen-03", "bug-fix-02", "bug-fix-03", "refactor-02", "instruction-02"]
+models = ["sonnet"]
+profiles = ["empty"]
+reps = 30
+
+[[variants]]
+label = "bare-t0"
+temperature = 0.0
+
+[[variants]]
+label = "cot-t0"
+temperature = 0.0
+prompt_prefix = "Think step by step before writing any code. First analyze the requirements, then plan your approach, then implement."
+
+[[variants]]
+label = "bare-t07"
+temperature = 0.7
+
+[[variants]]
+label = "cot-t07"
+temperature = 0.7
+prompt_prefix = "Think step by step before writing any code. First analyze the requirements, then plan your approach, then implement."

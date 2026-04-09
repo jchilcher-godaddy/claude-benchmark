@@ -1,0 +1,39 @@
+name = "constraint-formatting"
+description = "Test whether instruction formatting (XML tags, markdown, emphasis, checklists) affects compliance and quality."
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03", "instruction-04",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+[[variants]]
+label = "plain-text"
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."
+
+[[variants]]
+label = "xml-tagged"
+system_prompt_extra = """<role>You are a meticulous code reviewer.</role>
+<requirements>
+<requirement>Focus on correctness in every line you write.</requirement>
+<requirement>Handle all edge cases explicitly.</requirement>
+<requirement>Prioritize maintainability and readability.</requirement>
+</requirements>"""
+
+[[variants]]
+label = "caps-emphasis"
+system_prompt_extra = "You are a meticulous code reviewer. You MUST focus on correctness, edge cases, and maintainability in EVERY line you write. NEVER skip edge case handling."
+
+[[variants]]
+label = "numbered-checklist"
+system_prompt_extra = """You are a meticulous code reviewer. Before finalizing your code, verify:
+1. All edge cases are handled
+2. Variable names are descriptive
+3. Functions have a single responsibility
+4. Error handling is explicit
+5. Code is readable without comments"""

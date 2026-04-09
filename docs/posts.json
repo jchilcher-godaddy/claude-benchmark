@@ -1,0 +1,74 @@
+{
+    "posts": [
+        {
+            "slug": "temperature-sweep-benchmark",
+            "title": "Does Temperature Actually Matter? 720 Runs Say Not Really",
+            "excerpt": "I swept temperature from 0.0 to 1.0 across 6 coding tasks with 30 repetitions each. The total spread in quality was 0.9 points on a 100-point scale.",
+            "date": "2026-03-09",
+            "dateModified": "2026-03-09",
+            "tag": "Benchmarking",
+            "author": "Johnathen Chilcher",
+            "readTime": "7 min read"
+        },
+        {
+            "slug": "claudemd-benchmark-results",
+            "title": "I Ran 540 Benchmarks to Prove CLAUDE.md Compression Works. The Data Had Other Plans.",
+            "excerpt": "I built an open-source benchmark to test whether compressing CLAUDE.md improves code quality. 540 runs across 3 models and 5 profiles later, the results surprised me.",
+            "date": "2026-03-01",
+            "dateModified": "2026-03-01",
+            "tag": "Benchmarking",
+            "author": "Johnathen Chilcher",
+            "readTime": "8 min read"
+        },
+        {
+            "slug": "compress-claude-md",
+            "title": "Compress Your CLAUDE.md: Cut 60-70% of System Prompt Bloat in Claude Code",
+            "excerpt": "Claude Code injects CLAUDE.md into every conversation. I compressed my instruction and memory files by 60-70% by stripping human-readable formatting and keeping only machine-readable signal. Here's how.",
+            "date": "2026-02-24",
+            "dateModified": "2026-02-24",
+            "tag": "AI Tooling",
+            "author": "Johnathen Chilcher",
+            "readTime": "6 min read"
+        },
+        {
+            "slug": "introducing-ledgr",
+            "title": "Why I Built a Budget App That Knows Nothing About You",
+            "excerpt": "Why I built Ledgr, a privacy-first open-source budget app that keeps all your financial data on your device. No cloud sync, no bank credentials, no tracking.",
+            "date": "2026-02-15",
+            "dateModified": "2026-02-15",
+            "tag": "Product Launch",
+            "author": "Johnathen Chilcher",
+            "readTime": "3 min read"
+        },
+        {
+            "slug": "ai-code-production-ready",
+            "title": "How to Tell If Your AI-Generated Code Is Production-Ready",
+            "excerpt": "AI tools are generating tons of code, but is it production-ready? Use this 7-point checklist to evaluate your AI-generated codebase before it reaches production.",
+            "date": "2026-02-10",
+            "dateModified": "2026-02-10",
+            "tag": "Code Quality",
+            "author": "Johnathen Chilcher",
+            "readTime": "6 min read"
+        },
+        {
+            "slug": "signs-startup-needs-fractional-sre",
+            "title": "5 Signs Your Startup Needs a Fractional SRE",
+            "excerpt": "Growing pains are real, but they shouldn't crash your app. Learn the five clear signals that it's time to bring in fractional SRE expertise.",
+            "date": "2026-02-07",
+            "dateModified": "2026-02-07",
+            "tag": "SRE",
+            "author": "Johnathen Chilcher",
+            "readTime": "7 min read"
+        },
+        {
+            "slug": "mvp-build-vs-buy-2026",
+            "title": "MVP Development: Build vs Buy in 2026",
+            "excerpt": "The build vs buy landscape has changed. Here's how to make the right decision for your MVP in 2026, plus the hidden costs both approaches carry.",
+            "date": "2026-02-03",
+            "dateModified": "2026-02-03",
+            "tag": "Development",
+            "author": "Johnathen Chilcher",
+            "readTime": "8 min read"
+        }
+    ]
+}

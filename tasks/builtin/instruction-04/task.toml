@@ -1,0 +1,31 @@
+name = "instruction-04"
+task_type = "instruction"
+difficulty = "medium"
+size = "module"
+description = "Build an API client class following 8 explicit constraints"
+expected_files = ["solution.py"]
+
+prompt = """
+Write an `APIClient` class with methods `get(url)`, `post(url, data=None)`, `set_header(key, value)`, and `set_timeout(seconds)`.
+
+The class must also define exception classes: `ClientError` (base), `APIError(ClientError)`, and `TimeoutError(ClientError)`.
+
+Implement the class following all 8 constraints listed below. The client does not need to make real HTTP requests — simulate responses internally (return a dict with status=200, body="OK", headers={} for successful requests).
+"""
+
+prompt_rules = [
+    "All methods (get, post) must return a dict with exactly these keys: 'status', 'body', 'headers'",
+    "Default timeout must be 30 seconds, changeable via set_timeout()",
+    "Define custom exceptions: APIError and TimeoutError, both subclassing ClientError",
+    "Implement retry with exponential backoff: max 3 retries, delays of 1s, 2s, 4s (use time.sleep)",
+    "Log all requests using the logging module (logger name should be 'APIClient')",
+    "Headers must be case-insensitive (setting 'Content-Type' and 'content-type' should be the same header)",
+    "Class must be usable as a context manager (implement __enter__ and __exit__)",
+    "All public methods must have type hints (parameters and return types)",
+]
+
+tags = ["compliance", "constraints", "oop", "error-handling"]
+
+[scoring]
+test_file = "test_solution.py"
+ruff_rules = ["E501", "F841", "I001"]

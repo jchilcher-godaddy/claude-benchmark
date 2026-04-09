@@ -78,24 +78,28 @@ COMPRESSED_PAIRS = [
 class TestProfileDiscovery:
     """Tests for discovering the complete profile suite."""
 
-    def test_discovers_exactly_five_profiles(self):
-        """discover_profiles() finds all 5 prebuilt profiles."""
+    def test_discovers_all_profiles(self):
+        """discover_profiles() finds all prebuilt profiles."""
         profiles = discover_profiles(PROFILES_DIR)
-        assert len(profiles) == 5, (
-            f"Expected 5 profiles, found {len(profiles)}: "
+        assert len(profiles) == 10, (
+            f"Expected 10 profiles, found {len(profiles)}: "
             f"{[p.slug for p in profiles]}"
         )
 
     def test_all_expected_names_present(self):
-        """All 5 expected profile names are discovered."""
+        """All expected profile names are discovered."""
         profiles = discover_profiles(PROFILES_DIR)
         slugs = {p.slug for p in profiles}
-        expected_slugs = {"empty", "large-readable", "large-compressed",
-                          "typical-readable", "typical-compressed"}
+        expected_slugs = {
+            "empty", "large-readable", "large-compressed",
+            "typical-readable", "typical-compressed",
+            "anti-pattern", "judge-aligned", "micro-quality",
+            "refactor-aware", "workflow",
+        }
         assert slugs == expected_slugs
 
     def test_name_uniqueness(self):
-        """All 5 profiles have unique slugs (no duplicates)."""
+        """All profiles have unique slugs (no duplicates)."""
         profiles = discover_profiles(PROFILES_DIR)
         slugs = [p.slug for p in profiles]
         assert len(slugs) == len(set(slugs)), f"Duplicate slugs found: {slugs}"
@@ -111,13 +115,13 @@ class TestVariantDistribution:
         assert len(baselines) == 1
         assert baselines[0].slug == "empty"
 
-    def test_two_readable(self):
-        """Exactly 2 readable variants exist."""
+    def test_readable_variants(self):
+        """All readable variant profiles are discovered."""
         profiles = discover_profiles(PROFILES_DIR)
         readables = [p for p in profiles if p.metadata.variant == "readable"]
-        assert len(readables) == 2
+        assert len(readables) == 7
         readable_slugs = {p.slug for p in readables}
-        assert readable_slugs == {"large-readable", "typical-readable"}
+        assert {"large-readable", "typical-readable"}.issubset(readable_slugs)
 
     def test_two_compressed(self):
         """Exactly 2 compressed variants exist."""

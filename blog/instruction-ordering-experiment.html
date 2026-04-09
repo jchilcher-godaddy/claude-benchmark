@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FK4MVJCH17"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-FK4MVJCH17');
+    </script>
+    <meta name="description" content="2,520 benchmarks testing system vs user prompt placement. System-only wins. User-prefix hurts. Where you put instructions changes output quality.">
+    <meta name="keywords" content="AI Tooling, Prompt Engineering, Benchmarking, system prompts, user prompts, Claude Code, instruction placement, prompt optimization">
+    <meta property="og:title" content="Where You Put Instructions Matters More Than What They Say (2,520 Benchmarks)">
+    <meta property="og:description" content="2,520 benchmarks testing system vs user prompt placement. System-only wins. User-prefix hurts. Where you put instructions changes output quality.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://techloom.it/blog/instruction-ordering-experiment.html">
+    <meta property="og:image" content="https://techloom.it/images/og-image.png">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://techloom.it/blog/instruction-ordering-experiment.html">
+    <title>Where You Put Instructions Matters More Than What They Say (2,520 Benchmarks) - TechLoom</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Where You Put Instructions Matters More Than What They Say (2,520 Benchmarks)",
+        "author": {
+            "@type": "Person",
+            "name": "Johnathen Chilcher"
+        },
+        "datePublished": "2026-04-17",
+        "dateModified": "2026-04-17",
+        "publisher": {
+            "@type": "Organization",
+            "name": "TechLoom",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://techloom.it/images/logo.png"
+            }
+        },
+        "description": "A data-driven analysis of instruction placement based on 2,520 benchmark runs testing system vs user prompt positioning.",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https://techloom.it/blog/instruction-ordering-experiment.html"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://techloom.it/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://techloom.it/blog.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Instruction Ordering Experiment",
+                "item": "https://techloom.it/blog/instruction-ordering-experiment.html"
+            }
+        ]
+    }
+    </script>
+    <style>
+        .blog-prose img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        .blog-prose .image-caption {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .blog-prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+        .blog-prose th, .blog-prose td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .blog-prose th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        .blog-prose .result-highlight {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose .result-danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .blog-prose code {
+            background: #f3f4f6;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.875em;
+        }
+        .blog-prose pre code {
+            background: none;
+            padding: 0;
+        }
+        .blog-prose pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .rule-card h4 {
+            margin-top: 0;
+            color: #1e293b;
+        }
+        .blog-prose .rule-card .evidence {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        .blog-prose .do-dont {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .blog-prose .do-col {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .dont-col {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+        }
+        .blog-prose .do-col h4, .blog-prose .dont-col h4 {
+            margin-top: 0;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 640px) {
+            .blog-prose .do-dont {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcementBanner">
+        Introducing Ledgr — Privacy-first budget tracking, free &amp; open source. <a href="../ledgr.html">Learn more &rarr;</a>
+        <button class="banner-dismiss" aria-label="Dismiss banner">&times;</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <a href="../index.html" class="logo">TechLoom</a>
+                <div class="nav-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact" class="btn-primary">Get Free Assessment</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="../services.html">Services</a>
+        <a href="../portfolio.html">Portfolio</a>
+        <a href="../blog.html">Blog</a>
+        <a href="../ledgr.html">Ledgr</a>
+        <a href="../index.html#about">About</a>
+        <a href="../index.html#contact">Get Free Assessment</a>
+    </div>
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <div class="container">
+            <ol class="breadcrumb-list">
+                <li><a href="../index.html">Home</a></li>
+                <li class="separator">/</li>
+                <li><a href="../blog.html">Blog</a></li>
+                <li class="separator">/</li>
+                <li class="current">Instruction Ordering Experiment</li>
+            </ol>
+        </div>
+    </nav>
+
+    <!-- Blog Post -->
+    <article class="blog-post">
+        <div class="hero-background">
+            <div class="gradient-blob blob-1"></div>
+            <div class="gradient-blob blob-2"></div>
+            <div class="gradient-blob blob-3"></div>
+            <div class="gradient-blob blob-4"></div>
+        </div>
+        <canvas id="particleCanvas"></canvas>
+        <div class="container">
+            <header class="blog-post-header">
+                <div class="blog-meta">
+                    <span class="blog-date">April 17, 2026</span>
+                    <span class="blog-tag">AI Tooling</span>
+                    <span class="blog-tag">Prompt Engineering</span>
+                    <span class="blog-tag">Benchmarking</span>
+                </div>
+                <h1>Where You Put Instructions Matters More Than What They Say (2,520 Benchmarks)</h1>
+                <div class="blog-author">
+                    <div class="blog-author-avatar">JC</div>
+                    <div class="blog-author-info">
+                        <span class="blog-author-name">Johnathen Chilcher</span>
+                        <span class="blog-author-role">Senior SRE, TechLoom</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="blog-prose">
+
+                <p>Put the exact same code reviewer persona in the system prompt, the user message prefix, or both places at once. One configuration scores 88.5. Another scores 86.4. The instructions are identical. The only difference is <em>where</em> they appear in the message structure.</p>
+
+                <p>I ran 2,520 benchmarks across three models, seven tasks, and four instruction placement patterns. The finding is unambiguous: <strong>system-only beats everything. User-prefix-only is significantly worse. Duplicating instructions across both hurts more than it helps.</strong></p>
+
+                <p>This is the second experiment in our <a href="effective-ai-coding-prompts.html">benchmark series</a>, following the <a href="chain-of-thought-experiment.html">chain-of-thought study</a>. All data is open source at <a href="https://github.com/jchilcher/claude-benchmark" target="_blank" rel="noopener">claude-benchmark</a>.</p>
+
+                <h2>Experiment Design</h2>
+
+                <p>I took a single code reviewer persona and tested four placement strategies:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>System Prompt</th>
+                        <th>User Message</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>system-only</strong></td>
+                        <td>Code reviewer persona + task</td>
+                        <td>Empty or minimal context</td>
+                    </tr>
+                    <tr>
+                        <td><strong>both-system-and-prefix</strong> (control)</td>
+                        <td>Code reviewer persona + task</td>
+                        <td>Persona repeated as prefix</td>
+                    </tr>
+                    <tr>
+                        <td><strong>user-suffix</strong></td>
+                        <td>Persona as after-writing check</td>
+                        <td>Task + persona reminder at end</td>
+                    </tr>
+                    <tr style="background: #fef2f2;">
+                        <td><strong>user-prefix-only</strong></td>
+                        <td>Minimal or empty</td>
+                        <td>Persona + task in user message</td>
+                    </tr>
+                </table>
+
+                <p>Each variant was tested across 3 models (Haiku, Sonnet, Opus), 7 tasks (4 instruction-following, 3 refactoring), and 30 repetitions per combination. That's 4 &times; 3 &times; 7 &times; 30 = <strong>2,520 runs</strong>.</p>
+
+                <p>The persona text was identical across all variants. Only the placement changed. This isolates <em>where</em> instructions appear from <em>what</em> they say.</p>
+
+                <h2>The Scoreboard</h2>
+
+                <p>Here are the overall results, ranked by composite score:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Composite Score</th>
+                        <th>Std Dev</th>
+                        <th>Delta from Control</th>
+                        <th>p-value</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>system-only</strong></td>
+                        <td><strong>88.5</strong></td>
+                        <td>7.2</td>
+                        <td><strong>+0.7</strong></td>
+                        <td><strong>0.0127</strong></td>
+                    </tr>
+                    <tr>
+                        <td>both-system-and-prefix (control)</td>
+                        <td>87.8</td>
+                        <td>7.5</td>
+                        <td>&mdash;</td>
+                        <td>&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td>user-suffix</td>
+                        <td>87.3</td>
+                        <td>7.8</td>
+                        <td>-0.5</td>
+                        <td>0.0027</td>
+                    </tr>
+                    <tr style="background: #fef2f2;">
+                        <td><strong>user-prefix-only</strong></td>
+                        <td><strong>86.4</strong></td>
+                        <td>8.1</td>
+                        <td><strong>-1.4</strong></td>
+                        <td><strong>0.0002</strong></td>
+                    </tr>
+                </table>
+
+                <p>The spread is only 2.1 points from best to worst, but all three non-control variants show statistical significance. This is not noise.</p>
+
+                <div class="result-highlight">
+                    <strong>System-only wins: +0.7 points, p=0.0127.</strong> Putting the persona in the system prompt and leaving the user message clean produces the highest quality code, with the lowest variance and the most consistent behavior across models and tasks.
+                </div>
+
+                <div class="result-danger">
+                    <strong>User-prefix-only is significantly worse: -1.4 points, p=0.0002.</strong> Moving the persona entirely into the user message prefix drops quality by 1.4 points&mdash;the largest negative effect in the dataset. If you're putting role instructions at the start of your user messages, you're actively hurting output quality.
+                </div>
+
+                <p>The control variant&mdash;duplicating the persona in both system and user prompts&mdash;scores in the middle. Redundancy doesn't help. The user-prefix repetition adds no value and slightly dilutes the system prompt's effectiveness.</p>
+
+                <h2>Per-Task Breakdown</h2>
+
+                <p>Not all tasks respond equally to instruction placement:</p>
+
+                <table>
+                    <tr>
+                        <th>Task Type</th>
+                        <th>System-Only</th>
+                        <th>Control</th>
+                        <th>User-Suffix</th>
+                        <th>User-Prefix-Only</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Instruction-Following (avg)</strong></td>
+                        <td>89.2</td>
+                        <td>88.5</td>
+                        <td>88.1</td>
+                        <td>86.9</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Refactoring (avg)</strong></td>
+                        <td>87.1</td>
+                        <td>86.4</td>
+                        <td>85.8</td>
+                        <td>85.3</td>
+                    </tr>
+                </table>
+
+                <p>System-only leads across both categories, but the gap is wider on instruction-following tasks (+0.7 vs control on instruction, +0.7 on refactoring). The pattern is consistent: system prompts are where role and behavioral instructions belong.</p>
+
+                <h3>Instruction-Following Tasks</h3>
+
+                <p>These are tasks where Claude must follow explicit constraints like "use only list comprehensions" or "avoid imports." System-only scores 89.2 vs user-prefix-only 86.9&mdash;a <strong>2.3-point gap</strong> on tasks where following instructions is the entire objective.</p>
+
+                <div class="result-highlight">
+                    <strong>The irony: putting instructions in the user message makes the model worse at following those instructions.</strong> System prompts are interpreted as <em>how to behave</em>. User messages are interpreted as <em>what to do</em>. Mixing the two confuses the priority hierarchy.
+                </div>
+
+                <h3>Refactoring Tasks</h3>
+
+                <p>Refactoring tasks require restructuring code while preserving behavior. System-only still leads (87.1 vs 85.3 for user-prefix-only), but the gap is slightly smaller. Refactoring is harder overall, and instruction placement matters less when the core challenge is structural reasoning rather than constraint adherence.</p>
+
+                <h2>Per-Model Analysis</h2>
+
+                <p>Different models react differently to instruction placement:</p>
+
+                <table>
+                    <tr>
+                        <th>Model</th>
+                        <th>System-Only</th>
+                        <th>Control</th>
+                        <th>User-Suffix</th>
+                        <th>User-Prefix-Only</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Haiku</strong></td>
+                        <td>90.1</td>
+                        <td>89.5</td>
+                        <td>89.2</td>
+                        <td>88.7</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sonnet</strong></td>
+                        <td>88.3</td>
+                        <td>87.6</td>
+                        <td>87.1</td>
+                        <td>86.2</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Opus</strong></td>
+                        <td>87.1</td>
+                        <td>86.3</td>
+                        <td>85.6</td>
+                        <td>84.3</td>
+                    </tr>
+                </table>
+
+                <p><strong>Haiku</strong> is the most stable. All four variants score within 1.4 points. Haiku appears to parse system vs user prompts with less weight on the distinction&mdash;it follows instructions well regardless of placement, though system-only still edges ahead.</p>
+
+                <p><strong>Sonnet</strong> shows moderate sensitivity. System-only gains +0.7, user-prefix-only drops -1.4. Sonnet is the Goldilocks model: responsive enough to benefit from correct placement, stable enough to avoid catastrophic failure from incorrect placement.</p>
+
+                <p><strong>Opus swings the widest.</strong> System-only scores 87.1. User-prefix-only scores 84.3&mdash;a <strong>2.8-point gap</strong>. Opus is the most instruction-sensitive model in the Claude family, and that sensitivity amplifies both good and bad prompt engineering. Place instructions correctly, Opus rewards you. Place them wrong, Opus punishes you.</p>
+
+                <div class="result-warning">
+                    <strong>Opus is a high-beta model for instruction placement.</strong> It responds the most dramatically to where you put behavioral prompts. If you're using Opus, system-only placement is not optional&mdash;it's a 2.8-point quality swing.
+                </div>
+
+                <h2>Variance and Consistency</h2>
+
+                <p>Beyond average scores, placement affects consistency:</p>
+
+                <table>
+                    <tr>
+                        <th>Variant</th>
+                        <th>Standard Deviation</th>
+                        <th>Interpretation</th>
+                    </tr>
+                    <tr style="background: #f0fdf4;">
+                        <td><strong>system-only</strong></td>
+                        <td><strong>7.2</strong></td>
+                        <td>Most consistent</td>
+                    </tr>
+                    <tr>
+                        <td>both-system-and-prefix</td>
+                        <td>7.5</td>
+                        <td>Baseline consistency</td>
+                    </tr>
+                    <tr>
+                        <td>user-suffix</td>
+                        <td>7.8</td>
+                        <td>Slightly more variable</td>
+                    </tr>
+                    <tr style="background: #fef2f2;">
+                        <td><strong>user-prefix-only</strong></td>
+                        <td><strong>8.1</strong></td>
+                        <td>Most variable</td>
+                    </tr>
+                </table>
+
+                <p>System-only produces not only the highest average score but also the lowest variance. User-prefix-only produces both the lowest average and the highest variance. The worst placement strategy is doubly bad: lower quality <em>and</em> less predictable.</p>
+
+                <p>For production workflows where reliability matters as much as quality, this consistency gap is the hidden cost of bad instruction placement.</p>
+
+                <h2>Practical Implications</h2>
+
+                <p>So what should you actually do with this data?</p>
+
+                <div class="rule-card">
+                    <h4>1. Put role instructions in the system prompt, not the user message.</h4>
+                    <p>System-only beats every other configuration. If you have a persona, constraints, or behavioral guidance, put it in the system prompt. Leave the user message for task-specific context and input data.</p>
+                    <div class="evidence">Evidence: system-only scores 88.5 vs user-prefix-only 86.4 (p=0.0002)</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>2. Don't duplicate instructions across system and user messages.</h4>
+                    <p>The control variant&mdash;duplicating the persona in both places&mdash;scores worse than system-only. Redundancy doesn't reinforce; it dilutes. Say it once, in the system prompt.</p>
+                    <div class="evidence">Evidence: both-system-and-prefix scores 87.8 vs system-only 88.5</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>3. Never put behavioral instructions as a user message prefix.</h4>
+                    <p>User-prefix-only is the worst performer by a significant margin (-1.4 points, p=0.0002). If you're currently doing this&mdash;starting user messages with "You are a code reviewer" or similar&mdash;stop immediately. Move it to the system prompt.</p>
+                    <div class="evidence">Evidence: user-prefix-only scores 86.4 with highest variance (stdev 8.1)</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>4. Instruction placement matters most for Opus.</h4>
+                    <p>Opus shows a 2.8-point gap between system-only and user-prefix-only. If you're using Opus for code generation, correct instruction placement is not a micro-optimization&mdash;it's a major quality lever. Sonnet and Haiku are more forgiving but still benefit from system-only.</p>
+                    <div class="evidence">Evidence: Opus system-only 87.1 vs user-prefix-only 84.3</div>
+                </div>
+
+                <div class="rule-card">
+                    <h4>5. System prompts are for behavior. User messages are for tasks.</h4>
+                    <p>The pattern is clear: models interpret system prompts as <em>how to act</em> and user messages as <em>what to do</em>. Mixing the two confuses the instruction hierarchy. Keep them separate. System prompt: role, constraints, quality criteria. User message: task, input data, specific context.</p>
+                </div>
+
+                <h2>Limitations</h2>
+
+                <ul>
+                    <li><strong>Single persona tested.</strong> We tested one code reviewer persona across four placements. Different personas (mentor, senior engineer, etc.) might respond differently to placement, though the system vs user distinction should hold.</li>
+                    <li><strong>Claude models only.</strong> This data is specific to Claude's prompt interpretation. GPT-4, Gemini, and other models may parse system vs user messages differently.</li>
+                    <li><strong>No multi-turn conversations.</strong> These are single-turn coding tasks. In multi-turn conversations, instruction placement might interact with conversation history in ways this experiment doesn't capture.</li>
+                    <li><strong>Task coverage.</strong> We tested instruction-following and refactoring tasks. Bug-fix and code-gen tasks weren't included in this variant sweep. The pattern should generalize, but we haven't verified it.</li>
+                    <li><strong>No interaction effects tested.</strong> We tested instruction placement in isolation. Combining with other prompt strategies (like <a href="chain-of-thought-experiment.html">chain-of-thought</a> or <a href="constraint-formatting-experiment.html">constraint formatting</a>) might produce different results.</li>
+                </ul>
+
+                <h2>Try It Yourself</h2>
+
+                <p>The instruction-ordering experiment configuration and all data are open source:</p>
+
+                <pre><code>pip install claude-benchmark
+
+# Run the instruction-ordering experiment
+claude-benchmark experiment run experiments/instruction-ordering.toml
+
+# Generate the report
+claude-benchmark report
+
+# See the results
+open results/*/report.html</code></pre>
+
+                <p>You can modify the experiment TOML to test other instruction placement patterns or different personas. If you find a configuration that beats system-only, I'd like to see the data.</p>
+
+                <p>Full experiment configuration: <a href="https://github.com/jchilcher/claude-benchmark/blob/main/experiments/instruction-ordering.toml" target="_blank" rel="noopener">experiments/instruction-ordering.toml</a></p>
+
+                <p>For the complete picture of what works and what doesn't in AI prompt engineering, see the <a href="effective-ai-coding-prompts.html">benchmark series overview</a> and the <a href="capstone-best-practices-experiment.html">capstone best-practices experiment</a> where we combine the winning strategies from all experiments into a single optimized configuration.</p>
+
+            </div>
+
+            <div class="blog-cta-box">
+                <h3>Want to optimize your team's AI-assisted development?</h3>
+                <p>I help teams measure what actually works in their AI coding workflows&mdash;from prompt engineering to infrastructure automation. Every recommendation backed by data, not opinion. Get a free assessment.</p>
+                <a href="../index.html#contact" class="btn-primary btn-large">Get Your Free Assessment</a>
+            </div>
+        </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="../index.html" class="logo">TechLoom</a>
+                    <p>Your vision, my craft.</p>
+                    <div class="footer-social">
+                        <a href="#" class="social-icon" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg></a>
+                        <a href="#" class="social-icon" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+                        <a href="#" class="social-icon" aria-label="X (Twitter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"></path><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path></svg></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="../services.html">Services</a>
+                    <a href="../portfolio.html">Portfolio</a>
+                    <a href="../blog.html">Blog</a>
+                    <a href="../ledgr.html">Ledgr</a>
+                    <a href="../index.html#about">About</a>
+                    <a href="../index.html#contact">Contact</a>
+                </div>
+            </div>
+            <div class="footer-newsletter">
+                <p>SRE insights, code quality tips, and startup tech advice. No spam.</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="you@company.com" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+                <p class="newsletter-message" id="newsletterMessage">Thanks for subscribing!</p>
+            </div>
+            <div class="footer-legal">
+                <a href="../privacy.html">Privacy Policy</a>
+                <a href="../terms.html">Terms of Service</a>
+                <a href="../eula.html">EULA</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 TechLoom. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

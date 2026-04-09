@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cross-Run Comparison Report</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #1a202c; background: #f7fafc; }
+h2 { margin-bottom: 1rem; color: #2d3748; }
+h3 { margin-bottom: 0.5rem; color: #4a5568; }
+section { scroll-margin-top: 1rem; }
+
+.sidebar { position: fixed; left: 0; top: 0; width: 220px; height: 100vh; background: #1a1a2e; color: #e0e0e0; padding: 1rem; overflow-y: auto; z-index: 100; }
+.sidebar h1 { font-size: 1rem; margin-bottom: 1rem; color: #ffffff; font-weight: 600; }
+.sidebar a { color: #a0d2ff; text-decoration: none; display: block; padding: 0.4rem 0; font-size: 0.9rem; }
+.sidebar a:hover { color: #ffffff; }
+
+.main { margin-left: 220px; padding: 1.5rem; }
+
+.header-banner { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.header-banner h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+.header-banner .subtitle { font-size: 0.9rem; opacity: 0.9; }
+
+.metadata-banner { background: #f0f4f8; border-radius: 8px; padding: 1rem 1.5rem; display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 1.5rem; border: 1px solid #e2e8f0; }
+.metadata-banner .meta-item { display: flex; flex-direction: column; }
+.metadata-banner .meta-label { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; }
+.metadata-banner .meta-value { font-size: 1.1rem; font-weight: 600; color: #2d3748; }
+
+.summary-highlights { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.summary-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.summary-card .card-label { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+.summary-card .card-value { font-size: 1.5rem; font-weight: 700; color: #2d3748; }
+.summary-card .card-detail { font-size: 0.85rem; color: #718096; margin-top: 0.25rem; }
+
+.run-overview-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 0.9rem; background: #ffffff; border-radius: 8px; overflow: hidden; }
+.run-overview-table th, .run-overview-table td { padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; text-align: left; }
+.run-overview-table th { background: #f7fafc; font-weight: 600; color: #4a5568; }
+.run-overview-table tbody tr:hover { background: #f9fafb; }
+
+.comparison-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 0.9rem; background: #ffffff; }
+.comparison-table th, .comparison-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #e2e8f0; text-align: left; }
+.comparison-table th { background: #f7fafc; font-weight: 600; color: #4a5568; position: sticky; top: 0; z-index: 10; }
+.comparison-table tbody tr:hover { background: #f9fafb; }
+
+.chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+.chart-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+.section-guide { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.9rem; color: #1e40af; border-radius: 0 6px 6px 0; }
+
+.insight-callout { background: #f0fdf4; border-left: 4px solid #16a34a; padding: 0.6rem 1rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: #166534; border-radius: 0 6px 6px 0; }
+
+.llm-summary-callout { background: #f5f3ff; border-left: 4px solid #7c3aed; padding: 1rem 1.25rem; margin-bottom: 1rem; border-radius: 0 6px 6px 0; }
+.llm-summary-callout p { font-size: 0.9rem; color: #3b0764; margin-bottom: 0.75rem; line-height: 1.7; }
+.llm-summary-callout p:last-of-type { margin-bottom: 0.5rem; }
+.llm-summary-attribution { font-size: 0.75rem; color: #9ca3af; font-style: italic; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e5e7eb; }
+
+.sig-yes { color: #16a34a; font-weight: 700; }
+.sig-no { color: #94a3b8; }
+.delta-positive { color: #16a34a; }
+.delta-negative { color: #dc2626; }
+
+.tag-badge { display: inline-block; background: #e0e7ff; color: #4338ca; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-right: 0.25rem; }
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .chart-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <h1>Comparison Report</h1>
+  <a href="#overview">Run Overview</a>
+  <a href="#executive-summary">Executive Summary</a>
+  <a href="#insights">Key Insights</a>
+  <a href="#overlap">Overlap Summary</a>
+  <a href="#comparison-table">Score Comparison</a>
+  <a href="#charts">Charts</a>
+  <a href="#statistical">Statistical Details</a>
+  <a href="#unique">Unique Combinations</a>
+</nav>
+
+<main class="main">
+  <div class="header-banner">
+    <h1>Cross-Run Comparison Report</h1>
+    <div class="subtitle">Generated on {{ generated_date }}</div>
+  </div>
+
+  {# Run Overview #}
+  <section id="overview">
+    <h2>Run Overview</h2>
+    <div class="section-guide">Comparing {{ entry_summaries | length }} benchmark run{{ 's' if entry_summaries | length != 1 else '' }}.</div>
+    <div class="chart-card">
+      <table class="run-overview-table">
+        <thead>
+          <tr>
+            <th>Run Name</th>
+            <th>Date</th>
+            <th>Tags</th>
+            <th>Models</th>
+            <th>Profiles</th>
+            <th>Tasks</th>
+            <th>Total Runs</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in entry_summaries %}
+          <tr>
+            <td style="font-weight:600">{{ entry.name }}</td>
+            <td>{{ entry.timestamp }}</td>
+            <td>
+              {% if entry.tags %}
+                {% for tag in entry.tags %}
+                <span class="tag-badge">{{ tag }}</span>
+                {% endfor %}
+              {% else %}
+                <span style="color:#94a3b8">–</span>
+              {% endif %}
+            </td>
+            <td>{{ entry.models | length if entry.models else 0 }}</td>
+            <td>{{ entry.profiles | length if entry.profiles else 0 }}</td>
+            <td>{{ entry.tasks | length if entry.tasks else 0 }}</td>
+            <td>{{ entry.total_runs }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# Executive Summary #}
+  {% if summary %}
+  <section id="executive-summary">
+    <h2>Executive Summary</h2>
+    <div class="summary-highlights">
+      <div class="summary-card">
+        <div class="card-label">Best Run</div>
+        <div class="card-value">{{ summary.best_run }}</div>
+        <div class="card-detail">Score: {{ summary.best_score }}</div>
+      </div>
+      <div class="summary-card">
+        <div class="card-label">Worst Run</div>
+        <div class="card-value">{{ summary.worst_run }}</div>
+        <div class="card-detail">Score: {{ summary.worst_score }}</div>
+      </div>
+      <div class="summary-card">
+        <div class="card-label">Score Spread</div>
+        <div class="card-value {% if summary.spread > 0 %}delta-positive{% endif %}">
+          {{ summary.spread }} pts
+        </div>
+        <div class="card-detail">Across {{ summary.run_count }} runs</div>
+      </div>
+      <div class="summary-card">
+        <div class="card-label">Token Efficiency Winner</div>
+        <div class="card-value">{{ summary.efficiency_winner }}</div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {# Key Insights #}
+  {% if insights %}
+  <section id="insights">
+    <h2>Key Insights</h2>
+    {% for insight in insights %}
+    <div class="insight-callout">{{ insight }}</div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {# LLM Narrative #}
+  {% if llm_summary_text %}
+  <div class="llm-summary-callout">
+    {% for para in llm_summary_text.split('\n\n') %}
+    <p>{{ para }}</p>
+    {% endfor %}
+    <div class="llm-summary-attribution">Generated by Claude (LLM narrative summary)</div>
+  </div>
+  {% endif %}
+
+  {# Overlap Summary #}
+  <section id="overlap">
+    <h2>Overlap Summary</h2>
+    <div class="summary-highlights">
+      <div class="summary-card">
+        <div class="card-label">Overlapping Combinations</div>
+        <div class="card-value">{{ overlap_count }}</div>
+        <div class="card-detail">Common (model, profile, task) across all runs</div>
+      </div>
+      {% for run_id, count in unique_counts.items() %}
+      <div class="summary-card">
+        <div class="card-label">Unique to {{ entry_summaries | selectattr('run_id', 'equalto', run_id) | map(attribute='name') | first }}</div>
+        <div class="card-value">{{ count }}</div>
+        <div class="card-detail">Combinations not in other runs</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  {# Score Comparison Table #}
+  <section id="comparison-table">
+    <h2>Score Comparison Table</h2>
+    <div class="section-guide">Direct comparison of mean scores for overlapping combinations. Green checkmark indicates statistically significant difference (p &lt; 0.05).</div>
+    {% if comparison_table %}
+    <div class="chart-card" style="overflow-x:auto">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Key (Model/Profile/Task)</th>
+            <th>Dimension</th>
+            <th>{{ comparison_table[0].run_a_name if comparison_table else 'Run A' }}</th>
+            <th>{{ comparison_table[0].run_b_name if comparison_table else 'Run B' }}</th>
+            <th>Delta %</th>
+            <th>p-value</th>
+            <th>Significant?</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in comparison_table %}
+          <tr>
+            <td style="font-family:monospace;font-size:0.85rem">{{ row.key }}</td>
+            <td>{{ dim_labels.get(row.dimension, row.dimension.replace("_", " ")|title) }}</td>
+            <td>{{ '%.1f'|format(row.run_a_mean) }}</td>
+            <td>{{ '%.1f'|format(row.run_b_mean) }}</td>
+            <td class="{% if '+' in row.delta_pct %}delta-positive{% else %}delta-negative{% endif %}">
+              {{ row.delta_pct }}
+            </td>
+            <td>{{ '%.4f'|format(row.p_value) }}</td>
+            <td class="{% if row.is_significant %}sig-yes{% else %}sig-no{% endif %}">
+              {{ row.significance_badge | safe }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color:#718096">No comparison data available.</p>
+    {% endif %}
+  </section>
+
+  {# Charts Section #}
+  <section id="charts">
+    <h2>Charts</h2>
+    <div class="section-guide">Visual comparison of scores across runs.</div>
+
+    {# Radar Chart #}
+    <div class="chart-card" style="margin-bottom:1.5rem">
+      <canvas id="radar-aggregate" width="400" height="400"></canvas>
+    </div>
+
+    {# Grouped Bar Charts per Dimension #}
+    {% for dim, comparisons in grouped_comparisons.items() %}
+    <div class="chart-card" style="margin-bottom:1.5rem">
+      <h3>{{ dim_labels.get(dim, dim.replace("_", " ")|title) }}</h3>
+      <div style="height:350px">
+        <canvas id="bar-{{ dim }}" style="width:100%;height:100%"></canvas>
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
+  {# Statistical Details #}
+  <section id="statistical">
+    <h2>Statistical Details</h2>
+    <div class="section-guide">Full pairwise comparison statistics with effect sizes and test information.</div>
+    {% if comparison_table %}
+    <div class="chart-card" style="overflow-x:auto">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Dimension</th>
+            <th>Run A</th>
+            <th>Mean A</th>
+            <th>Run B</th>
+            <th>Mean B</th>
+            <th>Delta</th>
+            <th>Delta %</th>
+            <th>p-value</th>
+            <th>Effect</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in comparison_table %}
+          <tr>
+            <td style="font-family:monospace;font-size:0.8rem">{{ row.key }}</td>
+            <td>{{ dim_labels.get(row.dimension, row.dimension.replace("_", " ")|title) }}</td>
+            <td>{{ row.run_a_name }}</td>
+            <td>{{ '%.2f'|format(row.run_a_mean) }}</td>
+            <td>{{ row.run_b_name }}</td>
+            <td>{{ '%.2f'|format(row.run_b_mean) }}</td>
+            <td class="{% if row.run_b_mean > row.run_a_mean %}delta-positive{% elif row.run_b_mean < row.run_a_mean %}delta-negative{% endif %}">
+              {{ '%+.2f'|format(row.run_b_mean - row.run_a_mean) }}
+            </td>
+            <td class="{% if '+' in row.delta_pct %}delta-positive{% else %}delta-negative{% endif %}">
+              {{ row.delta_pct }}
+            </td>
+            <td>{{ '%.4f'|format(row.p_value) }}</td>
+            <td style="font-size:0.82rem">{{ row.effect_label }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color:#718096">No statistical comparison data available.</p>
+    {% endif %}
+  </section>
+
+  {# Unique Combinations #}
+  <section id="unique">
+    <h2>Unique Combinations</h2>
+    <div class="section-guide">Combinations tested in one run but not in others.</div>
+    {% for entry in entry_summaries %}
+    {% set run_id = entry.run_id %}
+    {% set unique_count = unique_counts.get(run_id, 0) %}
+    {% if unique_count > 0 %}
+    <div class="chart-card" style="margin-bottom:1rem">
+      <h3>{{ entry.name }}</h3>
+      <p style="color:#718096">{{ unique_count }} unique combination{{ 's' if unique_count != 1 else '' }} not present in other runs.</p>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </section>
+</main>
+
+<script>{{ chartjs_source | safe }}</script>
+
+<script>
+const CHART_CONFIGS = {{ chart_configs_json | safe }};
+
+document.addEventListener("DOMContentLoaded", function() {
+  for (const [canvasId, config] of Object.entries(CHART_CONFIGS)) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) continue;
+    new Chart(canvas.getContext("2d"), config);
+  }
+});
+</script>
+
+</body>
+</html>

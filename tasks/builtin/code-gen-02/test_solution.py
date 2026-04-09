@@ -50,3 +50,29 @@ def test_tiebreaking_alphabetical():
 def test_average_word_length():
     result = analyze_text("Hi hello world.")
     assert result["average_word_length"] == 4.0
+
+
+def test_unicode_accented():
+    result = analyze_text("cafe resume naive.")
+    assert result["word_count"] == 3
+    assert result["sentence_count"] == 1
+
+
+def test_only_punctuation():
+    result = analyze_text("... !!! ???")
+    assert result["word_count"] == 0
+    assert result["sentence_count"] >= 0
+    assert result["average_word_length"] == 0.0
+
+
+def test_single_character():
+    result = analyze_text("I.")
+    assert result["word_count"] == 1
+    assert result["average_word_length"] == 1.0
+
+
+def test_very_long_word():
+    long_word = "a" * 1000
+    result = analyze_text(f"{long_word} short.")
+    assert result["word_count"] == 2
+    assert result["average_word_length"] == 502.5

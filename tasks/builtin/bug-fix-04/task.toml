@@ -1,0 +1,37 @@
+name = "bug-fix-04"
+task_type = "bug-fix"
+difficulty = "medium"
+size = "module"
+description = "Fix SQL injection vulnerabilities and logic bugs in a query builder"
+starter_code = "starter.py"
+expected_files = ["solution.py"]
+
+prompt = """
+The file `starter.py` contains a `QueryBuilder` class for constructing SQL SELECT queries.
+It has several security vulnerabilities and logic bugs:
+
+1. SQL injection via string interpolation in where clauses
+2. Missing column-name validation in order_by() allowing injection
+3. No table/column name whitelist validation
+4. Multiple where() calls overwrite previous conditions instead of AND-chaining
+
+Fix all issues. The QueryBuilder should:
+- Use parameterized queries: build() returns (sql_string, params_list)
+- Validate table and column names against a whitelist passed to __init__
+- Chain multiple where() calls with AND
+- Raise ValueError for invalid table/column names or empty queries
+
+Save your corrected solution as `solution.py`.
+"""
+
+tags = ["security", "sql", "debugging", "input-validation"]
+
+[scoring]
+test_file = "test_solution.py"
+reference_solution = "reference.py"
+ruff_rules = ["E501", "F841", "I001"]
+
+[scoring.weight_override]
+test_pass_rate = 0.60
+lint_score = 0.25
+complexity_score = 0.15
