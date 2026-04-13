@@ -1,0 +1,52 @@
+name = "static-vs-dynamic-context"
+description = """Hypothesis: Task-relevant context injected per-turn outperforms static boilerplate \
+instructions, even at the same token count. Inspired by the Claude Code source leak revealing that \
+UserPromptSubmit hooks can inject dynamic additionalContext per message. Our r=-0.95 finding between \
+token count and quality may be specific to static/generic instructions. Context that is directly \
+relevant to the current task type might have a positive or neutral token/quality correlation, inverting \
+the 'less is more' effect. Tests static-generic vs. static-task-typed vs. task-specific context."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Bare baseline (no extra context) ---
+[[variants]]
+label = "bare"
+
+# --- Static generic: ~50 tokens of boilerplate coding guidelines ---
+[[variants]]
+label = "static-generic"
+prompt_prefix = "Use type hints on all parameters and returns. Handle edge cases explicitly. Write clean, well-structured code. Validate inputs at function boundaries. Keep functions focused on a single responsibility. "
+
+# --- Static task-type-relevant: bug-fix specific guidance (applied to ALL tasks) ---
+# This tests whether task-type-specific guidance helps even when mismatched to some tasks
+[[variants]]
+label = "static-bugfix-guidance"
+prompt_prefix = "Trace the root cause before applying a fix. Verify the fix handles the original failing case. Check that the fix doesn't break adjacent functionality. Test boundary conditions. Preserve existing behavior for valid inputs. "
+
+# --- Static task-type-relevant: code-gen specific guidance (applied to ALL tasks) ---
+[[variants]]
+label = "static-codegen-guidance"
+prompt_prefix = "Design the function signature and return type first. Handle all edge cases including empty input, None, and boundary values. Write the implementation to be easily testable. Use clear variable names that reveal intent. "
+
+# --- Static task-type-relevant: refactor specific guidance (applied to ALL tasks) ---
+[[variants]]
+label = "static-refactor-guidance"
+prompt_prefix = "Preserve all existing behavior exactly. Simplify complex conditionals. Extract repeated logic into well-named helpers. Reduce cyclomatic complexity. Improve naming without changing the public API. "
+
+# --- Matched task-type guidance: each task type gets its own relevant guidance ---
+# code-gen tasks get codegen guidance, bug-fix tasks get bugfix guidance, etc.
+# Note: This uses prompt_prefix which applies uniformly. To truly match per-task,
+# the framework would need per-task prefix support. As a proxy, we use guidance
+# that is broadly relevant across task types.
+[[variants]]
+label = "adaptive-general"
+prompt_prefix = "Consider what type of task this is. For new code: design the signature first, handle all edge cases. For bug fixes: trace the root cause before fixing. For refactoring: preserve existing behavior exactly. For instruction-following: re-read the requirements before finalizing. "

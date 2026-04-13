@@ -1,0 +1,178 @@
+name = "instruction-position-in-claudemd"
+description = """Hypothesis: Critical instructions placed at the beginning of CLAUDE.md have higher \
+compliance than identical instructions buried at the end, due to primacy effects in the section-based \
+system prompt. The leaked Claude Code source reveals CLAUDE.md is one section among 11 layers \
+(tool definitions, environment info, reminders, etc.), reloaded every turn. Instructions at the top \
+of the CLAUDE.md section may receive more attention than those buried after 50+ lines of filler. \
+Tests primacy vs. recency vs. reinforcement at constant total token count."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Critical instruction only (ceiling control) ---
+[[variants]]
+label = "critical-only"
+system_prompt_extra = "Always use type hints on all function parameters and return types. Raise ValueError with a descriptive message for any invalid input."
+
+# --- Critical instruction at top, followed by 50 lines of filler guidelines ---
+[[variants]]
+label = "critical-at-top"
+system_prompt_extra = """Always use type hints on all function parameters and return types. Raise ValueError with a descriptive message for any invalid input.
+
+Code Style:
+- Use descriptive variable names that reveal intent
+- Write Google-style docstrings for all public functions and classes
+- Use early returns to reduce nesting depth
+- 100 character max line length
+- Use trailing commas in multi-line collections
+- Group imports: stdlib, third-party, local (blank line separated)
+- One blank line between functions, two between top-level definitions
+
+Naming Conventions:
+- snake_case for variables, functions, and modules
+- PascalCase for classes and type aliases
+- UPPER_SNAKE_CASE for constants
+- Prefix booleans with is_, has_, can_, should_
+- Use verbs for functions (get_user, validate_input, parse_response)
+- Use nouns for classes (UserManager, ResponseParser, ConfigLoader)
+- Avoid abbreviations unless universally understood (url, id, config)
+
+Architecture:
+- Keep functions focused on a single responsibility
+- Prefer composition over inheritance
+- Design to interfaces, not implementations
+- Explicit dependency injection over global state
+- Prefer readability over cleverness
+- Handle edge cases explicitly
+- No premature optimization
+- Separate pure logic from side effects
+
+Testing Considerations:
+- Write code that is easy to test (pure functions where possible)
+- Keep side effects at the edges of the system
+- Use dependency injection for testability
+- Return values rather than modifying state in place
+- Each function should have a clear contract
+
+Documentation:
+- Comments explain WHY, not WHAT
+- Document non-obvious design decisions
+- Module-level docstrings explaining purpose and usage
+
+Performance:
+- Use generators for large sequences
+- Avoid unnecessary copies of large data structures
+- Use appropriate data structures (set for membership, dict for lookup)
+- Profile before optimizing"""
+
+# --- 50 lines of filler guidelines, then critical instruction at bottom ---
+[[variants]]
+label = "critical-at-bottom"
+system_prompt_extra = """Code Style:
+- Use descriptive variable names that reveal intent
+- Write Google-style docstrings for all public functions and classes
+- Use early returns to reduce nesting depth
+- 100 character max line length
+- Use trailing commas in multi-line collections
+- Group imports: stdlib, third-party, local (blank line separated)
+- One blank line between functions, two between top-level definitions
+
+Naming Conventions:
+- snake_case for variables, functions, and modules
+- PascalCase for classes and type aliases
+- UPPER_SNAKE_CASE for constants
+- Prefix booleans with is_, has_, can_, should_
+- Use verbs for functions (get_user, validate_input, parse_response)
+- Use nouns for classes (UserManager, ResponseParser, ConfigLoader)
+- Avoid abbreviations unless universally understood (url, id, config)
+
+Architecture:
+- Keep functions focused on a single responsibility
+- Prefer composition over inheritance
+- Design to interfaces, not implementations
+- Explicit dependency injection over global state
+- Prefer readability over cleverness
+- Handle edge cases explicitly
+- No premature optimization
+- Separate pure logic from side effects
+
+Testing Considerations:
+- Write code that is easy to test (pure functions where possible)
+- Keep side effects at the edges of the system
+- Use dependency injection for testability
+- Return values rather than modifying state in place
+- Each function should have a clear contract
+
+Documentation:
+- Comments explain WHY, not WHAT
+- Document non-obvious design decisions
+- Module-level docstrings explaining purpose and usage
+
+Performance:
+- Use generators for large sequences
+- Avoid unnecessary copies of large data structures
+- Use appropriate data structures (set for membership, dict for lookup)
+- Profile before optimizing
+
+Always use type hints on all function parameters and return types. Raise ValueError with a descriptive message for any invalid input."""
+
+# --- Critical instruction at both top AND bottom (reinforcement) ---
+[[variants]]
+label = "critical-at-both"
+system_prompt_extra = """Always use type hints on all function parameters and return types. Raise ValueError with a descriptive message for any invalid input.
+
+Code Style:
+- Use descriptive variable names that reveal intent
+- Write Google-style docstrings for all public functions and classes
+- Use early returns to reduce nesting depth
+- 100 character max line length
+- Use trailing commas in multi-line collections
+- Group imports: stdlib, third-party, local (blank line separated)
+- One blank line between functions, two between top-level definitions
+
+Naming Conventions:
+- snake_case for variables, functions, and modules
+- PascalCase for classes and type aliases
+- UPPER_SNAKE_CASE for constants
+- Prefix booleans with is_, has_, can_, should_
+- Use verbs for functions (get_user, validate_input, parse_response)
+- Use nouns for classes (UserManager, ResponseParser, ConfigLoader)
+- Avoid abbreviations unless universally understood (url, id, config)
+
+Architecture:
+- Keep functions focused on a single responsibility
+- Prefer composition over inheritance
+- Design to interfaces, not implementations
+- Explicit dependency injection over global state
+- Prefer readability over cleverness
+- Handle edge cases explicitly
+- No premature optimization
+- Separate pure logic from side effects
+
+Testing Considerations:
+- Write code that is easy to test (pure functions where possible)
+- Keep side effects at the edges of the system
+- Use dependency injection for testability
+- Return values rather than modifying state in place
+- Each function should have a clear contract
+
+Documentation:
+- Comments explain WHY, not WHAT
+- Document non-obvious design decisions
+- Module-level docstrings explaining purpose and usage
+
+Performance:
+- Use generators for large sequences
+- Avoid unnecessary copies of large data structures
+- Use appropriate data structures (set for membership, dict for lookup)
+- Profile before optimizing
+
+Always use type hints on all function parameters and return types. Raise ValueError with a descriptive message for any invalid input."""

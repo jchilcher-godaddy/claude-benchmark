@@ -1,0 +1,49 @@
+name = "context-depth-quality"
+description = """Hypothesis: Quality degrades as conversation context fills toward the compaction \
+boundary, with different degradation curves per model. The Claude Code source leak reveals 5 \
+compaction strategies and a ~167k token boundary. Our context-pollution experiment tested only \
+irrelevant random padding up to 50k. This tests quality degradation using the existing padding_tokens \
+mechanism at higher fill levels. Unlike context-pollution which proved random padding hurts, this \
+maps the degradation curve with finer granularity and includes all 3 models (context-pollution \
+showed Opus anomalously improving at 50k while Sonnet degraded)."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02",
+    "bug-fix-01", "bug-fix-02",
+    "refactor-01", "refactor-02",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Fresh context (no padding) ---
+[[variants]]
+label = "fresh"
+
+# --- Light context fill: 5k tokens ---
+[[variants]]
+label = "pad-5k"
+padding_tokens = 5000
+
+# --- Moderate context fill: 15k tokens ---
+[[variants]]
+label = "pad-15k"
+padding_tokens = 15000
+
+# --- Heavy context fill: 30k tokens ---
+[[variants]]
+label = "pad-30k"
+padding_tokens = 30000
+
+# --- Very heavy context fill: 50k tokens ---
+# Replicates context-pollution's 50k level but across all 3 models
+[[variants]]
+label = "pad-50k"
+padding_tokens = 50000
+
+# --- Extreme context fill: 80k tokens ---
+# Approaching half the default 200k window
+[[variants]]
+label = "pad-80k"
+padding_tokens = 80000

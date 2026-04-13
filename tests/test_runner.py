@@ -115,7 +115,7 @@ def make_error_result(
 def make_assistant_message(text: str = "Working on it...") -> MockAssistantMessage:
     return MockAssistantMessage(
         content=[MockTextBlock(text=text)],
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
     )
 
 

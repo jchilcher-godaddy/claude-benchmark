@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Short model name -> Bedrock cross-region model ID
 BEDROCK_MODEL_MAP: dict[str, str] = {
-    "sonnet": "us.anthropic.claude-sonnet-4-20250514-v1:0",
+    "sonnet": "us.anthropic.claude-sonnet-4-6",
     "haiku": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
     "opus": "us.anthropic.claude-opus-4-6-v1",
 }

@@ -1,0 +1,55 @@
+name = "instruction-topic-density"
+description = """Hypothesis: CLAUDE.md focused on a single relevant topic outperforms multi-topic \
+instructions at the same token count. With 60+ tool definitions and 11 architecture layers already in \
+the system prompt (per Claude Code source leak), multi-topic instructions may scatter attention across \
+competing concerns. Single-topic focus concentrates the model's attention more effectively. Tests \
+focus vs. breadth at constant ~30 tokens, plus breadth at expanded ~100 tokens."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Bare baseline ---
+[[variants]]
+label = "bare"
+
+# --- Single focus: code correctness (~30 tokens) ---
+[[variants]]
+label = "focus-correctness"
+system_prompt_extra = "Focus exclusively on correctness. Handle every edge case. Validate all inputs. Test boundary conditions mentally before finalizing. Every code path must be intentional."
+
+# --- Single focus: code structure (~30 tokens) ---
+[[variants]]
+label = "focus-structure"
+system_prompt_extra = "Focus exclusively on clean structure. Keep functions under 20 lines. Single responsibility per function. Prefer composition over inheritance. Extract complex logic into well-named helpers."
+
+# --- Single focus: readability (~30 tokens) ---
+[[variants]]
+label = "focus-readability"
+system_prompt_extra = "Focus exclusively on readability. Use descriptive variable names. Write self-documenting code. Prefer clarity over cleverness. Every name should reveal intent without needing a comment."
+
+# --- Multi-topic at ~30 tokens (same budget, spread across 3 topics) ---
+[[variants]]
+label = "multi-topic-30"
+system_prompt_extra = "Handle edge cases. Keep functions short. Use clear names. Validate inputs. Prefer composition. Write readable code."
+
+# --- Multi-topic at ~60 tokens (moderate expansion across topics) ---
+[[variants]]
+label = "multi-topic-60"
+system_prompt_extra = "Handle all edge cases and validate inputs at boundaries. Keep functions focused and under 20 lines. Use descriptive names that reveal intent. Prefer composition over inheritance. Write self-documenting, readable code."
+
+# --- Multi-topic at ~100 tokens (5 topics with detail) ---
+[[variants]]
+label = "multi-topic-100"
+system_prompt_extra = """Handle all edge cases and validate inputs at function boundaries. Use specific exception types with descriptive messages.
+Keep functions focused on a single responsibility, under 20 lines. Prefer composition over inheritance.
+Use descriptive variable names that reveal intent. Write self-documenting code that needs no comments.
+Use type hints on all parameters and return types. Prefer early returns to reduce nesting.
+Write code that is easy to test. Keep side effects at the edges. Return values rather than mutating state."""

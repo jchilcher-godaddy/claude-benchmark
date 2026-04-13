@@ -25,7 +25,7 @@ def count_tokens_approx(text: str) -> int:
 
 def count_tokens_api(
     text: str,
-    model: str = "claude-sonnet-4-20250514",
+    model: str = "claude-sonnet-4-6",
     client: Optional[object] = None,
 ) -> int:
     """Count tokens using Anthropic's official API (free, accurate).
@@ -62,7 +62,7 @@ def count_tokens_api(
 
 def count_tokens(
     text: str,
-    model: str = "claude-sonnet-4-20250514",
+    model: str = "claude-sonnet-4-6",
     use_api: bool = True,
 ) -> tuple[int, bool]:
     """Count tokens with API preference and character-based fallback.
