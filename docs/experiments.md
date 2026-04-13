@@ -155,9 +155,20 @@ claude-benchmark compare --cross-variant -x run-005 <sot-id> <stepback-id> -o re
 | capstone-best-practices | 6,480 | Empty baseline (92.15) > all 13 CLAUDE.md profiles | r=-0.95 |
 | gsd-methodology | 1,800 | GSD framing variants compared (no control; use compare) | TBD |
 
-### Pending Experiments (7)
+### Pending Experiments (11)
 
-Not yet run: anchoring, constraint-formatting, emotional-stakes, instruction-ordering, skeleton-of-thought, step-back, interaction-persona-politeness.
+Not yet run: anchoring, constraint-formatting, context-depth-quality, emotional-stakes, instruction-ordering, instruction-position-in-claudemd, instruction-topic-density, skeleton-of-thought, static-vs-dynamic-context, step-back, interaction-persona-politeness.
+
+### Source Leak–Inspired Experiments (4)
+
+Designed after analysis of the Claude Code source leak (March 2026) which revealed CLAUDE.md reloads per-turn, 11-layer section-based prompt construction, 60+ tool definitions competing for attention, and 5 compaction strategies at ~167k tokens.
+
+| Experiment | Runs | Hypothesis | Motivated By |
+|---|---|---|---|
+| instruction-position-in-claudemd | 4,320 | Primacy effects: critical instructions at top of CLAUDE.md outperform buried ones | 11-layer section-based prompt |
+| static-vs-dynamic-context | 6,480 | Task-relevant context inverts r=-0.95 correlation vs. static boilerplate | UserPromptSubmit hook additionalContext |
+| instruction-topic-density | 7,560 | Single-topic focus outperforms multi-topic at same token count | 60+ tools competing for attention |
+| context-depth-quality | 3,240 | Quality degradation curve from 0-80k padding across all 3 models | 5 compaction strategies, 167k boundary |
 
 ### Cross-Cutting Insights
 
