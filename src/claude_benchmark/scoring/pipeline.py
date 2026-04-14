@@ -24,7 +24,7 @@ from claude_benchmark.scoring.composite import CompositeScorer
 from claude_benchmark.scoring.errors import LLMJudgeError, ScoringError, is_deterministic_llm_error
 from claude_benchmark.scoring.llm_judge import LLMJudgeScorer
 from claude_benchmark.scoring.models import AggregateStats, CompositeScore, TokenEfficiency
-from claude_benchmark.scoring.static import StaticScorer
+from claude_benchmark.scoring.registry import get_scorer
 from claude_benchmark.scoring.token_efficiency import compute_token_efficiency
 from claude_benchmark.tasks.loader import load_judge_rubric, load_task
 
@@ -53,8 +53,10 @@ def _score_static_single(
             from claude_benchmark.scoring.models import ScoringWeights
             weights = ScoringWeights(**task_def.scoring.weight_override)
 
-        static_score = StaticScorer(weights=weights).score(
-            result.output_dir, test_file, ruff_rules=task_def.scoring.ruff_rules
+        scorer = get_scorer(task_def.language, weights=weights)
+        static_score = scorer.score(
+            result.output_dir, test_file,
+            lint_rules=task_def.scoring.effective_lint_rules,
         )
         return (i, task_def, static_score)
     except Exception as exc:
@@ -97,6 +99,7 @@ def _score_llm_single(
                 task_def.description,
                 custom_criteria=custom_criteria,
                 reference_solution_path=ref_path,
+                language=task_def.language.value,
             )
             return (i, llm_score)
         except (LLMJudgeError, Exception) as exc:
@@ -201,8 +204,10 @@ def score_run(
             from claude_benchmark.scoring.models import ScoringWeights
             weights = ScoringWeights(**task_def.scoring.weight_override)
 
-        static_score = StaticScorer(weights=weights).score(
-            result.output_dir, test_file, ruff_rules=task_def.scoring.ruff_rules
+        scorer = get_scorer(task_def.language, weights=weights)
+        static_score = scorer.score(
+            result.output_dir, test_file,
+            lint_rules=task_def.scoring.effective_lint_rules,
         )
         scores["static"] = static_score.model_dump()
     except Exception as exc:
@@ -235,6 +240,7 @@ def score_run(
                     task_def.description,
                     custom_criteria=custom_criteria,
                     reference_solution_path=ref_path,
+                    language=task_def.language.value,
                 )
                 scores["llm"] = llm_score.model_dump()
                 break

@@ -14,7 +14,7 @@ def test_new_task_creates_directory_and_files(tmp_path, monkeypatch):
     result = runner.invoke(app, ["new-task", "my-test-task"])
 
     assert result.exit_code == 0
-    assert "Created task scaffold at" in result.stdout
+    assert "task scaffold at" in result.stdout
 
     task_dir = tmp_path / "tasks" / "custom" / "my-test-task"
     assert task_dir.exists()
@@ -67,3 +67,94 @@ def test_new_task_help_shows_help_text():
 
     assert result.exit_code == 0
     assert "Task identifier" in result.stdout
+
+
+def test_new_task_go_creates_go_scaffolding(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["new-task", "my-go-task", "--language", "go"])
+
+    assert result.exit_code == 0
+    assert "go task scaffold" in result.stdout
+
+    task_dir = tmp_path / "tasks" / "custom" / "my-go-task"
+    assert (task_dir / "task.toml").exists()
+    assert (task_dir / "solution_test.go").exists()
+    assert (task_dir / "go.mod").exists()
+    assert not (task_dir / "test_solution.py").exists()
+
+    with open(task_dir / "task.toml", "rb") as f:
+        data = tomllib.load(f)
+    assert data["language"] == "go"
+    assert data["scoring"]["test_file"] == "solution_test.go"
+
+
+def test_new_task_javascript_creates_js_scaffolding(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["new-task", "my-js-task", "--language", "javascript"])
+
+    assert result.exit_code == 0
+
+    task_dir = tmp_path / "tasks" / "custom" / "my-js-task"
+    assert (task_dir / "solution.test.js").exists()
+    assert (task_dir / "package.json").exists()
+
+    with open(task_dir / "task.toml", "rb") as f:
+        data = tomllib.load(f)
+    assert data["language"] == "javascript"
+    assert data["scoring"]["test_file"] == "solution.test.js"
+
+
+def test_new_task_csharp_creates_cs_scaffolding(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["new-task", "my-cs-task", "--language", "csharp"])
+
+    assert result.exit_code == 0
+
+    task_dir = tmp_path / "tasks" / "custom" / "my-cs-task"
+    assert (task_dir / "SolutionTests.cs").exists()
+    assert (task_dir / "Solution.csproj").exists()
+
+    with open(task_dir / "task.toml", "rb") as f:
+        data = tomllib.load(f)
+    assert data["language"] == "csharp"
+    assert data["scoring"]["test_file"] == "SolutionTests.cs"
+
+
+def test_new_task_go_bugfix_creates_starter_go(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(
+        app, ["new-task", "go-bugfix", "--language", "go", "--task-type", "bug-fix"]
+    )
+
+    assert result.exit_code == 0
+
+    task_dir = tmp_path / "tasks" / "custom" / "go-bugfix"
+    assert (task_dir / "starter.go").exists()
+    assert not (task_dir / "starter.py").exists()
+
+    with open(task_dir / "task.toml", "rb") as f:
+        data = tomllib.load(f)
+    assert data["starter_code"] == "starter.go"
+
+
+def test_new_task_python_default_has_no_language_field(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    runner.invoke(app, ["new-task", "py-task"])
+
+    with open(tmp_path / "tasks" / "custom" / "py-task" / "task.toml", "rb") as f:
+        data = tomllib.load(f)
+    assert "language" not in data
+
+
+def test_new_task_invalid_language_rejected(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["new-task", "bad-task", "--language", "rust"])
+
+    assert result.exit_code == 1
+    assert "Unsupported language" in result.output

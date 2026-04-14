@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, model_validator
+
+logger = logging.getLogger(__name__)
 
 
 class TaskType(str, Enum):
@@ -19,6 +22,13 @@ class Difficulty(str, Enum):
     HARD = "hard"
 
 
+class Language(str, Enum):
+    PYTHON = "python"
+    GO = "go"
+    JAVASCRIPT = "javascript"
+    CSHARP = "csharp"
+
+
 class RubricCriteria(BaseModel):
     name: str
     description: str
@@ -27,10 +37,25 @@ class RubricCriteria(BaseModel):
 
 class ScoringCriteria(BaseModel):
     test_file: str
-    ruff_rules: Optional[list[str]] = None
+    lint_rules: Optional[list[str]] = None
+    ruff_rules: Optional[list[str]] = None  # deprecated: use lint_rules
     judge_rubric: Optional[str] = None
     reference_solution: Optional[str] = None
     weight_override: Optional[dict[str, float]] = None
+
+    @property
+    def effective_lint_rules(self) -> list[str] | None:
+        """Return lint_rules if set, falling back to ruff_rules for backward compat."""
+        return self.lint_rules or self.ruff_rules
+
+    @model_validator(mode="after")
+    def validate_lint_rules(self):
+        if self.lint_rules and self.ruff_rules:
+            logger.warning(
+                "Both lint_rules and ruff_rules set; lint_rules takes precedence. "
+                "ruff_rules is deprecated — use lint_rules instead."
+            )
+        return self
 
 
 class TaskDefinition(BaseModel):
@@ -41,6 +66,7 @@ class TaskDefinition(BaseModel):
     difficulty: Difficulty
     description: str
     prompt: str
+    language: Language = Language.PYTHON
     starter_code: Optional[str] = None
     starter_files: Optional[list[str]] = None
     expected_files: Optional[list[str]] = None

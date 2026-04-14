@@ -181,7 +181,7 @@ def _make_run_result(
 class TestScoreRunStaticOnly:
     """Tests for score_run() with skip_llm=True (static-only mode)."""
 
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
     def test_score_run_static_only(self, mock_scorer_cls, tmp_path: Path) -> None:
         """Static-only scoring populates static, composite, and token_efficiency."""
         mock_scorer = mock_scorer_cls.return_value
@@ -218,12 +218,12 @@ class TestScoreRunFull:
     """Tests for score_run() with both static and LLM scoring."""
 
     @patch("claude_benchmark.scoring.pipeline.LLMJudgeScorer")
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
     def test_score_run_full(
-        self, mock_static_cls, mock_llm_cls, tmp_path: Path
+        self, mock_get_scorer, mock_llm_cls, tmp_path: Path
     ) -> None:
         """Full scoring populates static, llm, composite, token_efficiency."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         static = _make_static(80.0)
         mock_static.score.return_value = static
 
@@ -262,12 +262,12 @@ class TestScoreRunLLMDegradation:
 
     @patch("claude_benchmark.scoring.pipeline.time")
     @patch("claude_benchmark.scoring.pipeline.LLMJudgeScorer")
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
     def test_llm_failure_degradation(
-        self, mock_static_cls, mock_llm_cls, mock_time, tmp_path: Path
+        self, mock_get_scorer, mock_llm_cls, mock_time, tmp_path: Path
     ) -> None:
         """LLM failure after 3 retries produces static-only composite with degraded flag."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         mock_llm = mock_llm_cls.return_value
@@ -304,10 +304,10 @@ class TestScoreRunLLMDegradation:
 class TestScoreRunStrictMode:
     """Tests for strict mode where failures raise exceptions."""
 
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
-    def test_strict_static_failure(self, mock_static_cls, tmp_path: Path) -> None:
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
+    def test_strict_static_failure(self, mock_get_scorer, tmp_path: Path) -> None:
         """Strict mode re-raises static scoring failures as ScoringError."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.side_effect = StaticAnalysisError("Ruff crashed", tool="ruff")
 
         run = _make_benchmark_run(tmp_path)
@@ -324,12 +324,12 @@ class TestScoreRunStrictMode:
 
     @patch("claude_benchmark.scoring.pipeline.time")
     @patch("claude_benchmark.scoring.pipeline.LLMJudgeScorer")
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
     def test_strict_llm_failure(
-        self, mock_static_cls, mock_llm_cls, mock_time, tmp_path: Path
+        self, mock_get_scorer, mock_llm_cls, mock_time, tmp_path: Path
     ) -> None:
         """Strict mode re-raises LLM scoring failures as ScoringError."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         mock_llm = mock_llm_cls.return_value
@@ -357,10 +357,10 @@ class TestScoreRunStrictMode:
 class TestScoreRunGracefulStaticFailure:
     """Tests for graceful degradation when static scoring fails."""
 
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
-    def test_graceful_static_failure(self, mock_static_cls, tmp_path: Path) -> None:
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
+    def test_graceful_static_failure(self, mock_get_scorer, tmp_path: Path) -> None:
         """Static failure in non-strict mode produces degraded scores."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.side_effect = Exception("pytest crashed")
 
         run = _make_benchmark_run(tmp_path)
@@ -390,10 +390,10 @@ class TestScoreAllRunsBatchPhases:
     """Tests for score_all_runs() batch processing."""
 
     @patch("claude_benchmark.scoring.pipeline.LLMJudgeScorer")
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
-    def test_batch_phases(self, mock_static_cls, mock_llm_cls, tmp_path: Path) -> None:
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
+    def test_batch_phases(self, mock_get_scorer, mock_llm_cls, tmp_path: Path) -> None:
         """score_all_runs() processes 3 results and returns aggregation."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         mock_llm = mock_llm_cls.return_value
@@ -431,10 +431,10 @@ class TestScoreAllRunsBatchPhases:
 class TestScoreAllRunsSkipsFailedRuns:
     """Tests that score_all_runs() only scores successful runs."""
 
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
-    def test_skips_failed_runs(self, mock_static_cls, tmp_path: Path) -> None:
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
+    def test_skips_failed_runs(self, mock_get_scorer, tmp_path: Path) -> None:
         """Only successful runs are scored; failed runs are left untouched."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         sub1 = tmp_path / "run1"
@@ -471,10 +471,10 @@ class TestScoreAllRunsSkipsFailedRuns:
 class TestScoreAllRunsAggregation:
     """Tests for per-variant aggregation in score_all_runs()."""
 
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
-    def test_aggregation(self, mock_static_cls, tmp_path: Path) -> None:
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
+    def test_aggregation(self, mock_get_scorer, tmp_path: Path) -> None:
         """3 results for same variant produce aggregation with n=3."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         results = []
@@ -514,10 +514,10 @@ class TestScoreAllRunsAggregation:
 class TestTokenEfficiency:
     """Tests for token efficiency computation in the pipeline."""
 
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
-    def test_token_efficiency_computed(self, mock_static_cls, tmp_path: Path) -> None:
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
+    def test_token_efficiency_computed(self, mock_get_scorer, tmp_path: Path) -> None:
         """Token efficiency uses profile path content and result.total_tokens."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         run = _make_benchmark_run(tmp_path)
@@ -549,10 +549,10 @@ class TestTokenEfficiency:
 class TestScoreAllRunsProgressCallback:
     """Tests for ScoringProgressCallback in score_all_runs()."""
 
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
-    def test_progress_callback(self, mock_static_cls, tmp_path: Path) -> None:
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
+    def test_progress_callback(self, mock_get_scorer, tmp_path: Path) -> None:
         """Progress callback receives started/progress/completed for each phase."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         sub = tmp_path / "run1"
@@ -577,12 +577,12 @@ class TestScoreAllRunsProgressCallback:
         mock_progress.scoring_completed.assert_any_call("composite")
 
     @patch("claude_benchmark.scoring.pipeline.LLMJudgeScorer")
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
     def test_progress_callback_with_llm(
-        self, mock_static_cls, mock_llm_cls, tmp_path: Path
+        self, mock_get_scorer, mock_llm_cls, tmp_path: Path
     ) -> None:
         """Progress callback also receives LLM phase when skip_llm=False."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         mock_llm = mock_llm_cls.return_value

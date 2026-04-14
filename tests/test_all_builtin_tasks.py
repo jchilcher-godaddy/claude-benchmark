@@ -12,7 +12,7 @@ def test_discover_all_builtin_tasks():
     tasks, errors = discover_tasks(tasks_dir)
 
     assert len(errors) == 0, f"Task loading errors: {errors}"
-    assert len(tasks) == 16, f"Expected 16 tasks, got {len(tasks)}"
+    assert len(tasks) == 52, f"Expected 52 tasks, got {len(tasks)}"
 
 
 def test_task_type_distribution():
@@ -24,9 +24,9 @@ def test_task_type_distribution():
     for task in tasks:
         type_counts[task.task_type] += 1
 
-    assert type_counts[TaskType.CODE_GEN] == 5, "Expected 5 code-gen tasks"
-    assert type_counts[TaskType.BUG_FIX] == 4, "Expected 4 bug-fix tasks"
-    assert type_counts[TaskType.REFACTOR] == 3, "Expected 3 refactor tasks"
+    assert type_counts[TaskType.CODE_GEN] == 20, "Expected 20 code-gen tasks"
+    assert type_counts[TaskType.BUG_FIX] == 16, "Expected 16 bug-fix tasks"
+    assert type_counts[TaskType.REFACTOR] == 12, "Expected 12 refactor tasks"
     assert type_counts[TaskType.INSTRUCTION] == 4, "Expected 4 instruction tasks"
 
 
@@ -39,9 +39,9 @@ def test_difficulty_distribution():
     for task in tasks:
         difficulty_counts[task.difficulty] += 1
 
-    assert difficulty_counts[Difficulty.EASY] == 4, "Expected 4 easy tasks"
-    assert difficulty_counts[Difficulty.MEDIUM] == 7, "Expected 7 medium tasks"
-    assert difficulty_counts[Difficulty.HARD] == 5, "Expected 5 hard tasks"
+    assert difficulty_counts[Difficulty.EASY] == 13, "Expected 13 easy tasks"
+    assert difficulty_counts[Difficulty.MEDIUM] == 22, "Expected 22 medium tasks"
+    assert difficulty_counts[Difficulty.HARD] == 17, "Expected 17 hard tasks"
 
 
 def test_all_tasks_have_test_file():

@@ -69,33 +69,38 @@ def copy_task_files(task_dir: Path, tmp_dir: Path, solution_file: str, task_conf
                 shutil.copy(item, tmp_dir / item.name)
 
 
+def _is_python_task(config: dict) -> bool:
+    """Check if a task is a Python task (default language or explicit)."""
+    return config.get("language", "python") == "python"
+
+
 def get_tasks_with_reference() -> list[tuple[str, Path, dict]]:
-    """Get all tasks that have a reference_solution defined."""
+    """Get all Python tasks that have a reference_solution defined."""
     all_tasks = discover_tasks()
     return [
         (name, path, config)
         for name, path, config in all_tasks
-        if config.get("scoring", {}).get("reference_solution")
+        if config.get("scoring", {}).get("reference_solution") and _is_python_task(config)
     ]
 
 
 def get_bugfix_tasks() -> list[tuple[str, Path, dict]]:
-    """Get all bug-fix tasks."""
+    """Get all Python bug-fix tasks."""
     all_tasks = discover_tasks()
     return [
         (name, path, config)
         for name, path, config in all_tasks
-        if config.get("task_type") == "bug-fix"
+        if config.get("task_type") == "bug-fix" and _is_python_task(config)
     ]
 
 
 def get_refactor_tasks() -> list[tuple[str, Path, dict]]:
-    """Get all refactor tasks."""
+    """Get all Python refactor tasks."""
     all_tasks = discover_tasks()
     return [
         (name, path, config)
         for name, path, config in all_tasks
-        if config.get("task_type") == "refactor"
+        if config.get("task_type") == "refactor" and _is_python_task(config)
     ]
 
 

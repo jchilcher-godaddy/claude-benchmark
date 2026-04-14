@@ -145,6 +145,7 @@ class LLMJudgeScorer:
         task_description: str,
         criteria: list[dict[str, str]] | None = None,
         reference_solution: str | None = None,
+        language: str = "python",
     ) -> LLMScore:
         """Score code using the LLM judge.
 
@@ -160,6 +161,7 @@ class LLMJudgeScorer:
             task_description: Description of the task the code implements.
             criteria: Optional custom criteria to add alongside the 4 built-in.
             reference_solution: Optional reference implementation for comparison.
+            language: Language name for code fence formatting in prompts.
 
         Returns:
             LLMScore with per-criterion scores and normalized total.
@@ -181,6 +183,7 @@ class LLMJudgeScorer:
             code=code,
             criteria=all_criteria,
             reference_solution=reference_solution,
+            language=language,
         )
 
         # First attempt — prefer direct API (temperature=0 for determinism)
@@ -420,48 +423,67 @@ class LLMJudgeScorer:
         task_description: str,
         custom_criteria: list[dict[str, str]] | None = None,
         reference_solution_path: Path | None = None,
+        language: str = "python",
     ) -> LLMScore:
         """Convenience method that reads code from an output directory.
 
-        Finds all .py files (excluding tests and __pycache__), concatenates
-        them with filename headers, and calls judge_code.
+        Uses the language-specific scorer to discover source files,
+        concatenates them with filename headers, and calls judge_code.
 
         Args:
             output_dir: Directory containing the benchmark output files.
             task_description: Description of the task.
             custom_criteria: Optional custom criteria to add.
             reference_solution_path: Optional path to a reference solution file.
+            language: Language name for file discovery and code fence formatting.
 
         Returns:
             LLMScore from judge_code.
 
         Raises:
-            LLMJudgeError: If no Python files found or judge fails.
+            LLMJudgeError: If no source files found or judge fails.
         """
-        # Find .py files, excluding test files and __pycache__
-        py_files = sorted(
-            f
-            for f in output_dir.rglob("*.py")
-            if "__pycache__" not in str(f)
-            and not f.name.startswith("test_")
-            and not f.name.endswith("_test.py")
-        )
+        from .registry import get_scorer
+        from claude_benchmark.tasks.schema import Language
 
-        if not py_files:
-            raise LLMJudgeError("No Python files found in output directory")
+        # Use the language-specific scorer to find source files
+        try:
+            lang_enum = Language(language)
+            scorer = get_scorer(lang_enum)
+            source_files = sorted(scorer.find_source_files(output_dir))
+        except (ValueError, KeyError):
+            # Fallback for unknown languages: use Python-style discovery
+            self._logger.warning(
+                "No scorer registered for language '%s', falling back to *.py",
+                language,
+            )
+            source_files = sorted(
+                f
+                for f in output_dir.rglob("*.py")
+                if "__pycache__" not in str(f)
+                and not f.name.startswith("test_")
+                and not f.name.endswith("_test.py")
+            )
+
+        if not source_files:
+            raise LLMJudgeError(
+                f"No {language} source files found in output directory"
+            )
 
         # Concatenate with filename headers
         parts: list[str] = []
-        for py_file in py_files:
+        for src_file in source_files:
             try:
-                content = py_file.read_text(encoding="utf-8")
-                relative = py_file.relative_to(output_dir)
+                content = src_file.read_text(encoding="utf-8")
+                relative = src_file.relative_to(output_dir)
                 parts.append(f"# --- {relative} ---\n{content}")
             except (OSError, UnicodeDecodeError) as exc:
-                self._logger.warning("Could not read %s: %s", py_file, exc)
+                self._logger.warning("Could not read %s: %s", src_file, exc)
 
         if not parts:
-            raise LLMJudgeError("Could not read any Python files in output directory")
+            raise LLMJudgeError(
+                f"Could not read any {language} source files in output directory"
+            )
 
         code = "\n\n".join(parts)
 
@@ -482,4 +504,5 @@ class LLMJudgeScorer:
             task_description=task_description,
             criteria=custom_criteria,
             reference_solution=reference_solution,
+            language=language,
         )

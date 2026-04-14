@@ -176,12 +176,12 @@ class TestFullPipelineExecutionToScoring:
     """Integration test verifying the full execution-to-scoring pipeline."""
 
     @patch("claude_benchmark.scoring.pipeline.LLMJudgeScorer")
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
     def test_full_pipeline_execution_to_scoring(
-        self, mock_static_cls, mock_llm_cls, tmp_path: Path
+        self, mock_get_scorer, mock_llm_cls, tmp_path: Path
     ) -> None:
         """Full pipeline: execution -> scoring -> populated RunResult.scores."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         mock_llm = mock_llm_cls.return_value
@@ -227,12 +227,12 @@ class TestPipelineSkipLLMFlag:
     """Tests that --skip-llm-judge flag threads through to scoring."""
 
     @patch("claude_benchmark.scoring.pipeline.LLMJudgeScorer")
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
     def test_pipeline_skip_llm_flag(
-        self, mock_static_cls, mock_llm_cls, tmp_path: Path
+        self, mock_get_scorer, mock_llm_cls, tmp_path: Path
     ) -> None:
         """skip_llm=True skips LLM scoring entirely."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         sub = tmp_path / "run1"
@@ -264,12 +264,12 @@ class TestPipelineSkipLLMFlag:
 class TestPipelineStrictScoringFailure:
     """Tests that strict=True propagates scorer failures as exceptions."""
 
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
     def test_pipeline_strict_scoring_failure(
-        self, mock_static_cls, tmp_path: Path
+        self, mock_get_scorer, tmp_path: Path
     ) -> None:
         """strict=True raises ScoringError when static scoring fails."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.side_effect = StaticAnalysisError("Ruff crashed", tool="ruff")
 
         sub = tmp_path / "run1"
@@ -290,12 +290,12 @@ class TestPipelineGracefulDegradation:
 
     @patch("claude_benchmark.scoring.pipeline.time")
     @patch("claude_benchmark.scoring.pipeline.LLMJudgeScorer")
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
     def test_pipeline_graceful_degradation(
-        self, mock_static_cls, mock_llm_cls, mock_time, tmp_path: Path
+        self, mock_get_scorer, mock_llm_cls, mock_time, tmp_path: Path
     ) -> None:
         """LLM failure with strict=False degrades gracefully."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         mock_llm = mock_llm_cls.return_value
@@ -327,14 +327,14 @@ class TestPipelineGracefulDegradation:
 class TestPipelineAggregationMultipleRuns:
     """Tests that multiple runs for the same variant are aggregated."""
 
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
     def test_pipeline_aggregation_multiple_runs(
-        self, mock_static_cls, tmp_path: Path
+        self, mock_get_scorer, tmp_path: Path
     ) -> None:
         """3 runs of the same variant produce aggregation with n=3."""
         # Return slightly different scores for each run
         scores = [_make_static(80.0), _make_static(85.0), _make_static(90.0)]
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.side_effect = scores
 
         results = []
@@ -380,12 +380,12 @@ class TestPipelineAggregationMultipleRuns:
 class TestPipelineAggregationMultipleVariants:
     """Tests aggregation with multiple distinct variants."""
 
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
     def test_pipeline_aggregation_multiple_variants(
-        self, mock_static_cls, tmp_path: Path
+        self, mock_get_scorer, tmp_path: Path
     ) -> None:
         """Results for 2 different profiles produce 2 variant keys."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         results = []
@@ -421,12 +421,12 @@ class TestScoringProgressCallbackCalled:
     """Tests that progress callbacks fire correctly during scoring."""
 
     @patch("claude_benchmark.scoring.pipeline.LLMJudgeScorer")
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
     def test_scoring_progress_callback_called(
-        self, mock_static_cls, mock_llm_cls, tmp_path: Path
+        self, mock_get_scorer, mock_llm_cls, tmp_path: Path
     ) -> None:
         """Progress callback receives started/progress/completed for each phase."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         mock_llm = mock_llm_cls.return_value
@@ -469,12 +469,12 @@ class TestScoringProgressCallbackCalled:
         assert "llm" in completed_phases
         assert "composite" in completed_phases
 
-    @patch("claude_benchmark.scoring.pipeline.StaticScorer")
+    @patch("claude_benchmark.scoring.pipeline.get_scorer")
     def test_scoring_progress_skip_llm_no_llm_phase(
-        self, mock_static_cls, tmp_path: Path
+        self, mock_get_scorer, tmp_path: Path
     ) -> None:
         """When skip_llm=True, no LLM phase callbacks are fired."""
-        mock_static = mock_static_cls.return_value
+        mock_static = mock_get_scorer.return_value
         mock_static.score.return_value = _make_static(80.0)
 
         sub = tmp_path / "run1"

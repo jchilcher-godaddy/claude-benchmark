@@ -1,8 +1,8 @@
-"""Static analysis scorer for claude-benchmark.
+"""Python-specific static analysis scorer for claude-benchmark.
 
-Runs Ruff (lint), pytest (test pass rate), and radon (cyclomatic complexity)
-against benchmark output directories. Produces normalized 0-100 scores and
-a weighted composite per the locked decisions.
+Implements PythonStaticScorer (ruff, pytest, radon) as a subclass of
+BaseStaticScorer. Also re-exports normalization functions and count_loc
+for backward compatibility with existing imports.
 """
 
 from __future__ import annotations
@@ -15,73 +15,35 @@ from pathlib import Path
 
 from radon.complexity import cc_rank, cc_visit
 
+from .base_scorer import (
+    BaseStaticScorer,
+    normalize_complexity_score,
+    normalize_lint_score,
+    normalize_test_pass_rate,
+)
 from .errors import StaticAnalysisError
-from .models import ScoringWeights, StaticScore
+from .models import ScoringWeights
 
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Normalization functions (module-level, testable independently)
-# ---------------------------------------------------------------------------
-
-
-def normalize_test_pass_rate(passed: int, total: int) -> float:
-    """Test pass rate as percentage. 0-100 scale.
-
-    If total == 0 (no tests), returns 0.0 -- no tests means no credit.
-    """
-    if total == 0:
-        return 0.0
-    return (passed / total) * 100.0
-
-
-def normalize_lint_score(error_count: int, loc: int) -> float:
-    """Lint score: fewer errors per LOC = higher score. 0-100 scale.
-
-    Formula: max(0, 100 - (error_count / loc) * 1000)
-    This means ~10 errors per 100 LOC gives score 0.
-    If loc == 0 (no code), returns 100.0 (nothing to lint).
-    """
-    if loc == 0:
-        return 100.0
-    score = 100.0 - (error_count / loc) * 1000.0
-    return max(0.0, min(100.0, score))
-
-
-def normalize_complexity_score(avg_complexity: float) -> float:
-    """Complexity score: lower complexity = higher score. 0-100 scale.
-
-    Maps radon's A-F grades to linear segments:
-      A (1-5):   100 -> 80
-      B (6-10):  80 -> 60
-      C (11-20): 60 -> 40
-      D (21-30): 40 -> 20
-      E (31-40): 20 -> 5
-      F (41+):   5 -> 0
-
-    If avg_complexity == 0 (no functions), returns 100.0.
-    """
-    if avg_complexity <= 0:
-        return 100.0
-    if avg_complexity <= 5:
-        return 100.0 - (avg_complexity - 1) * 5.0  # 100 -> 80
-    elif avg_complexity <= 10:
-        return 80.0 - (avg_complexity - 5) * 4.0  # 80 -> 60
-    elif avg_complexity <= 20:
-        return 60.0 - (avg_complexity - 10) * 2.0  # 60 -> 40
-    elif avg_complexity <= 30:
-        return 40.0 - (avg_complexity - 20) * 2.0  # 40 -> 20
-    elif avg_complexity <= 40:
-        return 20.0 - (avg_complexity - 30) * 1.5  # 20 -> 5
-    else:
-        return max(0.0, 5.0 - (avg_complexity - 40) * 0.5)
+# Re-export normalization functions for backward compatibility.
+# Existing code imports these from claude_benchmark.scoring.static.
+__all__ = [
+    "normalize_test_pass_rate",
+    "normalize_lint_score",
+    "normalize_complexity_score",
+    "count_loc",
+    "PythonStaticScorer",
+    "StaticScorer",
+]
 
 
 def count_loc(source_files: list[Path]) -> int:
     """Count non-empty, non-comment lines across all Python files.
 
     Used for lint normalization (errors per LOC).
+    Kept for backward compat — new code should use scorer.count_loc().
     """
     total = 0
     for filepath in source_files:
@@ -97,21 +59,34 @@ def count_loc(source_files: list[Path]) -> int:
 
 
 # ---------------------------------------------------------------------------
-# StaticScorer class
+# PythonStaticScorer
 # ---------------------------------------------------------------------------
 
 
-class StaticScorer:
-    """Runs static analysis tools and produces a normalized StaticScore.
+class PythonStaticScorer(BaseStaticScorer):
+    """Python-specific static scorer using ruff, pytest, and radon.
 
-    Orchestrates Ruff (lint), pytest (test pass rate), and radon (complexity)
-    against a benchmark output directory.
+    Extends BaseStaticScorer with Python toolchain implementations.
     """
 
-    def __init__(self, weights: ScoringWeights | None = None) -> None:
-        self.weights = weights or ScoringWeights()
+    def source_glob(self) -> str:
+        return "*.py"
+
+    def test_glob_patterns(self) -> list[str]:
+        return ["test_*.py", "*_test.py"]
+
+    def comment_prefixes(self) -> list[str]:
+        return ["#"]
 
     def run_ruff(self, target_dir: Path, rules: list[str] | None = None) -> dict:
+        """Backward-compatible alias for run_lint."""
+        return self.run_lint(target_dir, rules)
+
+    def run_pytest(self, test_file: Path, workspace: Path) -> dict:
+        """Backward-compatible alias for run_tests."""
+        return self.run_tests(test_file, workspace)
+
+    def run_lint(self, target_dir: Path, rules: list[str] | None = None) -> dict:
         """Run ruff check and return parsed JSON results.
 
         CRITICAL: Does NOT use check=True. Ruff returns exit code 1 for
@@ -120,7 +95,6 @@ class StaticScorer:
 
         Returns: {"violations": list, "count": int}
         """
-        # Check if there are any .py files to lint
         py_files = list(target_dir.rglob("*.py"))
         if not py_files:
             return {"violations": [], "count": 0}
@@ -141,14 +115,13 @@ class StaticScorer:
         except FileNotFoundError:
             raise StaticAnalysisError("Ruff not found -- is it installed?", tool="ruff")
 
-        # Exit code 0 = clean, 1 = violations found, >= 2 = error
         if result.returncode >= 2:
             raise StaticAnalysisError(f"Ruff failed: {result.stderr}", tool="ruff")
 
         violations = json.loads(result.stdout) if result.stdout.strip() else []
         return {"violations": violations, "count": len(violations)}
 
-    def run_pytest(self, test_file: Path, workspace: Path) -> dict:
+    def run_tests(self, test_file: Path, workspace: Path) -> dict:
         """Run pytest on a test file and return structured results.
 
         Uses pytest-json-report for machine-readable output.
@@ -166,12 +139,7 @@ class StaticScorer:
                 "error": f"Test file not found: {test_file}",
             }
 
-        # Resolve to absolute path so pytest can find the file regardless
-        # of its subprocess cwd (which is set to the workspace/output dir).
         test_file_abs = test_file.resolve()
-
-        # Resolve to absolute so the subprocess (cwd=workspace) and the
-        # parent process (cwd=project root) use the same physical path.
         report_path = (workspace / ".test-report.json").resolve()
 
         try:
@@ -212,7 +180,6 @@ class StaticScorer:
                 "error": f"Python not found at {sys.executable}",
             }
 
-        # Pytest exit codes: 0=pass, 1=fail, 2=interrupt, 3=internal error, 4=usage error, 5=no tests
         if result.returncode in (3, 4):
             return {
                 "exit_code": result.returncode,
@@ -224,7 +191,6 @@ class StaticScorer:
                 "error": f"pytest crash (exit {result.returncode}): {result.stderr}",
             }
 
-        # Parse JSON report if it exists
         if report_path.exists():
             try:
                 with open(report_path) as f:
@@ -241,7 +207,6 @@ class StaticScorer:
             except (json.JSONDecodeError, OSError) as exc:
                 logger.warning("Failed to parse test report: %s", exc)
 
-        # Fallback: no report generated
         return {
             "exit_code": result.returncode,
             "passed": 0,
@@ -255,8 +220,7 @@ class StaticScorer:
     def analyze_complexity(self, source_files: list[Path]) -> dict:
         """Analyze cyclomatic complexity using radon's Python API.
 
-        Handles SyntaxError gracefully: unparseable code gets F-rank (complexity=50)
-        per Pitfall 4 in RESEARCH.md.
+        Handles SyntaxError gracefully: unparseable code gets F-rank (complexity=50).
 
         Returns: {"blocks": list[dict], "average_complexity": float, "max_complexity": int}
         """
@@ -292,7 +256,6 @@ class StaticScorer:
                         }
                     )
             except SyntaxError:
-                # Unparseable code gets worst-case complexity
                 all_blocks.append(
                     {
                         "file": str(filepath.name),
@@ -314,90 +277,6 @@ class StaticScorer:
             "max_complexity": max(complexities),
         }
 
-    def score(
-        self,
-        output_dir: Path,
-        test_file: Path,
-        ruff_rules: list[str] | None = None,
-    ) -> StaticScore:
-        """Orchestrate the full static scoring pipeline.
 
-        1. Find .py files in output_dir (excluding tests and __pycache__)
-        2. Count LOC
-        3. Run Ruff, normalize lint score
-        4. Run pytest, normalize test pass rate
-        5. Analyze complexity, normalize complexity score
-        6. Compute weighted_total
-        7. Return StaticScore with all fields
-        """
-        # Find source files (exclude test files and __pycache__)
-        source_files = [
-            f
-            for f in output_dir.rglob("*.py")
-            if "__pycache__" not in str(f)
-            and not f.name.startswith("test_")
-            and not f.name.endswith("_test.py")
-        ]
-
-        # Edge case: no Python files
-        if not source_files:
-            return StaticScore(
-                test_pass_rate=0,
-                tests_passed=0,
-                tests_total=0,
-                lint_score=0,
-                lint_errors=0,
-                complexity_score=0,
-                avg_complexity=0,
-                weighted_total=0,
-                lines_of_code=0,
-            )
-
-        # Count LOC
-        loc = count_loc(source_files)
-
-        # Run Ruff
-        try:
-            ruff_result = self.run_ruff(output_dir, rules=ruff_rules)
-            lint_errors = ruff_result["count"]
-            lint_details = ruff_result["violations"]
-            lint_score = normalize_lint_score(lint_errors, loc)
-        except StaticAnalysisError as exc:
-            logger.warning("Ruff failed: %s", exc)
-            lint_errors = 0
-            lint_details = []
-            lint_score = 0.0
-
-        # Run pytest
-        pytest_result = self.run_pytest(test_file, output_dir)
-        passed = pytest_result["passed"]
-        total = pytest_result["total"]
-        test_pass_rate = normalize_test_pass_rate(passed, total)
-
-        # Analyze complexity
-        complexity_result = self.analyze_complexity(source_files)
-        avg_complexity = complexity_result["average_complexity"]
-        complexity_details = complexity_result["blocks"]
-        complexity_score = normalize_complexity_score(avg_complexity)
-
-        # Compute weighted total
-        w = self.weights
-        weighted_total = (
-            test_pass_rate * w.test_pass_rate
-            + lint_score * w.lint_score
-            + complexity_score * w.complexity_score
-        )
-
-        return StaticScore(
-            test_pass_rate=round(test_pass_rate, 2),
-            tests_passed=passed,
-            tests_total=total,
-            lint_score=round(lint_score, 2),
-            lint_errors=lint_errors,
-            lint_details=lint_details,
-            complexity_score=round(complexity_score, 2),
-            avg_complexity=round(avg_complexity, 2),
-            complexity_details=complexity_details,
-            weighted_total=round(weighted_total, 2),
-            lines_of_code=loc,
-        )
+# Backward-compatible alias
+StaticScorer = PythonStaticScorer

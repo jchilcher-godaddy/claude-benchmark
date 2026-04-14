@@ -37,6 +37,8 @@ class LLMJudgeError(ScoringError):
 _DETERMINISTIC_PATTERNS = [
     "No Python files found",
     "Could not read any Python files",
+    "source files found in output directory",
+    "source files in output directory",
     "aws_credentials_expired",
 ]
 

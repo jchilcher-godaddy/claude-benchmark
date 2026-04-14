@@ -532,7 +532,7 @@ class TestScore:
     def test_empty_directory_raises_llm_judge_error(self, scorer):
         """Empty directory with no .py files raises LLMJudgeError."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with pytest.raises(LLMJudgeError, match="No Python files found"):
+            with pytest.raises(LLMJudgeError, match="No python source files found"):
                 scorer.score(
                     output_dir=Path(tmpdir),
                     task_description="Evaluate code",
@@ -542,7 +542,7 @@ class TestScore:
         """Directory with only test_* files raises LLMJudgeError."""
         with tempfile.TemporaryDirectory() as tmpdir:
             (Path(tmpdir) / "test_main.py").write_text("def test_it(): pass")
-            with pytest.raises(LLMJudgeError, match="No Python files found"):
+            with pytest.raises(LLMJudgeError, match="No python source files found"):
                 scorer.score(
                     output_dir=Path(tmpdir),
                     task_description="Evaluate code",

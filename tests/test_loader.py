@@ -14,6 +14,7 @@ from claude_benchmark.tasks import (
     load_task,
 )
 from claude_benchmark.tasks.loader import load_judge_rubric
+from claude_benchmark.tasks.schema import Language, ScoringCriteria
 
 
 def create_valid_task(task_dir: Path, task_type: str = "code-gen", include_files: bool = True):
@@ -278,3 +279,142 @@ class TestLoadJudgeRubric:
 
         result = load_judge_rubric(rubric_path)
         assert set(result[0].keys()) == {"name", "description"}
+
+
+# ---------------------------------------------------------------------------
+# TestLanguageField
+# ---------------------------------------------------------------------------
+
+
+class TestLanguageField:
+    """Tests for the language field on TaskDefinition."""
+
+    def test_default_language_is_python(self, tmp_path):
+        """Existing tasks without language field default to Python."""
+        task_dir = tmp_path / "task"
+        create_valid_task(task_dir, "code-gen")
+        task = load_task(task_dir)
+        assert task.language == Language.PYTHON
+
+    def test_explicit_language_go(self, tmp_path):
+        """Tasks can specify language = 'go'."""
+        task_dir = tmp_path / "task"
+        task_dir.mkdir(parents=True)
+        task_data = {
+            "name": "go-task",
+            "task_type": "code-gen",
+            "difficulty": "medium",
+            "size": "function",
+            "description": "Go test task",
+            "prompt": "Write a Go function",
+            "language": "go",
+            "scoring": {"test_file": "solution_test.go"},
+        }
+        with open(task_dir / "task.toml", "wb") as f:
+            tomli_w.dump(task_data, f)
+        (task_dir / "solution_test.go").write_text("package main")
+
+        task = load_task(task_dir)
+        assert task.language == Language.GO
+
+    def test_explicit_language_javascript(self, tmp_path):
+        """Tasks can specify language = 'javascript'."""
+        task_dir = tmp_path / "task"
+        task_dir.mkdir(parents=True)
+        task_data = {
+            "name": "js-task",
+            "task_type": "code-gen",
+            "difficulty": "easy",
+            "size": "function",
+            "description": "JS test task",
+            "prompt": "Write a JS function",
+            "language": "javascript",
+            "scoring": {"test_file": "solution.test.js"},
+        }
+        with open(task_dir / "task.toml", "wb") as f:
+            tomli_w.dump(task_data, f)
+        (task_dir / "solution.test.js").write_text("test('works', () => {})")
+
+        task = load_task(task_dir)
+        assert task.language == Language.JAVASCRIPT
+
+    def test_explicit_language_csharp(self, tmp_path):
+        """Tasks can specify language = 'csharp'."""
+        task_dir = tmp_path / "task"
+        task_dir.mkdir(parents=True)
+        task_data = {
+            "name": "cs-task",
+            "task_type": "code-gen",
+            "difficulty": "hard",
+            "size": "function",
+            "description": "C# test task",
+            "prompt": "Write a C# method",
+            "language": "csharp",
+            "scoring": {"test_file": "SolutionTests.cs"},
+        }
+        with open(task_dir / "task.toml", "wb") as f:
+            tomli_w.dump(task_data, f)
+        (task_dir / "SolutionTests.cs").write_text("using Xunit;")
+
+        task = load_task(task_dir)
+        assert task.language == Language.CSHARP
+
+    def test_invalid_language_rejected(self, tmp_path):
+        """Invalid language values raise validation error."""
+        task_dir = tmp_path / "task"
+        task_dir.mkdir(parents=True)
+        task_data = {
+            "name": "bad-task",
+            "task_type": "code-gen",
+            "difficulty": "easy",
+            "size": "function",
+            "description": "Bad lang",
+            "prompt": "Test",
+            "language": "cobol",
+            "scoring": {"test_file": "test.py"},
+        }
+        with open(task_dir / "task.toml", "wb") as f:
+            tomli_w.dump(task_data, f)
+        (task_dir / "test.py").write_text("pass")
+
+        with pytest.raises(Exception):
+            load_task(task_dir)
+
+
+# ---------------------------------------------------------------------------
+# TestLintRulesCompat
+# ---------------------------------------------------------------------------
+
+
+class TestLintRulesCompat:
+    """Tests for lint_rules / ruff_rules backward compatibility."""
+
+    def test_ruff_rules_only(self):
+        """Existing ruff_rules still works and surfaces via effective_lint_rules."""
+        sc = ScoringCriteria(
+            test_file="test.py",
+            ruff_rules=["E501", "F841"],
+        )
+        assert sc.effective_lint_rules == ["E501", "F841"]
+
+    def test_lint_rules_only(self):
+        """New lint_rules field takes effect."""
+        sc = ScoringCriteria(
+            test_file="test.py",
+            lint_rules=["golint-001"],
+        )
+        assert sc.effective_lint_rules == ["golint-001"]
+
+    def test_lint_rules_takes_precedence(self):
+        """When both set, lint_rules takes precedence."""
+        sc = ScoringCriteria(
+            test_file="test.py",
+            lint_rules=["new-rule"],
+            ruff_rules=["old-rule"],
+        )
+        assert sc.effective_lint_rules == ["new-rule"]
+
+    def test_neither_set(self):
+        """When neither set, effective_lint_rules is None."""
+        sc = ScoringCriteria(test_file="test.py")
+        assert sc.effective_lint_rules is None

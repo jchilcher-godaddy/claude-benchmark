@@ -122,6 +122,7 @@ def format_judge_user_prompt(
     code: str,
     criteria: list[dict[str, str]],
     reference_solution: str | None = None,
+    language: str = "python",
 ) -> str:
     """Build the full user message for the LLM judge.
 
@@ -131,18 +132,29 @@ def format_judge_user_prompt(
       - Optional reference solution (truncated to 8000 chars)
       - Evaluation criteria (numbered rubric)
       - Required output format (JSON schema example)
+
+    Args:
+        language: Language name for syntax-highlighted code fences.
     """
     code_text = _truncate(code)
     rubric_text = format_rubric(criteria)
 
+    # Map language names to code fence identifiers
+    fence_lang = {
+        "python": "python",
+        "go": "go",
+        "javascript": "javascript",
+        "csharp": "csharp",
+    }.get(language, language)
+
     parts: list[str] = [
         f"## Task\n{task_description}",
-        f"## Code to Evaluate\n```python\n{code_text}\n```",
+        f"## Code to Evaluate\n```{fence_lang}\n{code_text}\n```",
     ]
 
     if reference_solution is not None:
         ref_text = _truncate(reference_solution)
-        parts.append(f"## Reference Solution\n```python\n{ref_text}\n```")
+        parts.append(f"## Reference Solution\n```{fence_lang}\n{ref_text}\n```")
 
     parts.append(f"## Evaluation Criteria\n{rubric_text}")
 
