@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import logging
+import shutil
 import time
 from pathlib import Path
 from typing import Protocol, runtime_checkable
@@ -27,11 +28,61 @@ from claude_benchmark.scoring.models import AggregateStats, CompositeScore, Toke
 from claude_benchmark.scoring.registry import get_scorer
 from claude_benchmark.scoring.token_efficiency import compute_token_efficiency
 from claude_benchmark.tasks.loader import load_judge_rubric, load_task
+from claude_benchmark.tasks.schema import Language
 
 logger = logging.getLogger(__name__)
 
 _STATIC_SCORING_CONCURRENCY = 10
 _LLM_SCORING_CONCURRENCY = 20
+
+
+# ---------------------------------------------------------------------------
+# Language-specific files required in the scoring workspace (output_dir).
+# These are copied from task_dir before static scoring so that test runners
+# and linters for non-Python languages can find build infrastructure.
+# ---------------------------------------------------------------------------
+
+_LANGUAGE_SUPPORT_FILES: dict[Language, list[str]] = {
+    Language.GO: ["go.mod", "go.sum"],
+    Language.JAVASCRIPT: ["package.json"],
+    Language.CSHARP: ["*.csproj"],
+}
+
+
+def _prepare_scoring_workspace(
+    task_dir: Path,
+    output_dir: Path,
+    language: Language,
+    test_file_name: str,
+) -> None:
+    """Copy test file and language-specific build files into the scoring workspace.
+
+    Non-Python languages need their test files colocated with the solution
+    (Go: same package, JS: require('./solution'), C#: same project) and
+    build infrastructure (go.mod, package.json, .csproj) to run tests.
+
+    Files are copied idempotently — existing files are overwritten with the
+    canonical version from task_dir.
+    """
+    # Copy the test file itself
+    src_test = task_dir / test_file_name
+    dst_test = output_dir / test_file_name
+    if src_test.exists() and not dst_test.exists():
+        shutil.copy2(src_test, dst_test)
+
+    # Copy language-specific support files
+    patterns = _LANGUAGE_SUPPORT_FILES.get(language, [])
+    for pattern in patterns:
+        if "*" in pattern:
+            for src in task_dir.glob(pattern):
+                dst = output_dir / src.name
+                if not dst.exists():
+                    shutil.copy2(src, dst)
+        else:
+            src = task_dir / pattern
+            dst = output_dir / pattern
+            if src.exists() and not dst.exists():
+                shutil.copy2(src, dst)
 
 
 def _score_static_single(
@@ -47,6 +98,16 @@ def _score_static_single(
     task_def = load_task(result.run.task_dir)
     try:
         test_file = result.run.task_dir / task_def.scoring.test_file
+
+        # Copy test infrastructure into the output directory so non-Python
+        # scorers can find test files and build configs (go.mod, .csproj, etc.)
+        if task_def.language != Language.PYTHON:
+            _prepare_scoring_workspace(
+                result.run.task_dir,
+                result.output_dir,
+                task_def.language,
+                task_def.scoring.test_file,
+            )
 
         weights = None
         if task_def.scoring.weight_override:
@@ -198,6 +259,16 @@ def score_run(
     # --- Static scoring ---
     try:
         test_file = task_dir / task_def.scoring.test_file
+
+        # Copy test infrastructure into the output directory so non-Python
+        # scorers can find test files and build configs (go.mod, .csproj, etc.)
+        if task_def.language != Language.PYTHON:
+            _prepare_scoring_workspace(
+                task_dir,
+                result.output_dir,
+                task_def.language,
+                task_def.scoring.test_file,
+            )
 
         weights = None
         if task_def.scoring.weight_override:

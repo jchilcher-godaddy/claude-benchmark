@@ -72,6 +72,8 @@ class JavaScriptStaticScorer(BaseStaticScorer):
     def run_lint(self, target_dir: Path, rules: list[str] | None = None) -> dict:
         """Run eslint and return parsed results.
 
+        Lints only source files (excludes test files copied for scoring).
+
         Returns: {"violations": list, "count": int}
         """
         js_files = self.find_source_files(target_dir)
@@ -80,7 +82,7 @@ class JavaScriptStaticScorer(BaseStaticScorer):
 
         _check_tool("npx", via_npx=True)
 
-        cmd = ["npx", "--yes", "eslint", "--format", "json", str(target_dir)]
+        cmd = ["npx", "--yes", "eslint", "--format", "json"] + [str(f) for f in js_files]
         if rules:
             for rule in rules:
                 cmd.extend(["--rule", f"{rule}: error"])

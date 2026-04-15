@@ -45,6 +45,8 @@ class GoStaticScorer(BaseStaticScorer):
     def run_lint(self, target_dir: Path, rules: list[str] | None = None) -> dict:
         """Run golangci-lint and return parsed results.
 
+        Skips test files (copied for scoring) to lint only solution code.
+
         Returns: {"violations": list, "count": int}
         """
         go_files = list(target_dir.rglob("*.go"))
@@ -53,7 +55,7 @@ class GoStaticScorer(BaseStaticScorer):
 
         _check_tool("golangci-lint")
 
-        cmd = ["golangci-lint", "run", "--out-format", "json", "./..."]
+        cmd = ["golangci-lint", "run", "--out-format", "json", "--tests=false", "./..."]
         if rules:
             cmd.extend(["--enable", ",".join(rules)])
 
