@@ -1,0 +1,37 @@
+name = "bug-fix-04-cs"
+task_type = "bug-fix"
+difficulty = "medium"
+size = "module"
+language = "csharp"
+description = "Fix SQL injection vulnerabilities and logic bugs in a query builder"
+starter_code = "Starter.cs"
+expected_files = ["Solution.cs"]
+
+prompt = """
+The file `Starter.cs` contains a `QueryBuilder` class for constructing SQL SELECT queries.
+It has several security vulnerabilities and logic bugs:
+
+1. SQL injection via string interpolation in where clauses
+2. Missing column-name validation in OrderBy() allowing injection
+3. No table/column name whitelist validation
+4. Multiple Where() calls overwrite previous conditions instead of AND-chaining
+
+Fix all issues. The QueryBuilder should:
+- Use parameterized queries: Build() returns (string sql, List<object> parameters)
+- Validate table and column names against a whitelist passed to constructor
+- Chain multiple Where() calls with AND
+- Throw ArgumentException for invalid table/column names or empty queries
+
+Save your corrected solution as `Solution.cs`.
+"""
+
+tags = ["security", "sql", "debugging", "input-validation"]
+
+[scoring]
+test_file = "SolutionTests.cs"
+reference_solution = "Reference.cs"
+
+[scoring.weight_override]
+test_pass_rate = 0.60
+lint_score = 0.25
+complexity_score = 0.15

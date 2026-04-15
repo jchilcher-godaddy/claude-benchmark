@@ -1,0 +1,32 @@
+name = "refactor-02-go"
+task_type = "refactor"
+difficulty = "medium"
+size = "function"
+language = "go"
+description = "Replace deeply nested conditionals with early returns and guard clauses"
+starter_code = "starter.go"
+expected_files = ["solution.go"]
+
+prompt = """Refactor `starter.go` to replace deeply nested conditionals with early returns (guard clauses).
+
+The current code has excessive nesting depth making it hard to read. Use early returns to reduce nesting.
+
+Requirements:
+- External API must not change (ValidateAndProcessOrder function signature stays the same)
+- All tests must pass
+- Reduce maximum nesting depth to 2 or less
+- Use early returns for error conditions
+
+Save your refactored solution as `solution.go` in package `solution`.
+"""
+
+tags = ["refactoring", "readability", "early-returns"]
+
+[scoring]
+test_file = "solution_test.go"
+reference_solution = "reference.go"
+
+[scoring.weight_override]
+test_pass_rate = 0.35
+lint_score = 0.25
+complexity_score = 0.40

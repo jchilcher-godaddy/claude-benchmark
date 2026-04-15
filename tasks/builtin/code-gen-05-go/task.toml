@@ -1,0 +1,35 @@
+name = "code-gen-05-go"
+task_type = "code-gen"
+difficulty = "hard"
+size = "module"
+language = "go"
+expected_files = ["config_merge.go"]
+description = "Implement a configuration deep merge engine with conflict detection and schema validation"
+
+prompt = """
+Implement the following in a file called `config_merge.go`:
+
+1. `ConfigMergeError` struct implementing the error interface for merge failures.
+
+2. `MergeConfigs(base map[string]interface{}, overlays ...map[string]interface{}) (map[string]interface{}, error)` that deep-merges nested configuration maps:
+   - Later overlays win for scalar values (string, int, float64, bool, nil)
+   - Nested maps merge recursively
+   - Slices are replaced entirely (not appended)
+   - The special sentinel string value `"__delete__"` removes a key from the result
+   - Type conflicts (e.g., a key is a map in base but a scalar in overlay, or vice versa) return ConfigMergeError
+   - Circular references must be detected and return ConfigMergeError
+   - Must not mutate any input maps (deep copy)
+
+3. `ValidateConfig(merged map[string]interface{}, schema map[string]interface{}) []string` that validates a merged config against a schema map. The schema map mirrors the config structure where leaf values are type names as strings (e.g., `map[string]interface{}{"port": "int", "host": "string", "nested": map[string]interface{}{"enabled": "bool"}}`). Return a slice of violation description strings (empty slice = valid). Check:
+   - Missing required keys (all schema keys are required)
+   - Type mismatches (use reflect.TypeOf for checking)
+   - Supported type names: "string", "int", "float64", "bool", "map"
+
+Your solution should be in a file called `config_merge.go` in package `solution`.
+"""
+
+tags = ["recursion", "data-structures", "algorithms", "security"]
+
+[scoring]
+test_file = "solution_test.go"
+reference_solution = "reference.go"

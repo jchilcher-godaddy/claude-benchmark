@@ -1,0 +1,33 @@
+name = "code-gen-02-js"
+task_type = "code-gen"
+difficulty = "medium"
+size = "function"
+language = "javascript"
+description = "Implement a text statistics analyzer with word counting and frequency analysis"
+
+prompt = """
+Write a function `analyzeText(text)` that analyzes text and returns statistics.
+
+The returned object must contain:
+- wordCount: total number of words (number)
+- sentenceCount: number of sentences (number) - sentences end with '.', '!', or '?'
+- averageWordLength: average length of words (number, rounded to 2 decimals)
+- mostCommonWords: array of top 5 most common words as [word, count] arrays
+  - Case-insensitive comparison
+  - Alphabetical order for ties
+- uniqueWordCount: number of unique words (number, case-insensitive)
+
+Requirements:
+- Strip punctuation from words before counting
+- Handle empty strings (return zeros/empty arrays appropriately)
+- Consider only alphabetic characters as part of words
+- Export the function using module.exports
+
+Your solution should be in a file called `solution.js`.
+"""
+
+tags = ["text-processing", "data-structures", "stdlib"]
+
+[scoring]
+test_file = "solution.test.js"
+reference_solution = "reference.js"

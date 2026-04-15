@@ -1,0 +1,32 @@
+name = "code-gen-04-cs"
+task_type = "code-gen"
+difficulty = "medium"
+size = "module"
+language = "csharp"
+expected_files = ["UrlShortener.cs"]
+description = "Implement a URL shortener service with validation and stats tracking"
+
+prompt = """
+Implement a `UrlShortener` class in a file called `UrlShortener.cs` with the following interface:
+
+- Constructor `UrlShortener()`: Initialize the shortener with empty storage.
+- `Shorten(string url)`: Validate URL, generate a unique short code (6+ alphanumeric chars), store the mapping, and return the short code. Throw ArgumentException for invalid URLs.
+- `Resolve(string shortCode)`: Look up the original URL for a short code. Throw KeyNotFoundException if not found. Increment click count on each resolve.
+- `GetStats(string shortCode)`: Return a `UrlStats` object with properties: OriginalUrl, ClickCount, CreatedAt (DateTime). Throw KeyNotFoundException if not found.
+- `Delete(string shortCode)`: Delete a short code mapping. Return true if deleted, false if not found.
+
+Requirements:
+- Validate URL format: must have a scheme (http/https) and a host using Uri.TryCreate
+- Reject dangerous URL schemes: javascript:, data:, vbscript:
+- Handle hash collisions gracefully (generate a new code if collision occurs)
+- Track click statistics per short code
+- Shortening the same URL twice should return the same short code
+
+Your solution should be in a file called `UrlShortener.cs`.
+"""
+
+tags = ["security", "hashing", "oop", "input-validation"]
+
+[scoring]
+test_file = "SolutionTests.cs"
+reference_solution = "Reference.cs"

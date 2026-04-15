@@ -1,0 +1,32 @@
+name = "bug-fix-03-cs"
+task_type = "bug-fix"
+difficulty = "hard"
+size = "module"
+language = "csharp"
+description = "Fix race conditions in thread-safe counter implementation"
+starter_code = "Starter.cs"
+expected_files = ["Solution.cs"]
+
+prompt = """
+The file `Starter.cs` contains a `ThreadSafeCounter` class intended for concurrent use. It has threading bugs that cause incorrect counts under concurrent access.
+
+Fix the threading issues. The class should have:
+- `Increment()` -- atomically increase the counter by 1
+- `Decrement()` -- atomically decrease the counter by 1
+- `GetValue()` -- return the current value
+- `Reset()` -- atomically reset the counter to 0
+- `IncrementBy(int n)` -- atomically increase the counter by n
+
+All operations must be thread-safe. Save your corrected solution as `Solution.cs`.
+"""
+
+tags = ["concurrency", "debugging", "threading", "oop"]
+
+[scoring]
+test_file = "SolutionTests.cs"
+reference_solution = "Reference.cs"
+
+[scoring.weight_override]
+test_pass_rate = 0.60
+lint_score = 0.25
+complexity_score = 0.15

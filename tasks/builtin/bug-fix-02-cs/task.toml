@@ -1,0 +1,29 @@
+name = "bug-fix-02-cs"
+task_type = "bug-fix"
+difficulty = "medium"
+size = "function"
+language = "csharp"
+description = "Fix stability and indexing bugs in merge sort implementation"
+starter_code = "Starter.cs"
+
+prompt = """
+The file `Starter.cs` contains a `MergeSort.Sort(int[] arr)` method with multiple bugs.
+
+The method should:
+- Return a new sorted array (not modify the original)
+- Be stable (preserve relative order of equal elements)
+- Work correctly for all inputs (empty, single element, duplicates, etc.)
+
+Find and fix all bugs. Save your corrected solution as `Solution.cs`.
+"""
+
+tags = ["algorithms", "debugging", "sorting", "stability"]
+
+[scoring]
+test_file = "SolutionTests.cs"
+reference_solution = "Reference.cs"
+
+[scoring.weight_override]
+test_pass_rate = 0.60
+lint_score = 0.25
+complexity_score = 0.15

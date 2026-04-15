@@ -1,0 +1,34 @@
+name = "code-gen-05-cs"
+task_type = "code-gen"
+difficulty = "hard"
+size = "module"
+language = "csharp"
+expected_files = ["ConfigMerge.cs"]
+description = "Implement a configuration deep merge engine with conflict detection and schema validation"
+
+prompt = """
+Implement the following in a file called `ConfigMerge.cs`:
+
+1. `ConfigMergeException` exception class for merge failures.
+
+2. `ConfigMerger.MergeConfigs(Dictionary<string, object?> baseConfig, params Dictionary<string, object?>[] overlays)` that deep-merges nested configuration dictionaries:
+   - Later overlays win for scalar values (string, int, long, double, bool, null)
+   - Nested Dictionary<string, object?> merge recursively
+   - Lists are replaced entirely (not appended)
+   - The special sentinel value "__delete__" (as a string) removes a key from the result
+   - Type conflicts (e.g., a key is a Dictionary in base but a scalar in overlay, or vice versa) throw ConfigMergeException
+   - Circular references must be detected and throw ConfigMergeException
+   - Must not mutate any input dictionaries
+
+3. `ConfigMerger.ValidateConfig(Dictionary<string, object?> merged, Dictionary<string, Type> schema)` that validates a merged config against a schema dictionary. The schema dictionary mirrors the config structure where leaf values are Type objects (e.g., typeof(int), typeof(string)). For nested configs, the schema value should be another Dictionary<string, Type>. Return a List<string> of violation description strings (empty list = valid). Check:
+   - Missing required keys (all schema keys are required)
+   - Type mismatches
+
+Your solution should be in a file called `ConfigMerge.cs`.
+"""
+
+tags = ["recursion", "data-structures", "algorithms", "security"]
+
+[scoring]
+test_file = "SolutionTests.cs"
+reference_solution = "Reference.cs"

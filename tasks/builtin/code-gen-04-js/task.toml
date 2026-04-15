@@ -1,0 +1,33 @@
+name = "code-gen-04-js"
+task_type = "code-gen"
+difficulty = "medium"
+size = "module"
+language = "javascript"
+expected_files = ["url_shortener.js"]
+description = "Implement a URL shortener service with validation and stats tracking"
+
+prompt = """
+Implement a `URLShortener` class in a file called `url_shortener.js` with the following interface:
+
+- `constructor()`: Initialize the shortener with empty storage.
+- `shorten(url)`: Validate URL, generate a unique short code (6+ alphanumeric chars), store the mapping, and return the short code. Throw Error for invalid URLs.
+- `resolve(shortCode)`: Look up the original URL for a short code. Throw Error if not found. Increment click count on each resolve.
+- `getStats(shortCode)`: Return an object with keys: `originalUrl`, `clickCount`, `createdAt` (Date object). Throw Error if not found.
+- `delete(shortCode)`: Delete a short code mapping. Return true if deleted, false if not found.
+
+Requirements:
+- Validate URL format: must have a scheme (http/https) and a host
+- Reject dangerous URL schemes: javascript:, data:, vbscript:
+- Handle hash collisions gracefully (generate a new code if collision occurs)
+- Track click statistics per short code
+- Shortening the same URL twice should return the same short code
+- Export the class using module.exports
+
+Your solution should be in a file called `url_shortener.js`.
+"""
+
+tags = ["security", "hashing", "oop", "input-validation"]
+
+[scoring]
+test_file = "solution.test.js"
+reference_solution = "reference.js"

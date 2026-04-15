@@ -1,0 +1,34 @@
+name = "code-gen-03-go"
+task_type = "code-gen"
+difficulty = "hard"
+size = "module"
+language = "go"
+expected_files = ["lru_cache.go"]
+description = "Implement a fully-featured LRU Cache with O(1) operations"
+
+prompt = """
+Implement a struct `LRUCache` in a file called `lru_cache.go` with the following interface:
+
+- `NewLRUCache(capacity int) (*LRUCache, error)`: Create new cache with given capacity. Return error if capacity < 1.
+- `Get(key string) (interface{}, error)`: Get value for key. Return error if not found. Mark key as recently used.
+- `Put(key string, value interface{})`: Store key-value pair. If at capacity, evict least recently used item first.
+- `Delete(key string) bool`: Delete key if exists, return true. Return false if key doesn't exist.
+- `Len() int`: Return number of items in cache.
+- `Contains(key string) bool`: Return true if key exists in cache.
+- `Keys() []string`: Return slice of keys in most-recently-used order (most recent first).
+
+Requirements:
+- Get() and Put() must be O(1) average time complexity
+- Getting a key marks it as recently used
+- Putting an existing key updates its value and marks it as recently used
+- LRU eviction means the key that was least recently accessed (via Get or Put) is removed
+- Use a doubly-linked list and map for O(1) operations
+
+Your solution should be in a file called `lru_cache.go` in package `solution`.
+"""
+
+tags = ["data-structures", "oop", "caching", "algorithms"]
+
+[scoring]
+test_file = "solution_test.go"
+reference_solution = "reference.go"

@@ -1,0 +1,45 @@
+name = "code-gen-04-go"
+task_type = "code-gen"
+difficulty = "medium"
+size = "module"
+language = "go"
+expected_files = ["url_shortener.go"]
+description = "Implement a URL shortener service with validation and stats tracking"
+
+prompt = """
+Implement a `URLShortener` struct in a file called `url_shortener.go` with the following interface:
+
+Define these types:
+
+```go
+type Stats struct {
+    OriginalURL string
+    ClickCount  int
+    CreatedAt   time.Time
+}
+```
+
+Methods:
+
+- `NewURLShortener() *URLShortener`: Initialize the shortener with empty storage.
+- `Shorten(url string) (string, error)`: Validate URL, generate a unique short code (8 alphanumeric chars), store the mapping, and return the short code. Return error for invalid URLs.
+- `Resolve(shortCode string) (string, error)`: Look up the original URL for a short code. Return error if not found. Increment click count on each resolve.
+- `GetStats(shortCode string) (Stats, error)`: Return Stats struct with original URL, click count, and creation time. Return error if not found.
+- `Delete(shortCode string) bool`: Delete a short code mapping. Return true if deleted, false if not found.
+
+Requirements:
+- Validate URL format: must have a scheme (http/https) and a host (use net/url.Parse)
+- Reject dangerous URL schemes: javascript:, data:, vbscript:
+- Handle hash collisions gracefully (generate a new code if collision occurs)
+- Track click statistics per short code
+- Shortening the same URL twice should return the same short code (idempotent)
+- Use crypto/sha256 for generating codes (first 8 hex chars of hash)
+
+Your solution should be in a file called `url_shortener.go` in package `solution`.
+"""
+
+tags = ["security", "hashing", "oop", "input-validation"]
+
+[scoring]
+test_file = "solution_test.go"
+reference_solution = "reference.go"

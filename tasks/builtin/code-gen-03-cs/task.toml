@@ -1,0 +1,34 @@
+name = "code-gen-03-cs"
+task_type = "code-gen"
+difficulty = "hard"
+size = "module"
+language = "csharp"
+expected_files = ["LruCache.cs"]
+description = "Implement a fully-featured LRU Cache with O(1) operations"
+
+prompt = """
+Implement a generic class `LRUCache<TValue>` in a file called `LruCache.cs` with the following interface:
+
+- Constructor `LRUCache(int capacity)`: Initialize with given capacity. Throw ArgumentException if capacity < 1.
+- `Get(string key)`: Get value for key. Throw KeyNotFoundException if not found. Mark key as recently used.
+- `Put(string key, TValue value)`: Store key-value pair. If at capacity, evict least recently used item first.
+- `Delete(string key)`: Delete key if exists, return true. Return false if key doesn't exist.
+- `Count` property: Return number of items in cache.
+- `ContainsKey(string key)`: Return true if key exists in cache.
+- `Keys()`: Return list of keys in most-recently-used order (most recent first).
+
+Requirements:
+- Get() and Put() must be O(1) average time complexity
+- Getting a key marks it as recently used
+- Putting an existing key updates its value and marks it as recently used
+- LRU eviction means the key that was least recently accessed (via Get or Put) is removed
+- Use LinkedList<T> and Dictionary for O(1) performance
+
+Your solution should be in a file called `LruCache.cs`.
+"""
+
+tags = ["data-structures", "oop", "caching", "algorithms"]
+
+[scoring]
+test_file = "SolutionTests.cs"
+reference_solution = "Reference.cs"

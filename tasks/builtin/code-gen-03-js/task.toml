@@ -1,0 +1,34 @@
+name = "code-gen-03-js"
+task_type = "code-gen"
+difficulty = "hard"
+size = "module"
+language = "javascript"
+expected_files = ["lru_cache.js"]
+description = "Implement a fully-featured LRU Cache with O(1) operations"
+
+prompt = """
+Implement a class `LRUCache` in a file called `lru_cache.js` with the following interface:
+
+- `constructor(capacity)`: Initialize with given capacity. Throw Error if capacity < 1.
+- `get(key)`: Get value for key. Throw Error if not found. Mark key as recently used.
+- `put(key, value)`: Store key-value pair. If at capacity, evict least recently used item first.
+- `delete(key)`: Delete key if exists, return true. Return false if key doesn't exist.
+- `get length()`: Property getter that returns number of items in cache.
+- `has(key)`: Return true if key exists in cache.
+- `keys()`: Return array of keys in most-recently-used order (most recent first).
+
+Requirements:
+- get() and put() must be O(1) average time complexity
+- Getting a key marks it as recently used
+- Putting an existing key updates its value and marks it as recently used
+- LRU eviction means the key that was least recently accessed (via get or put) is removed
+- Export the class using module.exports
+
+Your solution should be in a file called `lru_cache.js`.
+"""
+
+tags = ["data-structures", "oop", "caching", "algorithms"]
+
+[scoring]
+test_file = "solution.test.js"
+reference_solution = "reference.js"

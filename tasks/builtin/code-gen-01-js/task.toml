@@ -1,0 +1,26 @@
+name = "code-gen-01-js"
+task_type = "code-gen"
+difficulty = "easy"
+size = "function"
+language = "javascript"
+description = "Implement an iterative Fibonacci function with edge case handling"
+
+prompt = """
+Write a JavaScript function `fibonacci(n)` that returns the nth Fibonacci number using an iterative approach (not recursive).
+
+Requirements:
+- n=0 should return 0
+- n=1 should return 1
+- For n >= 2, return the nth Fibonacci number
+- For negative n, throw an Error
+- Use an iterative (loop-based) approach, not recursion
+- Export the function using module.exports
+
+Your solution should be in a file called `solution.js`.
+"""
+
+tags = ["algorithms", "functions", "iterative"]
+
+[scoring]
+test_file = "solution.test.js"
+reference_solution = "reference.js"

@@ -1,0 +1,50 @@
+name = "code-gen-02-go"
+task_type = "code-gen"
+difficulty = "medium"
+size = "function"
+language = "go"
+description = "Implement a text statistics analyzer with word counting and frequency analysis"
+
+prompt = """
+Write a Go function `AnalyzeText(text string) TextStats` that analyzes text and returns statistics.
+
+Define these types:
+
+```go
+type WordCount struct {
+    Word  string
+    Count int
+}
+
+type TextStats struct {
+    WordCount        int
+    SentenceCount    int
+    AvgWordLength    float64
+    MostCommonWords  []WordCount
+    UniqueWordCount  int
+}
+```
+
+The returned TextStats must contain:
+- WordCount: total number of words (int)
+- SentenceCount: number of sentences (int) - sentences end with '.', '!', or '?'
+- AvgWordLength: average length of words (float64, rounded to 2 decimals)
+- MostCommonWords: slice of top 5 most common words as WordCount structs
+  - Case-insensitive comparison
+  - Alphabetical order for ties (by count descending, then by word ascending)
+- UniqueWordCount: number of unique words (int, case-insensitive)
+
+Requirements:
+- Strip punctuation from words before counting
+- Handle empty strings (return zeros/empty slices appropriately)
+- Consider only alphabetic characters as part of words
+- Use regexp for extracting words: `[a-zA-Z]+`
+
+Your solution should be in a file called `solution.go` in package `solution`.
+"""
+
+tags = ["text-processing", "data-structures", "stdlib"]
+
+[scoring]
+test_file = "solution_test.go"
+reference_solution = "reference.go"

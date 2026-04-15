@@ -1,0 +1,26 @@
+name = "code-gen-01-go"
+task_type = "code-gen"
+difficulty = "easy"
+size = "function"
+language = "go"
+description = "Implement an iterative Fibonacci function with edge case handling"
+
+prompt = """
+Write a Go function `Fibonacci(n int) (int, error)` that returns the nth Fibonacci number using an iterative approach (not recursive).
+
+Requirements:
+- n=0 should return 0, nil
+- n=1 should return 1, nil
+- For n >= 2, return the nth Fibonacci number
+- For negative n, return an error
+- Use an iterative (loop-based) approach, not recursion
+- Return type should be (int, error)
+
+Your solution should be in a file called `solution.go` in package `solution`.
+"""
+
+tags = ["algorithms", "functions", "iterative"]
+
+[scoring]
+test_file = "solution_test.go"
+reference_solution = "reference.go"

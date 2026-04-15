@@ -1,0 +1,29 @@
+name = "bug-fix-02-js"
+task_type = "bug-fix"
+difficulty = "medium"
+size = "function"
+language = "javascript"
+description = "Fix stability and indexing bugs in merge sort implementation"
+starter_code = "starter.js"
+
+prompt = """
+The file `starter.js` contains a `mergeSort(arr)` function with multiple bugs.
+
+The function should:
+- Return a new sorted array (not modify the original)
+- Be stable (preserve relative order of equal elements)
+- Work correctly for all inputs (empty, single element, duplicates, etc.)
+
+Find and fix all bugs. Save your corrected solution as `solution.js`.
+"""
+
+tags = ["algorithms", "debugging", "sorting", "stability"]
+
+[scoring]
+test_file = "solution.test.js"
+reference_solution = "reference.js"
+
+[scoring.weight_override]
+test_pass_rate = 0.60
+lint_score = 0.25
+complexity_score = 0.15

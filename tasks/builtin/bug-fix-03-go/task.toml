@@ -1,0 +1,34 @@
+name = "bug-fix-03-go"
+task_type = "bug-fix"
+difficulty = "hard"
+size = "module"
+language = "go"
+description = "Fix race conditions in thread-safe counter implementation"
+starter_code = "starter.go"
+expected_files = ["solution.go"]
+
+prompt = """
+The file `starter.go` contains a `ThreadSafeCounter` struct intended for concurrent use. It has concurrency bugs that cause incorrect counts under concurrent goroutine access.
+
+Fix the concurrency issues. The struct should have these methods:
+
+- `NewThreadSafeCounter() *ThreadSafeCounter` -- constructor
+- `Increment()` -- atomically increase the counter by 1
+- `Decrement()` -- atomically decrease the counter by 1
+- `Get() int` -- return the current value
+- `Reset()` -- atomically reset the counter to 0
+- `IncrementBy(n int)` -- atomically increase the counter by n
+
+All operations must be goroutine-safe. Save your corrected solution as `solution.go` in package `solution`.
+"""
+
+tags = ["concurrency", "debugging", "goroutines", "oop"]
+
+[scoring]
+test_file = "solution_test.go"
+reference_solution = "reference.go"
+
+[scoring.weight_override]
+test_pass_rate = 0.60
+lint_score = 0.25
+complexity_score = 0.15

@@ -1,0 +1,29 @@
+name = "refactor-02-js"
+task_type = "refactor"
+difficulty = "medium"
+size = "function"
+language = "javascript"
+description = "Replace nested conditionals with early returns"
+prompt = """Refactor `starter.js` to use early returns and guard clauses instead of deeply nested conditionals.
+
+The code currently has 5-6 levels of nested if/else statements that are correct but hard to read.
+Refactor to use a flat structure with early returns for error cases.
+
+Requirements:
+- Function signature and return values must remain identical
+- All tests must pass
+- Use guard clauses and early returns
+- Maximum nesting depth of 2 levels"""
+
+starter_code = "starter.js"
+expected_files = ["solution.js"]
+tags = ["refactoring", "conditionals", "readability"]
+
+[scoring]
+test_file = "solution.test.js"
+reference_solution = "reference.js"
+
+[scoring.weight_override]
+test_pass_rate = 0.35
+lint_score = 0.25
+complexity_score = 0.40

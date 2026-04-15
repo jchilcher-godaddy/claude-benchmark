@@ -1,0 +1,28 @@
+name = "refactor-01-js"
+task_type = "refactor"
+difficulty = "easy"
+size = "function"
+language = "javascript"
+description = "Extract repeated logic into helper functions"
+prompt = """Refactor `starter.js` to eliminate duplication by extracting helper functions.
+
+The code currently has significant duplication in processing different record fields.
+Extract the repeated patterns into reusable helper functions.
+
+Requirements:
+- External API must not change (processRecords function signature stays the same)
+- All tests must pass
+- Eliminate duplicated filter/transform/aggregate logic"""
+
+starter_code = "starter.js"
+expected_files = ["solution.js"]
+tags = ["refactoring", "duplication", "functions"]
+
+[scoring]
+test_file = "solution.test.js"
+reference_solution = "reference.js"
+
+[scoring.weight_override]
+test_pass_rate = 0.35
+lint_score = 0.25
+complexity_score = 0.40

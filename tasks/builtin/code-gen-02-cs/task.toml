@@ -1,0 +1,33 @@
+name = "code-gen-02-cs"
+task_type = "code-gen"
+difficulty = "medium"
+size = "function"
+language = "csharp"
+description = "Implement a text statistics analyzer with word counting and frequency analysis"
+
+prompt = """
+Write a static class `TextAnalyzer` with a method `AnalyzeText(string text)` that analyzes text and returns a `TextStats` object.
+
+The `TextStats` class should have these properties:
+- WordCount: total number of words (int)
+- SentenceCount: number of sentences (int) - sentences end with '.', '!', or '?'
+- AverageWordLength: average length of words (double, rounded to 2 decimals)
+- MostCommonWords: list of top 5 most common words as List<(string Word, int Count)>
+  - Case-insensitive comparison
+  - Alphabetical order for ties
+- UniqueWordCount: number of unique words (int, case-insensitive)
+
+Requirements:
+- Strip punctuation from words before counting
+- Handle empty strings (return zeros/empty lists appropriately)
+- Consider only alphabetic characters as part of words
+- Use proper C# naming conventions (PascalCase for public members)
+
+Your solution should be in a file called `Solution.cs`.
+"""
+
+tags = ["text-processing", "data-structures", "stdlib"]
+
+[scoring]
+test_file = "SolutionTests.cs"
+reference_solution = "Reference.cs"

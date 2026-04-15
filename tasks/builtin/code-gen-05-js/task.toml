@@ -1,0 +1,36 @@
+name = "code-gen-05-js"
+task_type = "code-gen"
+difficulty = "hard"
+size = "module"
+language = "javascript"
+expected_files = ["config_merge.js"]
+description = "Implement a configuration deep merge engine with conflict detection and schema validation"
+
+prompt = """
+Implement the following in a file called `config_merge.js`:
+
+1. `ConfigMergeError` class extending Error for merge failures.
+
+2. `mergeConfigs(base, ...overlays)` that deep-merges nested configuration objects:
+   - Later overlays win for scalar values (string, number, boolean, null)
+   - Nested objects merge recursively
+   - Arrays are replaced entirely (not concatenated)
+   - The special sentinel value `"__delete__"` removes a key from the result
+   - Type conflicts (e.g., a key is an object in base but a scalar in overlay, or vice versa) throw ConfigMergeError
+   - Circular references must be detected and throw ConfigMergeError
+   - Must not mutate any input objects
+
+3. `validateConfig(merged, schema)` that validates a merged config against a schema object. The schema object mirrors the config structure where leaf values are constructor functions (e.g., `{port: Number, host: String, nested: {enabled: Boolean}}`). Return an array of violation description strings (empty array = valid). Check:
+   - Missing required keys (all schema keys are required)
+   - Type mismatches
+
+Export all using module.exports.
+
+Your solution should be in a file called `config_merge.js`.
+"""
+
+tags = ["recursion", "data-structures", "algorithms", "security"]
+
+[scoring]
+test_file = "solution.test.js"
+reference_solution = "reference.js"

@@ -1,0 +1,26 @@
+name = "code-gen-01-cs"
+task_type = "code-gen"
+difficulty = "easy"
+size = "function"
+language = "csharp"
+description = "Implement an iterative Fibonacci function with edge case handling"
+
+prompt = """
+Write a C# static class `Fibonacci` with a static method `Calculate(int n)` that returns the nth Fibonacci number using an iterative approach (not recursive).
+
+Requirements:
+- n=0 should return 0
+- n=1 should return 1
+- For n >= 2, return the nth Fibonacci number
+- For negative n, throw ArgumentException
+- Use an iterative (loop-based) approach, not recursion
+- Return type should be long (64-bit integer) to handle large values
+
+Your solution should be in a file called `Solution.cs`.
+"""
+
+tags = ["algorithms", "functions", "iterative"]
+
+[scoring]
+test_file = "SolutionTests.cs"
+reference_solution = "Reference.cs"
