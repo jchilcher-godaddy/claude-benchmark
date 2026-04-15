@@ -60,6 +60,7 @@ class GoStaticScorer(BaseStaticScorer):
             "--output.json.path", "stdout",
             "--output.text.path", "stderr",
             "--tests=false",
+            "--allow-parallel-runners",
             "./...",
         ]
         if rules:
