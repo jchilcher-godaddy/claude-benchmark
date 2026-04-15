@@ -8,7 +8,9 @@ A practical guide to getting better results from Claude Code. Whether you're usi
 
 Claude Code reads a file called **CLAUDE.md** at the root of your project. Think of it as a briefing document — it tells Claude about your project before you ask it anything. What you put in that file (and what you leave out) has a measurable impact on the quality of code Claude produces.
 
-We ran ~20,000 controlled benchmark tests to figure out what actually works. This guide distills those findings into clear recommendations.
+We ran ~100,000+ controlled benchmark tests across Python, Go, JavaScript, and C# to figure out what actually works. This guide distills those findings into clear recommendations.
+
+> **Cross-language status:** Core findings (empty baselines win, CoT hurts, code-reviewer persona helps, polite framing raises the floor) are confirmed across Python and JavaScript (5,760 cross-language runs). Go and C# respond differently — model choice matters far more and persona prompting can backfire. See [Choosing the Right Model](#choosing-the-right-model) for language-specific guidance.
 
 **The single most important takeaway:**
 
@@ -19,6 +21,8 @@ We ran ~20,000 controlled benchmark tests to figure out what actually works. Thi
 ## Start Here: Your First CLAUDE.md
 
 Copy this template into a file called `CLAUDE.md` at the root of your project. Replace the examples with your actual project details.
+
+*(This example uses a Python stack. Substitute your own tools — the structure is what matters.)*
 
 ```markdown
 # Project Context
@@ -60,7 +64,7 @@ Repeating any of this in your CLAUDE.md is like handing a senior engineer a remi
 
 The only things worth putting in CLAUDE.md are things Claude *can't* know: your project's specific tech stack, your team's naming conventions that differ from the language default, where your config files live, and what you're working on right now.
 
-> **Why so minimal?** We tested 13 different CLAUDE.md configurations ranging from 0 to ~6,800 tokens. The empty file (no instructions at all) scored **higher** than every single configuration we tested. Adding generic coding advice — even advice that sounds obviously correct — consistently made output worse. The correlation between instruction length and quality was r = -0.95 (nearly perfect negative). Details in [Methodology](#8-methodology).
+> **Why so minimal?** We tested 8 CLAUDE.md configurations ranging from 0 to ~6,800 tokens. The empty file (88.0) scored higher than all verbose profiles. The only thing that beat it was a minimal model-tuned prompt (96.3) — confirming that less is more. The correlation between instruction length and quality remains strongly negative. Details in [Methodology](#8-methodology).
 
 ---
 
@@ -76,9 +80,11 @@ Put this line at the top of your CLAUDE.md:
 You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write.
 ```
 
-This is the only persona that consistently improved code quality across all task types. It's especially effective for refactoring work.
+This is the only persona that consistently improved code quality in Python and JavaScript. It's especially effective for refactoring work.
 
 > **Advanced:** This persona raised composite scores by +1.0 overall and +2.9 on refactoring tasks (1,080 runs). We tested other personas — "senior engineer," "security expert," "performance specialist" — none helped. Importantly, **do not combine personas**. Adding a second role on top of code-reviewer (e.g., "...and a security expert") diluted the benefit by -0.5 points (5,400 runs).
+>
+> **Cross-language (5,760 runs):** Helps JS (+3.5) and Python (+1.5), neutral in C# (+0.6), harmful in Go (-1.1). For Go projects, omit the persona — especially on Haiku where it causes a -4.1 drop.
 
 ### 2. Be polite
 
@@ -118,9 +124,9 @@ This is the most widely repeated prompt engineering tip on the internet. It work
 
 ### Don't combine multiple techniques
 
-The "kitchen-sink" approach — chain-of-thought + temperature 0 + a long list of coding rules + a senior engineer persona — produced the **worst results in our entire test suite**. Individual techniques may be mildly negative on their own, but stacked together they are actively harmful.
+The "kitchen-sink" approach — chain-of-thought + temperature 0 + a long list of coding rules + a senior engineer persona — barely beats an empty CLAUDE.md despite 6x the prompt tokens. Individual techniques may be mildly negative on their own, but stacked together they waste effort for negligible gain.
 
-> **Advanced:** The kitchen-sink variant scored 90.7 on LLM quality vs. 95.8 for the best variant (6,480 runs). Refactoring collapsed to 86.1 vs. 92.0 baseline. This is the "prompt-engineer" archetype: someone who applies every piece of prompting advice they've read online, not realizing the advice was developed for reasoning tasks and doesn't transfer to code generation.
+> **Advanced:** The kitchen-sink variant scored 89.56 vs. 88.01 for bare-default and 96.26 for the best variant (6,480 runs, latest capstone). That's +1.5 points for 6x the prompt investment. Refactoring tasks are hit hardest. This is the "prompt-engineer" archetype: someone who applies every piece of prompting advice they've read online, not realizing the advice was developed for reasoning tasks and doesn't transfer to code generation.
 
 ### Don't phrase rules as prohibitions
 
@@ -140,7 +146,9 @@ The "kitchen-sink" approach — chain-of-thought + temperature 0 + a long list o
 
 ## Choosing the Right Model
 
-Different Claude models are better at different types of work. Using the right model for the task has a bigger impact than any prompting technique — a 6-8 point spread between best and worst model per task type.
+Different Claude models are better at different types of work. In Python, models perform almost identically (0.9-point spread). **Outside Python, model choice is the biggest lever** — up to a 29-point spread in Go and C#.
+
+### Python task routing
 
 | What you're doing | Use this model | Why |
 |-------------------|---------------|-----|
@@ -151,9 +159,22 @@ Different Claude models are better at different types of work. Using the right m
 
 **When you're not sure, use Sonnet.** It's the most forgiving — it handles suboptimal prompts better than the other models and produces the most consistent results across all task types.
 
-> **Advanced: Per-model tuning**
+### Outside Python: Language changes everything
+
+Cross-language testing (5,760 runs) revealed that model choice matters far more outside Python:
+
+| Language | Avg Score | Best Model | Haiku Score | Spread |
+|----------|-----------|------------|-------------|--------|
+| Python | 83.9 | Any (~equal) | 83.6 | 0.9 |
+| JavaScript | 71.7 | Sonnet (76.4) | 66.5 | 9.9 |
+| Go | 73.6 | Sonnet (83.3) | 56.2 | 27.1 |
+| C# | 65.3 | Opus (78.9) | 49.5 | 29.4 |
+
+**For Go and C#, never use Haiku** — quality collapses to the 49-56 range (28-32 points below Sonnet/Opus). Use Sonnet for Go, Opus for C#. For JavaScript, Sonnet leads but all models are competitive.
+
+> **Advanced: Per-model tuning (Python)**
 >
-> Each model responds slightly differently to system prompts. These are the exact tested prompts that produced the best results per model. All use `temperature = 1.0` and the "Could you please" prefix.
+> Each model responds slightly differently to system prompts. These prompts were tuned on Python tasks — adapt the language-specific references to your stack. All use `temperature = 1.0` and the "Could you please" prefix.
 >
 > **Haiku** — Benefits from structural guidance:
 > ```
@@ -168,7 +189,7 @@ Different Claude models are better at different types of work. Using the right m
 > ```
 > You are a meticulous code reviewer. Focus on correctness, edge cases,
 > and maintainability in every line you write. Write clean, idiomatic
-> Python. Let the code speak for itself.
+> code. Let the code speak for itself.
 > ```
 >
 > **Opus** — Responds to lightweight nudges; has the strongest opinions:
@@ -254,7 +275,7 @@ For experienced users who just want the cheat sheet:
 | Use the code-reviewer persona for quality-sensitive work | Stack multiple personas ("you are a senior engineer and security expert and...") |
 | State WHAT you want, not HOW to solve it | Dictate algorithms, patterns, and implementation details |
 | Write constraints as plain text sentences | Use CAPS LOCK, numbered checklists, or XML tags for emphasis |
-| Route refactoring to Haiku, bug fixes to Sonnet | Use the same model for every task type |
+| Route refactoring to Haiku **(Python only)**; use Sonnet/Opus for Go, JS, C# | Use the same model for every task type |
 | "Use guard clauses and early returns" (positive framing) | "Don't create deeply nested code" (negative framing) |
 | Put behavioral instructions in CLAUDE.md (system prompt) | Put behavioral instructions in your chat messages |
 | Keep markdown headers and bullets in CLAUDE.md | Strip formatting to "save tokens" |
@@ -274,6 +295,7 @@ If you're auditing an existing setup, check for these. Each one made code measur
 8. **Generic coding instructions** like "use descriptive names"
 9. **Injecting planning context** into agent executor prompts
 10. **"Think about principles first"** (step-back prompting)
+11. **Using Haiku for Go or C# tasks** (quality collapses 28-32 points vs Sonnet/Opus)
 
 ---
 
@@ -281,6 +303,8 @@ If you're auditing an existing setup, check for these. Each one made code measur
 
 These findings are real and statistically rigorous, but bounded in scope:
 
+- **Cross-language validated.** Core findings confirmed across Python, Go, JavaScript, and C# (5,760 runs). Python and JS respond similarly to prompting. Go and C# are more sensitive to model choice and less responsive to persona prompting.
+- **Score scales differ by language.** Python averages 83.9 vs C# at 65.3 under identical conditions. Compare effects within a language, not raw scores across languages.
 - **Single-file tasks only.** We didn't test multi-file navigation or codebase understanding. Project context in CLAUDE.md is likely *more* valuable in those scenarios than this benchmark can measure.
 - **Generic coding tasks.** Domain-specific tasks with complex business logic or unfamiliar frameworks may respond differently.
 - **No multi-turn conversations.** Each test was a single prompt-response. In extended sessions, a lean system prompt preserves more context window for conversation history — another reason to keep it short.
@@ -293,11 +317,11 @@ These findings are real and statistically rigorous, but bounded in scope:
 
 > **This section is for those who want to verify the numbers.** The recommendations above stand on their own — you don't need to read this section to use them.
 
-These guidelines come from ~20,000 benchmark runs across 9 controlled experiments using the [claude-benchmark](https://github.com/jchilcher-godaddy/claude-benchmark) tool.
+These guidelines come from ~100,000+ benchmark runs across 10+ controlled experiments using the [claude-benchmark](https://github.com/jchilcher-godaddy/claude-benchmark) tool.
 
-**How we scored:** Composite = 50% static analysis (pytest pass rate, ruff lint, radon complexity) + 50% LLM judge (Claude Haiku 4.5 scoring readability, architecture, instruction adherence, and correctness on a 1-5 scale).
+**How we scored:** Composite = 50% static analysis + 50% LLM judge. Static analysis uses language-appropriate tooling: pytest/ruff/radon (Python), `go test`/`golangci-lint`/`gocyclo` (Go), Jest/ESLint (JavaScript), `dotnet test`/`dotnet format` (C#). LLM judge: Claude Haiku 4.5 scoring readability, architecture, instruction adherence, and correctness on a 1-5 scale.
 
-**How we tested:** 30+ replications per experimental cell. 12-16 tasks spanning bug-fix, code-generation, refactoring, and instruction-following at easy/medium/hard difficulty. All 3 models tested per experiment unless investigating model-specific effects.
+**How we tested:** 20-30 replications per experimental cell. 12-16 tasks per language spanning bug-fix, code-generation, refactoring, and instruction-following at easy/medium/hard difficulty. All 3 models tested per experiment unless investigating model-specific effects.
 
 **Statistical rigor:** 95% confidence intervals, Mann-Whitney U tests, Welch's t-test fallback, Cohen's d effect sizes with Bonferroni correction for multiple comparisons.
 
@@ -312,5 +336,6 @@ These guidelines come from ~20,000 benchmark runs across 9 controlled experiment
 | model-selection | 2,160 | Task-aware model routing beats any single model |
 | persona-sweep | 1,080 | Code-reviewer persona helps; others neutral |
 | persona-stacking | 5,400 | Stacking personas dilutes effectiveness |
-| capstone-best-practices | 6,480 | Empty baseline (92.15) > all 13 CLAUDE.md profiles |
+| capstone-best-practices | 6,480 | Empty baseline (88.0) > all verbose profiles; tuned-sonnet (96.3) wins |
+| cross-language | 5,760 | Model gap widens 10-30x outside Python; persona effect is language-dependent |
 | gsd-methodology | 1,800 | Minimal executor prompts outperform verbose ones |
