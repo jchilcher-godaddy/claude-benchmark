@@ -54,6 +54,7 @@ def _prepare_scoring_workspace(
     output_dir: Path,
     language: Language,
     test_file_name: str,
+    starter_code: str | None = None,
 ) -> None:
     """Copy test file and language-specific build files into the scoring workspace.
 
@@ -61,9 +62,21 @@ def _prepare_scoring_workspace(
     (Go: same package, JS: require('./solution'), C#: same project) and
     build infrastructure (go.mod, package.json, .csproj) to run tests.
 
-    Files are copied idempotently — existing files are overwritten with the
-    canonical version from task_dir.
+    For Go and C#, the starter file (pre-fix buggy version) must be removed
+    because all files in a directory/project compile together — duplicate
+    symbol declarations cause build failures.
+
+    Files are copied idempotently — existing files are not overwritten.
     """
+    # Remove starter file for languages with single-namespace-per-directory
+    # semantics (Go packages, C# projects). The starter contains the
+    # original buggy code; the solution replaces it.
+    if starter_code and language in (Language.GO, Language.CSHARP):
+        starter_in_output = output_dir / starter_code
+        if starter_in_output.exists():
+            starter_in_output.unlink()
+            logger.debug("Removed starter file %s to avoid duplicate symbols", starter_code)
+
     # Copy the test file itself
     src_test = task_dir / test_file_name
     dst_test = output_dir / test_file_name
@@ -107,6 +120,7 @@ def _score_static_single(
                 result.output_dir,
                 task_def.language,
                 task_def.scoring.test_file,
+                starter_code=task_def.starter_code,
             )
 
         weights = None
@@ -268,6 +282,7 @@ def score_run(
                 result.output_dir,
                 task_def.language,
                 task_def.scoring.test_file,
+                starter_code=task_def.starter_code,
             )
 
         weights = None

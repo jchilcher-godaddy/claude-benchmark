@@ -82,7 +82,11 @@ class JavaScriptStaticScorer(BaseStaticScorer):
 
         _check_tool("npx", via_npx=True)
 
-        cmd = ["npx", "--yes", "eslint", "--format", "json"] + [str(f) for f in js_files]
+        cmd = [
+            "npx", "--yes", "eslint",
+            "--no-config-lookup",
+            "--format", "json",
+        ] + [str(f) for f in js_files]
         if rules:
             for rule in rules:
                 cmd.extend(["--rule", f"{rule}: error"])
@@ -150,7 +154,7 @@ class JavaScriptStaticScorer(BaseStaticScorer):
                     "npx", "--yes", "jest",
                     "--json",
                     "--no-coverage",
-                    "--testPathPattern", str(test_file.name),
+                    "--testPathPatterns", str(test_file.name),
                 ],
                 capture_output=True,
                 text=True,

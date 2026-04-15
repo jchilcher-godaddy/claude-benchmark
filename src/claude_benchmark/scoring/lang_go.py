@@ -55,7 +55,13 @@ class GoStaticScorer(BaseStaticScorer):
 
         _check_tool("golangci-lint")
 
-        cmd = ["golangci-lint", "run", "--out-format", "json", "--tests=false", "./..."]
+        cmd = [
+            "golangci-lint", "run",
+            "--output.json.path", "stdout",
+            "--output.text.path", "stderr",
+            "--tests=false",
+            "./...",
+        ]
         if rules:
             cmd.extend(["--enable", ",".join(rules)])
 
@@ -82,7 +88,10 @@ class GoStaticScorer(BaseStaticScorer):
         violations = []
         if result.stdout.strip():
             try:
-                data = json.loads(result.stdout)
+                # golangci-lint v2 may append a text summary line after the
+                # JSON object; parse only the first line to avoid decode errors.
+                json_line = result.stdout.strip().splitlines()[0]
+                data = json.loads(json_line)
                 for issue in data.get("Issues", []) or []:
                     violations.append({
                         "code": issue.get("FromLinter", "unknown"),
