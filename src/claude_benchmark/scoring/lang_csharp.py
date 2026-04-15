@@ -49,6 +49,8 @@ class CSharpStaticScorer(BaseStaticScorer):
 
         Returns: {"violations": list, "count": int}
         """
+        # Resolve to absolute to avoid cwd-relative mismatches
+        target_dir = target_dir.resolve()
         cs_files = list(target_dir.rglob("*.cs"))
         if not cs_files:
             return {"violations": [], "count": 0}
@@ -126,6 +128,8 @@ class CSharpStaticScorer(BaseStaticScorer):
         """
         _check_tool("dotnet")
 
+        # Resolve all paths to absolute to avoid cwd-relative mismatches
+        workspace = workspace.resolve()
         csproj_files = list(workspace.rglob("*.csproj"))
         if not csproj_files:
             return {
@@ -138,15 +142,16 @@ class CSharpStaticScorer(BaseStaticScorer):
                 "error": f"No .csproj found in {workspace}",
             }
 
+        csproj = str(csproj_files[0])
+        trx_dir = str(workspace / "TestResults")
         trx_path = workspace / "TestResults" / "results.trx"
 
         try:
             result = subprocess.run(
                 [
-                    "dotnet", "test",
-                    str(csproj_files[0]),
-                    "--logger", f"trx;LogFileName={trx_path.name}",
-                    "--results-directory", str(trx_path.parent),
+                    "dotnet", "test", csproj,
+                    "--logger", "trx;LogFileName=results.trx",
+                    "--results-directory", trx_dir,
                     "--no-build",
                 ],
                 capture_output=True,
@@ -165,15 +170,15 @@ class CSharpStaticScorer(BaseStaticScorer):
                 "error": "dotnet test timed out after 120 seconds",
             }
 
-        # Try --no-build first; if it fails (not yet built), retry with build
-        if result.returncode != 0 and "NETSDK" in result.stderr:
+        # Retry with full build if --no-build didn't produce results.
+        # This covers: no prior build, stale artifacts, or framework mismatch.
+        if not trx_path.exists():
             try:
                 result = subprocess.run(
                     [
-                        "dotnet", "test",
-                        str(csproj_files[0]),
-                        "--logger", f"trx;LogFileName={trx_path.name}",
-                        "--results-directory", str(trx_path.parent),
+                        "dotnet", "test", csproj,
+                        "--logger", "trx;LogFileName=results.trx",
+                        "--results-directory", trx_dir,
                     ],
                     capture_output=True,
                     text=True,

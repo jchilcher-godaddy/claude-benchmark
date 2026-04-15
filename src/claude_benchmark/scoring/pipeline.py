@@ -83,18 +83,18 @@ def _prepare_scoring_workspace(
     if src_test.exists() and not dst_test.exists():
         shutil.copy2(src_test, dst_test)
 
-    # Copy language-specific support files
+    # Copy language-specific support files (always overwrite — build configs
+    # like .csproj may have been updated since the original run)
     patterns = _LANGUAGE_SUPPORT_FILES.get(language, [])
     for pattern in patterns:
         if "*" in pattern:
             for src in task_dir.glob(pattern):
                 dst = output_dir / src.name
-                if not dst.exists():
-                    shutil.copy2(src, dst)
+                shutil.copy2(src, dst)
         else:
             src = task_dir / pattern
             dst = output_dir / pattern
-            if src.exists() and not dst.exists():
+            if src.exists():
                 shutil.copy2(src, dst)
 
 
