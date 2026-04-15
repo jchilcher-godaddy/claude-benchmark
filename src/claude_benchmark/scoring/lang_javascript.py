@@ -86,7 +86,7 @@ class JavaScriptStaticScorer(BaseStaticScorer):
             "npx", "--yes", "eslint",
             "--no-config-lookup",
             "--format", "json",
-        ] + [str(f) for f in js_files]
+        ] + [str(f.resolve()) for f in js_files]
         if rules:
             for rule in rules:
                 cmd.extend(["--rule", f"{rule}: error"])
