@@ -393,7 +393,10 @@ def run(
     cost_tracker = CostTracker(max_cost=max_cost)
 
     # 10. Show dry-run preview
-    show_dry_run(filtered, cost_tracker, concurrency, skipped_count=skipped_count)
+    show_dry_run(
+        filtered, cost_tracker, concurrency,
+        skipped_count=skipped_count, skip_llm_judge=skip_llm_judge,
+    )
 
     # 11. If --dry-run, exit after preview
     if dry_run:

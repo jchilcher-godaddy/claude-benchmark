@@ -7,6 +7,9 @@ from dataclasses import dataclass
 import pytest
 
 from claude_benchmark.execution.cost import (
+    JUDGE_AVG_INPUT_TOKENS,
+    JUDGE_AVG_OUTPUT_TOKENS,
+    JUDGE_MODEL,
     MODEL_PRICING,
     CostTracker,
     estimate_suite_cost,
@@ -126,11 +129,14 @@ class TestEstimateSuiteCost:
             avg_output_tokens=2000,
         )
         # 2 tasks * 2 profiles * 3 reps = 12 runs
-        # haiku: 12 * (4000/1M * 1.00 + 2000/1M * 5.00) = 12 * 0.014 = 0.168
+        # haiku execution: 12 * (4000/1M * 1.00 + 2000/1M * 5.00) = 12 * 0.014 = 0.168
+        # judge: 12 * (3000/1M * 1.00 + 500/1M * 5.00) = 12 * 0.0055 = 0.066
         assert "haiku" in costs
         assert "total" in costs
         assert costs["haiku"] == pytest.approx(0.168)
-        assert costs["total"] == pytest.approx(0.168)
+        judge_cost = CostTracker().estimate_judge_cost(12)
+        assert costs["judge"] == pytest.approx(judge_cost)
+        assert costs["total"] == pytest.approx(0.168 + judge_cost)
 
     def test_multiple_models(self) -> None:
         costs = estimate_suite_cost(
@@ -139,11 +145,12 @@ class TestEstimateSuiteCost:
             models=["haiku", "sonnet", "opus"],
             reps=1,
         )
-        # 1 task * 1 profile * 1 rep = 1 run per model
+        # 1 task * 1 profile * 1 rep = 1 run per model (3 runs total)
         assert costs["haiku"] == pytest.approx(0.014)
         assert costs["sonnet"] == pytest.approx(0.042)
         assert costs["opus"] == pytest.approx(0.07)
-        assert costs["total"] == pytest.approx(0.014 + 0.042 + 0.07)
+        judge_cost = CostTracker().estimate_judge_cost(3)
+        assert costs["total"] == pytest.approx(0.014 + 0.042 + 0.07 + judge_cost)
 
     def test_unknown_model_uses_sonnet_pricing(self) -> None:
         costs = estimate_suite_cost(
@@ -159,3 +166,74 @@ class TestEstimateSuiteCost:
             reps=1,
         )
         assert costs["mystery"] == pytest.approx(sonnet_costs["sonnet"])
+
+
+class TestEstimateJudgeCost:
+    """estimate_judge_cost uses haiku pricing with judge token estimates."""
+
+    def test_single_run(self) -> None:
+        tracker = CostTracker()
+        pricing = MODEL_PRICING[JUDGE_MODEL]
+        expected = (
+            (JUDGE_AVG_INPUT_TOKENS / 1_000_000) * pricing["input"]
+            + (JUDGE_AVG_OUTPUT_TOKENS / 1_000_000) * pricing["output"]
+        )
+        assert tracker.estimate_judge_cost(1) == pytest.approx(expected)
+
+    def test_multiple_runs(self) -> None:
+        tracker = CostTracker()
+        single = tracker.estimate_judge_cost(1)
+        assert tracker.estimate_judge_cost(10) == pytest.approx(single * 10)
+
+    def test_zero_runs(self) -> None:
+        tracker = CostTracker()
+        assert tracker.estimate_judge_cost(0) == pytest.approx(0.0)
+
+
+class TestEstimateTotalCostWithJudge:
+    """estimate_total_cost includes or excludes judge cost via flag."""
+
+    def test_includes_judge_by_default(self) -> None:
+        tracker = CostTracker()
+        runs = [FakeRun("haiku")]
+        with_judge = tracker.estimate_total_cost(runs)
+        without_judge = tracker.estimate_total_cost(runs, include_judge=False)
+        assert with_judge > without_judge
+        assert with_judge == pytest.approx(
+            without_judge + tracker.estimate_judge_cost(1)
+        )
+
+    def test_exclude_judge(self) -> None:
+        tracker = CostTracker()
+        runs = [FakeRun("sonnet")]
+        # Without judge should equal the old behavior (execution only)
+        cost = tracker.estimate_total_cost(runs, include_judge=False)
+        expected = tracker.estimate_run_cost("sonnet", 4000, 2000)
+        assert cost == pytest.approx(expected)
+
+
+class TestEstimateSuiteCostWithJudge:
+    """estimate_suite_cost includes judge cost by default."""
+
+    def test_includes_judge_key(self) -> None:
+        costs = estimate_suite_cost(
+            task_count=2,
+            profile_count=1,
+            models=["haiku"],
+            reps=5,
+        )
+        assert "judge" in costs
+        assert costs["judge"] > 0
+        # total = haiku execution + judge
+        assert costs["total"] == pytest.approx(costs["haiku"] + costs["judge"])
+
+    def test_exclude_judge(self) -> None:
+        costs = estimate_suite_cost(
+            task_count=2,
+            profile_count=1,
+            models=["haiku"],
+            reps=5,
+            include_judge=False,
+        )
+        assert "judge" not in costs
+        assert costs["total"] == pytest.approx(costs["haiku"])

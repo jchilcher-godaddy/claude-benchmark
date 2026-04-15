@@ -271,7 +271,10 @@ def experiment(
     console.print(
         f"[bold]Variants:[/bold] {', '.join(v.label for v in config.variants)}"
     )
-    show_dry_run(runs, cost_tracker, concurrency, skipped_count=skipped_count)
+    show_dry_run(
+        runs, cost_tracker, concurrency,
+        skipped_count=skipped_count, skip_llm_judge=skip_llm_judge,
+    )
 
     # 10. If --dry-run, exit after preview
     if dry_run:

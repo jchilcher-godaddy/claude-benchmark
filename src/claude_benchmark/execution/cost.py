@@ -18,6 +18,14 @@ MODEL_PRICING: dict[str, dict[str, float]] = {
     "opus": {"input": 5.00, "output": 25.00},
 }
 
+# LLM judge token estimates (conservative).
+# Input: system prompt (~600 tok) + user prompt with code (~2400 tok) = ~3000 tok
+# Output: JSON with 4 criteria, scores, and reasoning = ~500 tok
+JUDGE_AVG_INPUT_TOKENS = 3000
+JUDGE_AVG_OUTPUT_TOKENS = 500
+# Judge always uses haiku (see scoring/prompts.py DEFAULT_JUDGE_MODEL)
+JUDGE_MODEL = "haiku"
+
 
 @dataclass
 class CostTracker:
@@ -63,19 +71,33 @@ class CostTracker:
         output_cost = (avg_output_tokens / 1_000_000) * pricing["output"]
         return input_cost + output_cost
 
+    def estimate_judge_cost(self, num_runs: int) -> float:
+        """Estimate LLM judge cost for a number of runs.
+
+        Each run triggers one Haiku judge call with ~3K input / ~500 output tokens.
+        """
+        pricing = MODEL_PRICING[JUDGE_MODEL]
+        input_cost = (JUDGE_AVG_INPUT_TOKENS / 1_000_000) * pricing["input"]
+        output_cost = (JUDGE_AVG_OUTPUT_TOKENS / 1_000_000) * pricing["output"]
+        return (input_cost + output_cost) * num_runs
+
     def estimate_total_cost(
         self,
         runs: list,
         avg_input_tokens: int = 4000,
         avg_output_tokens: int = 2000,
+        include_judge: bool = True,
     ) -> float:
         """Estimate total cost for a list of runs.
 
-        Each run must have a .model attribute.
+        Each run must have a .model attribute. When *include_judge* is True
+        (the default), adds one Haiku judge call per run.
         """
         total = 0.0
         for run in runs:
             total += self.estimate_run_cost(run.model, avg_input_tokens, avg_output_tokens)
+        if include_judge:
+            total += self.estimate_judge_cost(len(runs))
         return total
 
 
@@ -86,21 +108,28 @@ def estimate_suite_cost(
     reps: int,
     avg_input_tokens: int = 4000,
     avg_output_tokens: int = 2000,
+    include_judge: bool = True,
 ) -> dict[str, float]:
     """Estimate total cost for a benchmark suite.
 
-    Returns a dict with per-model costs and a 'total' key.
+    Returns a dict with per-model costs, a 'judge' key (if *include_judge*),
+    and a 'total' key.
 
     Uses conservative estimates: 4K input tokens (prompt + CLAUDE.md + task)
     and 2K output tokens (generated code). Actual costs will vary based on
     task complexity and profile size.
     """
     costs: dict[str, float] = {}
+    total_runs = 0
     for model in models:
         pricing = MODEL_PRICING.get(model, MODEL_PRICING["sonnet"])
         runs = task_count * profile_count * reps
+        total_runs += runs
         input_cost = (avg_input_tokens * runs / 1_000_000) * pricing["input"]
         output_cost = (avg_output_tokens * runs / 1_000_000) * pricing["output"]
         costs[model] = input_cost + output_cost
+    if include_judge:
+        tracker = CostTracker()
+        costs["judge"] = tracker.estimate_judge_cost(total_runs)
     costs["total"] = sum(v for k, v in costs.items() if k != "total")
     return costs

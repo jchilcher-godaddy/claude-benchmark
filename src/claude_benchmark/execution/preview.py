@@ -24,17 +24,20 @@ def show_dry_run(
     cost_tracker: CostTracker,
     concurrency: int,
     skipped_count: int = 0,
+    skip_llm_judge: bool = False,
 ) -> None:
     """Display a pre-execution summary of the benchmark plan.
 
     Shows task/profile/model counts, total runs, concurrency level,
-    estimated cost, optional cost cap, and a per-model breakdown table.
+    estimated cost (execution + judge), optional cost cap, and a
+    per-model breakdown table.
 
     Args:
         runs: List of BenchmarkRun instances to execute.
         cost_tracker: CostTracker for cost estimation and cap display.
         concurrency: Number of parallel workers.
         skipped_count: Number of runs skipped due to resume (already completed).
+        skip_llm_judge: If True, exclude judge cost from the estimate.
     """
     console = Console()
 
@@ -59,8 +62,16 @@ def show_dry_run(
     console.print()
 
     # Estimated cost
-    estimated = cost_tracker.estimate_total_cost(runs)
+    include_judge = not skip_llm_judge
+    execution_cost = cost_tracker.estimate_total_cost(runs, include_judge=False)
+    judge_cost = cost_tracker.estimate_judge_cost(len(runs)) if include_judge else 0.0
+    estimated = execution_cost + judge_cost
     console.print(f"  Estimated cost: ${estimated:.2f}")
+    console.print(f"    Execution:    ${execution_cost:.2f}")
+    if include_judge:
+        console.print(f"    LLM judge:    ${judge_cost:.2f}")
+    else:
+        console.print("    LLM judge:    skipped")
     if cost_tracker.max_cost is not None:
         console.print(f"  Cost cap:       ${cost_tracker.max_cost:.2f}")
     console.print()
@@ -78,7 +89,9 @@ def show_dry_run(
     for model in sorted(models):
         count = model_counts[model]
         model_runs = [r for r in runs if r.model == model]
-        model_cost = cost_tracker.estimate_total_cost(model_runs)
+        model_cost = cost_tracker.estimate_total_cost(
+            model_runs, include_judge=include_judge
+        )
         table.add_row(model, str(count), f"${model_cost:.2f}")
 
     console.print(table)
