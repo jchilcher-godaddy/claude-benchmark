@@ -415,6 +415,9 @@ def _extract_flat_scores(scores_raw: dict | None) -> dict[str, float]:
     # Flat format (already {dim: float})
     result: dict[str, float] = {}
     for k, v in scores_raw.items():
+        if k == "llm" and isinstance(v, dict) and "normalized" in v:
+            result["llm_quality"] = float(v["normalized"])
+            continue
         try:
             result[k] = float(v)
         except (TypeError, ValueError):
