@@ -8,9 +8,9 @@ A practical guide to getting better results from Claude Code. Whether you're usi
 
 Claude Code reads a file called **CLAUDE.md** at the root of your project. Think of it as a briefing document — it tells Claude about your project before you ask it anything. What you put in that file (and what you leave out) has a measurable impact on the quality of code Claude produces.
 
-We ran ~100,000+ controlled benchmark tests across Python, Go, JavaScript, and C# to figure out what actually works. This guide distills those findings into clear recommendations.
+We ran ~105,000+ controlled benchmark tests across Python, Go, JavaScript, and C# to figure out what actually works. This guide distills those findings into clear recommendations.
 
-> **Cross-language status:** Core findings (empty baselines win, CoT hurts, code-reviewer persona helps, polite framing raises the floor) are confirmed across Python and JavaScript (5,760 cross-language runs). Go and C# respond differently — model choice matters far more and persona prompting can backfire. See [Choosing the Right Model](#choosing-the-right-model) for language-specific guidance.
+> **Cross-language status (11,400 runs):** Tested across Python, Go, JavaScript, and C#. Core findings (empty baselines win, code-reviewer persona helps) hold for Python and JS. Key divergences: **CoT helps Go (+5.3) and C# (+7.7)** instead of hurting; **polite framing only helps JS (+2.8)** and hurts Go/C#; model choice matters 10-30x more outside Python. See individual sections for language-specific guidance.
 
 **The single most important takeaway:**
 
@@ -96,9 +96,20 @@ Prefix your requests with "Could you please" instead of jumping straight to a co
 | "Refactor the auth module" | "Could you please refactor the auth module" |
 | "Add input validation" | "Could you please add input validation" |
 
-This isn't about etiquette — it measurably changes output quality. Polite framing produced the best worst-case outputs (fewest catastrophic failures) and the most consistent results.
+This isn't about etiquette — it measurably changes output quality in Python. Polite framing produced the best worst-case outputs (fewest catastrophic failures) and the most consistent results.
 
-> **Advanced:** Warm framing raised scores by +1.5 points and produced the lowest variance across all experiments (810 runs). The practical value is in the floor, not the ceiling — you get fewer bad outputs, not just better average ones.
+> **Advanced:** Warm framing raised scores by +1.5 points and produced the lowest variance across all experiments (810 runs, Python). The practical value is in the floor, not the ceiling — you get fewer bad outputs, not just better average ones.
+>
+> **Cross-language (2,880 runs): Politeness only helps JavaScript.** Unlike the code-reviewer persona, polite framing does not transfer broadly:
+>
+> | Language | Bare | Polite | Delta |
+> |----------|------|--------|-------|
+> | Python | 84.7 | 84.4 | **-0.3** |
+> | Go | 75.7 | 73.3 | **-2.4** |
+> | JavaScript | 71.5 | 74.2 | **+2.8** |
+> | C# | 61.9 | 60.2 | **-1.8** |
+>
+> JavaScript benefits substantially (Sonnet +5.2, Opus +3.5). But politeness *hurts* Go (Haiku -8.0) and C# (Haiku -4.0). Python is neutral. **Recommendation:** Use polite framing for Python and JavaScript. Skip it for Go and C#.
 
 ### 3. Use the default temperature
 
@@ -116,11 +127,22 @@ These are common practices that *sound* helpful but measurably hurt code quality
 
 Rules like "use descriptive variable names," "handle edge cases," "follow SOLID principles," or "write docstrings for public functions" are already baked into Claude's training. Repeating them adds noise, not signal.
 
-### Don't use "think step by step"
+### Don't use "think step by step" (in Python)
 
-This is the most widely repeated prompt engineering tip on the internet. It works for math problems. It does not work for code. Every chain-of-thought variant we tested scored lower than simply asking the question.
+This is the most widely repeated prompt engineering tip on the internet. It works for math problems. It does not work for Python code. Every chain-of-thought variant we tested scored lower than simply asking the question — in Python.
 
-> **Advanced:** CoT reduced scores by -0.56 to -1.14 points depending on the variant and model. Refactoring tasks were hit hardest at -3.5 points. A related technique — "outline your approach before coding" (skeleton-of-thought) — was even worse: -7.7 points on refactoring with 2.4x the token cost.
+> **Advanced:** In Python, CoT reduced scores by -0.53 to -1.14 points depending on the variant and model. Refactoring tasks were hit hardest at -3.5 points. A related technique — "outline your approach before coding" (skeleton-of-thought) — was even worse: -7.7 points on refactoring with 2.4x the token cost.
+>
+> **Cross-language (2,880 runs): CoT helps where Claude is weaker.** Outside Python, "Think step by step" improves quality — substantially in some cases:
+>
+> | Language | Bare | CoT | Delta |
+> |----------|------|-----|-------|
+> | Python | 84.6 | 84.1 | **-0.5** |
+> | Go | 74.8 | 80.1 | **+5.3** |
+> | JavaScript | 71.7 | 73.5 | **+1.7** |
+> | C# | 62.2 | 69.9 | **+7.7** |
+>
+> The effect is strongest on Haiku where baseline competence is lowest: Go +12.4, C# +13.9. Opus shows the same pattern (Go +3.3, C# neutral). **Recommendation:** Use CoT for Go and C# tasks, especially on Haiku. Skip it for Python.
 
 ### Don't combine multiple techniques
 
@@ -233,7 +255,7 @@ For every line in your CLAUDE.md, ask yourself:
 | Naming conventions (snake_case, PascalCase) | Claude follows language conventions by default |
 | Formatting rules (indentation, line length) | Claude follows standard formatting; your linter handles the rest |
 | Design principles (SOLID, DRY, composition) | Already encoded in Claude's training |
-| "Think step by step" | Hurts code quality across all models |
+| "Think step by step" | Hurts Python code quality; helps Go/C# (see [CoT section](#dont-use-think-step-by-step-in-python)) |
 | Persona ("you are a senior engineer") | Generic personas add noise; only code-reviewer helps |
 | Comment/docstring rules | Claude writes appropriate documentation by default |
 | Error handling guidelines | Claude handles errors well; generic guidelines add noise |
@@ -271,7 +293,7 @@ For experienced users who just want the cheat sheet:
 | Do This | Not This |
 |---------|----------|
 | Start with an empty CLAUDE.md; add only project-specific context | Copy a community CLAUDE.md template and fill in every section |
-| "Could you please fix the login bug" (warm framing) | "Fix the login bug" (terse imperative) |
+| "Could you please fix the login bug" (warm framing, Python/JS) | "Fix the login bug" (terse imperative) |
 | Use the code-reviewer persona for quality-sensitive work | Stack multiple personas ("you are a senior engineer and security expert and...") |
 | State WHAT you want, not HOW to solve it | Dictate algorithms, patterns, and implementation details |
 | Write constraints as plain text sentences | Use CAPS LOCK, numbered checklists, or XML tags for emphasis |
@@ -285,7 +307,7 @@ For experienced users who just want the cheat sheet:
 
 If you're auditing an existing setup, check for these. Each one made code measurably worse:
 
-1. **"Think step by step"** or any chain-of-thought instruction
+1. **"Think step by step"** for Python tasks (helps Go/C# — see above)
 2. **"Outline your approach before coding"** (skeleton-of-thought)
 3. **Multiple personas** stacked together
 4. **"Produce FAANG-grade code"** or quality anchoring language
@@ -303,7 +325,7 @@ If you're auditing an existing setup, check for these. Each one made code measur
 
 These findings are real and statistically rigorous, but bounded in scope:
 
-- **Cross-language validated.** Core findings confirmed across Python, Go, JavaScript, and C# (5,760 runs). Python and JS respond similarly to prompting. Go and C# are more sensitive to model choice and less responsive to persona prompting.
+- **Cross-language validated.** Core findings tested across Python, Go, JavaScript, and C# (11,400 cross-language runs). Python and JS respond similarly to most prompting strategies. Go and C# diverge: CoT helps (instead of hurting), politeness hurts (instead of helping), and model choice matters 10-30x more.
 - **Score scales differ by language.** Python averages 83.9 vs C# at 65.3 under identical conditions. Compare effects within a language, not raw scores across languages.
 - **Single-file tasks only.** We didn't test multi-file navigation or codebase understanding. Project context in CLAUDE.md is likely *more* valuable in those scenarios than this benchmark can measure.
 - **Generic coding tasks.** Domain-specific tasks with complex business logic or unfamiliar frameworks may respond differently.
@@ -317,11 +339,11 @@ These findings are real and statistically rigorous, but bounded in scope:
 
 > **This section is for those who want to verify the numbers.** The recommendations above stand on their own — you don't need to read this section to use them.
 
-These guidelines come from ~100,000+ benchmark runs across 10+ controlled experiments using the [claude-benchmark](https://github.com/jchilcher-godaddy/claude-benchmark) tool.
+These guidelines come from ~105,000+ benchmark runs across 12 controlled experiments using the [claude-benchmark](https://github.com/jchilcher-godaddy/claude-benchmark) tool.
 
 **How we scored:** Composite = 50% static analysis + 50% LLM judge. Static analysis uses language-appropriate tooling: pytest/ruff/radon (Python), `go test`/`golangci-lint`/`gocyclo` (Go), Jest/ESLint (JavaScript), `dotnet test`/`dotnet format` (C#). LLM judge: Claude Haiku 4.5 scoring readability, architecture, instruction adherence, and correctness on a 1-5 scale.
 
-**How we tested:** 20-30 replications per experimental cell. 12-16 tasks per language spanning bug-fix, code-generation, refactoring, and instruction-following at easy/medium/hard difficulty. All 3 models tested per experiment unless investigating model-specific effects.
+**How we tested:** 10-30 replications per experimental cell. 12-16 tasks per language spanning bug-fix, code-generation, refactoring, and instruction-following at easy/medium/hard difficulty. All 3 models tested per experiment unless investigating model-specific effects.
 
 **Statistical rigor:** 95% confidence intervals, Mann-Whitney U tests, Welch's t-test fallback, Cohen's d effect sizes with Bonferroni correction for multiple comparisons.
 
@@ -338,4 +360,6 @@ These guidelines come from ~100,000+ benchmark runs across 10+ controlled experi
 | persona-stacking | 5,400 | Stacking personas dilutes effectiveness |
 | capstone-best-practices | 6,480 | Empty baseline (88.0) > all verbose profiles; tuned-sonnet (96.3) wins |
 | cross-language | 5,760 | Model gap widens 10-30x outside Python; persona effect is language-dependent |
+| cot-cross-language | 2,880 | CoT hurts Python (-0.5) but helps Go (+5.3), JS (+1.7), C# (+7.7) |
+| politeness-cross-language | 2,880 | Polite framing helps JS (+2.8) only; hurts Go (-2.4) and C# (-1.8) |
 | gsd-methodology | 1,800 | Minimal executor prompts outperform verbose ones |

@@ -139,25 +139,36 @@ claude-benchmark compare --cross-variant -x run-009 run-012 run-003 -o best-trea
 claude-benchmark compare --cross-variant -x run-005 <sot-id> <stepback-id> -o reasoning-techniques.html
 ```
 
-## Key Findings (as of 2026-03-25)
+## Key Findings (as of 2026-04-15)
 
-### Completed Experiments (9/15)
+### Completed Experiments (12)
 
 | Experiment | Runs | Key Finding | Effect |
 |---|---|---|---|
 | temperature-sweep | 720 | temp=1.0 marginally best, lowest stdev | ~0 pts |
-| chain-of-thought | 270 | CoT hurts on every variant and model | -3.5 pts (refactor) |
-| politeness-sweep | 810 | Polite framing raises floor, reduces variance | +1.5 pts |
+| chain-of-thought | 270 | CoT hurts on every variant and model (Python) | -3.5 pts (refactor) |
+| politeness-sweep | 810 | Polite framing raises floor, reduces variance (Python) | +1.5 pts |
 | context-pollution | 1,080 | Sonnet degrades at 50k padding; Opus improves (bizarre) | +/-8 pts |
 | model-selection | 2,160 | Task-aware model routing beats any single model | ~5 pt spread |
 | persona-sweep | 1,080 | Code-reviewer persona helps; others neutral | +2.9 pts (refactor) |
 | persona-stacking | 5,400 | Stacking personas dilutes effectiveness | -0.5 pts |
-| capstone-best-practices | 6,480 | Empty baseline (92.15) > all 13 CLAUDE.md profiles | r=-0.95 |
-| gsd-methodology | 1,800 | GSD framing variants compared (no control; use compare) | TBD |
+| capstone-best-practices | 6,480 | Empty baseline (88.0) > all 13 CLAUDE.md profiles; tuned-sonnet (96.3) wins | r=-0.95 |
+| cross-language | 5,760 | Model gap widens 10-30x outside Python; persona is language-dependent | up to 29 pt spread |
+| cot-cross-language | 2,880 | CoT hurts Python (-0.5) but helps Go (+5.3), JS (+1.7), C# (+7.7) | +13.9 (Haiku+C#) |
+| politeness-cross-language | 2,880 | Polite framing helps JS (+2.8) only; hurts Go (-2.4) and C# (-1.8) | -8.0 (Haiku+Go) |
+| gsd-methodology | 1,800 | Minimal executor prompts outperform verbose ones | +0.3 vs -1.4 |
 
-### Pending Experiments (11)
+### Pending Experiments (8+)
 
-Not yet run: anchoring, constraint-formatting, context-depth-quality, emotional-stakes, instruction-ordering, instruction-position-in-claudemd, instruction-topic-density, skeleton-of-thought, static-vs-dynamic-context, step-back, interaction-persona-politeness.
+Not yet run: anchoring, constraint-formatting, context-depth-quality, emotional-stakes, init-vs-best-practices, instruction-ordering, instruction-position-in-claudemd, instruction-topic-density, skeleton-of-thought, static-vs-dynamic-context, step-back, interaction-persona-politeness.
+
+### /init Evaluation Experiment (1)
+
+Tests whether `/init`'s auto-generated CLAUDE.md helps or hurts vs. the empirically-derived best-practices stack. Decomposes the contribution of build commands (trimmed) vs. full architectural context (raw).
+
+| Experiment | Runs | Hypothesis | Motivated By |
+|---|---|---|---|
+| init-vs-best-practices | 4,320 | /init output is net-negative due to token cost; trimmed project facts + best practices may be optimal | r=-0.95 token/quality, /init adoption |
 
 ### Source Leak–Inspired Experiments (4)
 
@@ -174,8 +185,10 @@ Designed after analysis of the Claude Code source leak (March 2026) which reveal
 
 1. **Less is more**: r=-0.95 correlation between instruction token count and quality.
 2. **Refactoring is sensitive**: Most prompting variations show largest effects on refactor tasks.
-3. **Optimal stack**: code-reviewer persona + polite framing + temperature 1.0 + no CoT + clean context.
-4. **Single factors only so far**: interaction-persona-politeness is the first factorial experiment testing whether effects combine.
+3. **Python optimal stack**: code-reviewer persona + polite framing + temperature 1.0 + no CoT + clean context.
+4. **Go/C# optimal stack**: CoT prefix + no persona + no polite framing + Sonnet (Go) or Opus (C#). Opposite of Python.
+5. **Language is the biggest moderator**: CoT, politeness, and persona all flip direction between Python and Go/C#.
+6. **Haiku is the canary**: prompting effects are largest (positive and negative) on Haiku. If a technique helps Haiku, it probably helps everywhere; if it hurts Haiku, proceed with caution.
 
 ## Creating New Experiments
 
