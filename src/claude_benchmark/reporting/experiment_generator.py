@@ -17,6 +17,7 @@ from typing import Any
 from jinja2 import Environment, PackageLoader, select_autoescape
 from scipy import stats
 
+from claude_benchmark.execution.cost import MODEL_PRICING
 from claude_benchmark.reporting.charts import (
     DIMENSION_LABELS,
     build_grouped_bar_config,
@@ -131,6 +132,7 @@ class ExperimentReportGenerator:
         scores_by_dimension = self._extract_scores_by_dimension(results, dimensions)
         token_counts = self._extract_token_counts(results)
         quality_scores = self._extract_quality_scores(results)
+        variant_cost_stats = self._extract_variant_cost_stats(results)
 
         # Build chart configs — pass variants where profiles are expected
         chart_configs: dict[str, dict] = {}
@@ -158,9 +160,22 @@ class ExperimentReportGenerator:
             quality_scores=quality_scores,
         )
 
+        cost_per_variant = {
+            v: variant_cost_stats.get(v, {}).get("mean_cost_per_run", 0)
+            for v in variants
+        }
+        if any(c > 0 for c in cost_per_variant.values()):
+            chart_configs["scatter-cost-quality"] = build_scatter_with_frontier(
+                profiles=variants,
+                token_counts=cost_per_variant,
+                quality_scores=quality_scores,
+                x_label="Mean Cost per Run (USD)",
+            )
+
         # Statistical comparison table: control vs each treatment
         stat_table = self._build_variant_comparison_table(
             results, variants, control_variant, dimensions,
+            variant_cost_stats=variant_cost_stats,
         )
 
         # Variant x Task heatmap
@@ -182,11 +197,13 @@ class ExperimentReportGenerator:
         # Executive summary data
         summary = self._build_experiment_summary_data(
             results, variants, control_variant, quality_scores, token_counts,
+            variant_cost_stats=variant_cost_stats,
         )
 
         # Insights
         insights = self._generate_experiment_insights(
             results, variants, control_variant, quality_scores, token_counts, stat_table,
+            variant_cost_stats=variant_cost_stats,
         )
 
         # LLM narrative (optional)
@@ -350,6 +367,73 @@ class ExperimentReportGenerator:
             for pid, pr in results.profiles.items()
         }
 
+    def _extract_cost_counts(
+        self, results: BenchmarkResults,
+    ) -> dict[str, float]:
+        """Extract total cost in USD per variant using model-specific pricing."""
+        costs: dict[str, float] = {}
+        for pid, pr in results.profiles.items():
+            total_cost = 0.0
+            for tr in pr.tasks.values():
+                for run in tr.runs:
+                    pricing = MODEL_PRICING.get(run.model, MODEL_PRICING.get("sonnet", {}))
+                    total_cost += (
+                        (run.input_tokens / 1_000_000) * pricing.get("input", 0)
+                        + (run.output_tokens / 1_000_000) * pricing.get("output", 0)
+                    )
+            costs[pid] = total_cost
+        return costs
+
+    @staticmethod
+    def _run_cost(run: Any) -> float:
+        """Compute USD cost for a single run."""
+        pricing = MODEL_PRICING.get(run.model, MODEL_PRICING.get("sonnet", {}))
+        return (
+            (run.input_tokens / 1_000_000) * pricing.get("input", 0)
+            + (run.output_tokens / 1_000_000) * pricing.get("output", 0)
+        )
+
+    def _extract_variant_cost_stats(
+        self, results: BenchmarkResults,
+    ) -> dict[str, dict[str, float]]:
+        """Extract per-variant cost and token statistics.
+
+        Returns {variant: {n_runs, mean_input_tokens, mean_output_tokens,
+        mean_cost_per_run, total_cost}}.
+        """
+        stats: dict[str, dict[str, float]] = {}
+        for pid, pr in results.profiles.items():
+            total_input = 0
+            total_output = 0
+            total_cost = 0.0
+            n = 0
+            for tr in pr.tasks.values():
+                for run in tr.runs:
+                    total_input += run.input_tokens
+                    total_output += run.output_tokens
+                    total_cost += self._run_cost(run)
+                    n += 1
+            stats[pid] = {
+                "n_runs": n,
+                "mean_input_tokens": total_input / n if n else 0,
+                "mean_output_tokens": total_output / n if n else 0,
+                "mean_cost_per_run": total_cost / n if n else 0,
+                "total_cost": total_cost,
+            }
+        return stats
+
+    def _collect_per_run_costs(
+        self, results: BenchmarkResults, variant: str,
+    ) -> list[float]:
+        """Collect per-run cost values for a variant (for statistical tests)."""
+        costs: list[float] = []
+        if variant not in results.profiles:
+            return costs
+        for tr in results.profiles[variant].tasks.values():
+            for run in tr.runs:
+                costs.append(self._run_cost(run))
+        return costs
+
     @staticmethod
     def _composite_score(scores: dict[str, float]) -> float | None:
         """Extract composite score from a run's score dict.
@@ -386,16 +470,21 @@ class ExperimentReportGenerator:
         variants: list[str],
         control_variant: str | None,
         dimensions: list[str],
+        variant_cost_stats: dict[str, dict[str, float]] | None = None,
     ) -> list[dict[str, Any]]:
         """Build statistical comparison table: each variant vs control.
 
-        Returns list of dicts with: variant, mean, control_mean, delta,
-        delta_pct, p_value, effect_size, is_significant.
+        Returns list of dicts with quality comparison fields (variant, mean,
+        control_mean, delta, delta_pct, p_value, effect_size, is_significant)
+        plus cost comparison fields (mean_input_tokens, mean_output_tokens,
+        mean_cost, cost_delta, cost_delta_pct, cost_p_value, cost_is_significant).
         """
         if not control_variant or control_variant not in results.profiles:
             return []
 
         control_profile = results.profiles[control_variant]
+        control_costs = self._collect_per_run_costs(results, control_variant)
+        control_cost_stats = (variant_cost_stats or {}).get(control_variant, {})
         table: list[dict[str, Any]] = []
 
         for variant in variants:
@@ -423,8 +512,17 @@ class ExperimentReportGenerator:
                         if c is not None:
                             variant_composites.append(c)
 
+            # Cost fields from pre-computed stats
+            v_cost_stats = (variant_cost_stats or {}).get(variant, {})
+            cost_fields = self._compute_cost_comparison(
+                control_costs,
+                self._collect_per_run_costs(results, variant),
+                control_cost_stats,
+                v_cost_stats,
+            )
+
             if len(control_composites) < 2 or len(variant_composites) < 2:
-                table.append({
+                row = {
                     "variant": variant,
                     "mean": sum(variant_composites) / len(variant_composites) if variant_composites else 0.0,
                     "control_mean": sum(control_composites) / len(control_composites) if control_composites else 0.0,
@@ -440,7 +538,9 @@ class ExperimentReportGenerator:
                     "effect_interpretation": "negligible",
                     "power": 0.0,
                     "is_significant_adjusted": False,
-                })
+                }
+                row.update(cost_fields)
+                table.append(row)
                 continue
 
             control_mean = sum(control_composites) / len(control_composites)
@@ -468,7 +568,7 @@ class ExperimentReportGenerator:
             variant_stdev = statistics.stdev(variant_composites) if len(variant_composites) > 1 else 0.0
             variant_cv = (variant_stdev / variant_mean * 100) if variant_mean != 0 else 0.0
 
-            table.append({
+            row = {
                 "variant": variant,
                 "mean": round(variant_mean, 2),
                 "control_mean": round(control_mean, 2),
@@ -485,9 +585,11 @@ class ExperimentReportGenerator:
                     post_hoc_power(effect, len(control_composites), len(variant_composites)),
                     2,
                 ),
-            })
+            }
+            row.update(cost_fields)
+            table.append(row)
 
-        # Apply Bonferroni correction across all comparisons
+        # Apply Bonferroni correction across all comparisons (quality)
         if table:
             raw_pvals = [row["p_value"] for row in table]
             adjusted = bonferroni_correct(raw_pvals)
@@ -495,7 +597,59 @@ class ExperimentReportGenerator:
                 row["adjusted_p_value"] = round(adj_p, 4)
                 row["is_significant_adjusted"] = adj_p < 0.05
 
+            # Bonferroni correction for cost p-values
+            raw_cost_pvals = [row["cost_p_value"] for row in table]
+            adjusted_cost = bonferroni_correct(raw_cost_pvals)
+            for row, adj_p in zip(table, adjusted_cost):
+                row["cost_adjusted_p_value"] = round(adj_p, 4)
+                row["cost_is_significant_adjusted"] = adj_p < 0.05
+
         return table
+
+    def _compute_cost_comparison(
+        self,
+        control_costs: list[float],
+        variant_costs: list[float],
+        control_stats: dict[str, float],
+        variant_stats: dict[str, float],
+    ) -> dict[str, Any]:
+        """Compute cost comparison fields for one variant vs control."""
+        v_mean_input = variant_stats.get("mean_input_tokens", 0)
+        v_mean_output = variant_stats.get("mean_output_tokens", 0)
+        v_mean_cost = variant_stats.get("mean_cost_per_run", 0)
+        c_mean_cost = control_stats.get("mean_cost_per_run", 0)
+
+        cost_delta = v_mean_cost - c_mean_cost
+        cost_delta_pct = cost_delta / c_mean_cost if c_mean_cost > 0 else 0.0
+
+        cost_p_value = 1.0
+        cost_is_significant = False
+        if len(control_costs) >= 2 and len(variant_costs) >= 2:
+            any_nonzero = any(c > 0 for c in control_costs) or any(c > 0 for c in variant_costs)
+            if any_nonzero:
+                try:
+                    result = stats.mannwhitneyu(
+                        control_costs, variant_costs, alternative="two-sided",
+                    )
+                    cost_p_value = float(result.pvalue)
+                except ValueError:
+                    result = stats.ttest_ind(
+                        control_costs, variant_costs,
+                        equal_var=False, alternative="two-sided",
+                    )
+                    cost_p_value = float(result.pvalue)
+                cost_is_significant = cost_p_value < 0.05
+
+        return {
+            "mean_input_tokens": round(v_mean_input, 0),
+            "mean_output_tokens": round(v_mean_output, 0),
+            "mean_cost": round(v_mean_cost, 6),
+            "control_mean_cost": round(c_mean_cost, 6),
+            "cost_delta": round(cost_delta, 6),
+            "cost_delta_pct": round(cost_delta_pct, 4),
+            "cost_p_value": round(cost_p_value, 4),
+            "cost_is_significant": cost_is_significant,
+        }
 
     def _build_task_variant_heatmap(
         self,
@@ -565,6 +719,7 @@ class ExperimentReportGenerator:
         control_variant: str | None,
         quality_scores: dict[str, float],
         token_counts: dict[str, float],
+        variant_cost_stats: dict[str, dict[str, float]] | None = None,
     ) -> dict[str, Any]:
         """Build executive summary card data."""
         best_variant = max(
@@ -575,17 +730,43 @@ class ExperimentReportGenerator:
         control_score = quality_scores.get(control_variant, 0.0) if control_variant else 0.0
         improvement = best_score - control_score
 
-        # Token efficiency winner
+        # Cost efficiency winner (uses cost-weighted ratio when available)
+        cost_counts = self._extract_cost_counts(results)
         efficiency_winner = "N/A"
         best_ratio = -1.0
         for v in variants:
-            tokens = token_counts.get(v, 0)
             quality = quality_scores.get(v, 0)
-            if tokens > 0 and quality > 0:
+            if quality <= 0:
+                continue
+            cost = cost_counts.get(v, 0.0)
+            if cost > 0:
+                ratio = quality / cost
+            else:
+                tokens = token_counts.get(v, 0)
+                if tokens <= 0:
+                    continue
                 ratio = quality / tokens
-                if ratio > best_ratio:
-                    best_ratio = ratio
-                    efficiency_winner = v
+            if ratio > best_ratio:
+                best_ratio = ratio
+                efficiency_winner = v
+
+        # Best value variant: highest quality / mean_cost_per_run
+        vcs = variant_cost_stats or {}
+        best_value_variant = "N/A"
+        best_value_ratio = -1.0
+        cheapest_variant = "N/A"
+        cheapest_cost = float("inf")
+        for v in variants:
+            quality = quality_scores.get(v, 0)
+            mean_cost = vcs.get(v, {}).get("mean_cost_per_run", 0)
+            if mean_cost > 0 and quality > 0:
+                ratio = quality / mean_cost
+                if ratio > best_value_ratio:
+                    best_value_ratio = ratio
+                    best_value_variant = v
+            if 0 < mean_cost < cheapest_cost:
+                cheapest_cost = mean_cost
+                cheapest_variant = v
 
         return {
             "best_variant": best_variant,
@@ -597,6 +778,9 @@ class ExperimentReportGenerator:
                 improvement / control_score * 100, 1,
             ) if control_score > 0 else 0.0,
             "efficiency_winner": efficiency_winner,
+            "best_value_variant": best_value_variant,
+            "cheapest_variant": cheapest_variant,
+            "cheapest_cost_per_run": round(cheapest_cost, 6) if cheapest_cost < float("inf") else 0.0,
             "variant_count": len(variants),
             "task_count": len(results.tasks),
             "total_runs": results.metadata.total_runs,
@@ -610,6 +794,7 @@ class ExperimentReportGenerator:
         quality_scores: dict[str, float],
         token_counts: dict[str, float],
         stat_table: list[dict[str, Any]],
+        variant_cost_stats: dict[str, dict[str, float]] | None = None,
     ) -> list[str]:
         """Generate plain-English insights about experiment results."""
         insights: list[str] = []
@@ -679,6 +864,39 @@ class ExperimentReportGenerator:
                         f"({_variant_label(cheapest)}: {cheapest_tokens:,.0f} vs {_variant_label(most_expensive)}: {exp_tokens:,.0f})"
                     )
 
+        # Cost insights
+        vcs = variant_cost_stats or {}
+        control_cost = vcs.get(control_variant, {}).get("mean_cost_per_run", 0) if control_variant else 0
+        if control_cost > 0:
+            cost_sorted = sorted(
+                [(v, vcs.get(v, {}).get("mean_cost_per_run", 0)) for v in variants if v != control_variant],
+                key=lambda x: x[1],
+            )
+            if cost_sorted:
+                cheapest_v, cheapest_c = cost_sorted[0]
+                most_exp_v, most_exp_c = cost_sorted[-1]
+                if cheapest_c > 0 and most_exp_c > 0:
+                    ratio = most_exp_c / cheapest_c
+                    if ratio > 1.1:
+                        insights.append(
+                            f"Cost varies {ratio:.1f}x across variants "
+                            f"({_variant_label(cheapest_v)}: ${cheapest_c:.4f}/run vs "
+                            f"{_variant_label(most_exp_v)}: ${most_exp_c:.4f}/run)"
+                        )
+
+            # Value candidates: significantly cheaper AND not significantly worse on quality
+            for row in stat_table:
+                is_cheaper = row.get("cost_is_significant", False) and row.get("cost_delta", 0) < 0
+                not_worse = not row.get("is_significant", False) or row.get("delta", 0) >= 0
+                if is_cheaper and not_worse:
+                    pct = abs(row["cost_delta_pct"]) * 100
+                    quality = quality_scores.get(row["variant"], 0)
+                    insights.append(
+                        f"{_variant_label(row['variant'])} is a strong value candidate: "
+                        f"{pct:.0f}% cheaper per run (p={row['cost_p_value']:.3f}) "
+                        f"with no significant quality loss (score: {quality:.1f})"
+                    )
+
         return insights
 
     def _generate_llm_narrative(
@@ -735,3 +953,14 @@ class ExperimentReportGenerator:
                 )
         else:
             console.print("\n[green]No significant differences between variants.[/green]")
+
+        cost_significant = [r for r in stat_table if r.get("cost_is_significant")]
+        if cost_significant:
+            console.print(f"\n[bold cyan]Cost differences ({len(cost_significant)}):[/bold cyan]")
+            for row in cost_significant:
+                direction = "cheaper" if row["cost_delta"] < 0 else "more expensive"
+                console.print(
+                    f"  {_variant_label(row['variant'])}: "
+                    f"${abs(row['cost_delta']):.4f}/run {direction} "
+                    f"(p={row['cost_p_value']:.3f})"
+                )

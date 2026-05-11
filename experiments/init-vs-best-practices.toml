@@ -1,0 +1,259 @@
+name = "init-vs-best-practices"
+description = """Hypothesis: /init's auto-generated CLAUDE.md adds project-specific context \
+(build commands, architecture, tech stack) but also adds verbose descriptions that \
+consume attention budget. Per the r=-0.95 token/quality correlation, the net effect \
+is predicted negative vs. the minimal best-practices stack. This experiment decomposes \
+the contribution of build commands (trimmed) vs. full architectural context (raw). \
+Post-run: compare --cross-variant against capstone run-003 for bare-default and \
+best-practices baselines."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Variant 1: Full /init output verbatim ---
+# "User ran /init and did nothing else"
+# Tests: Does /init help at all vs bare-default?
+[[variants]]
+label = "init-raw"
+system_prompt_extra = """# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Build & Development
+
+```bash
+# Install (editable dev mode)
+pip install -e ".[dev]"
+
+# Run all tests (uses mocks, no API key needed)
+pytest
+
+# Run a single test file or test
+pytest tests/test_worker_retry.py
+pytest tests/test_worker_retry.py::test_specific_name
+
+# Run tests excluding slow subprocess tests
+pytest -m "not slow"
+
+# Lint
+ruff check src/ tests/
+
+# Type check is not configured — ruff is the primary code quality tool
+```
+
+The CLI entry point is `claude-benchmark` (installed via `pyproject.toml` `[project.scripts]`).
+
+## Architecture
+
+The codebase is a Typer CLI app structured around a pipeline: **task loading → execution → scoring → reporting**.
+
+### Execution Flow
+
+1. **CLI layer** (`cli/commands/`) — Typer commands parse args and invoke the engine or experiment loader
+2. **Experiment expansion** (`experiments/schema.py`, `experiments/loader.py`) — TOML configs define variants; the loader expands them into a full run matrix (variants × tasks × models × profiles × reps)
+3. **Parallel execution** (`execution/parallel.py`, `execution/worker.py`) — `BenchmarkRun` objects are queued and executed concurrently. Workers invoke Claude via either the Claude Code CLI (`npx @anthropic-ai/claude-code`) or the Anthropic API directly, depending on whether variant parameters require API-level control (temperature, system_prompt_extra)
+4. **Scoring pipeline** (`scoring/pipeline.py`) — Two-phase scoring: static analysis (pytest + ruff + radon) runs first with high concurrency, then LLM judge (Haiku 4.5) scores in batch. Results merge via `CompositeScorer` (50% static / 50% LLM judge)
+5. **Reporting** (`reporting/`) — Jinja2 HTML reports with per-variant statistics, Mann-Whitney U tests, effect sizes (Cohen's d), and task × variant heatmaps
+
+### Key Data Models
+
+- `TaskDefinition` (`tasks/schema.py`) — Task spec loaded from `task.toml`: type (code-gen/bug-fix/refactor/instruction), difficulty, prompt, starter code, scoring criteria, language
+- `BenchmarkRun` (`execution/parallel.py`) — Single unit of work: task + model + profile + variant params
+- `RunResult` (`execution/parallel.py`) — Execution output: generated code, token usage, timing
+- `CompositeScore` (`scoring/models.py`) — Final score combining static sub-scores and LLM judge ratings
+- `VariantConfig` / `ExperimentConfig` (`experiments/schema.py`) — Experiment TOML schema: variants can set `prompt_prefix`, `system_prompt_extra`, `temperature`, `padding_tokens`
+
+### Profile System
+
+Profiles are Markdown files in `profiles/` with optional YAML frontmatter. The profile content is injected into Claude's system prompt via `--append-system-prompt`. The `empty.md` profile (no content) serves as the baseline for controlled experiments.
+
+### Cross-Language Support
+
+Tasks support Python (default), Go, JavaScript, and C# (`tasks/schema.py: Language` enum). Language-specific build files (go.mod, package.json, *.csproj) are copied into scoring workspaces. Static scorers are registered per-language in `scoring/registry.py`.
+
+### Catalog System
+
+Completed runs are indexed in `catalog/` for cross-experiment comparison. `compare --cross-variant` finds overlapping (model, profile, task) cells across cataloged runs and performs pairwise statistical analysis, enabling experiments to share control baselines.
+
+## Testing
+
+All tests use mocks — no API key or network access required. CLI integration tests use `typer.testing.CliRunner`. When adding features, add unit tests for core logic and CLI smoke tests.
+
+## Configuration
+
+- `pyproject.toml` — Dependencies, ruff config (line-length 100, target Python 3.11)
+- `tasks/*/task.toml` — Individual task definitions
+- `experiments/*.toml` — Experiment configurations
+- `profiles/*.md` — CLAUDE.md profile variants for benchmarking"""
+
+# --- Variant 2: Trimmed /init — build commands + file locations only ---
+# Strips verbose architecture descriptions, keeps only actionable project facts
+# Tests: Are project-specific build commands useful without architectural verbosity?
+[[variants]]
+label = "init-trimmed"
+system_prompt_extra = """## Build & Development
+
+```bash
+# Install (editable dev mode)
+pip install -e ".[dev]"
+
+# Run all tests (uses mocks, no API key needed)
+pytest
+
+# Run a single test file or test
+pytest tests/test_worker_retry.py
+pytest tests/test_worker_retry.py::test_specific_name
+
+# Run tests excluding slow subprocess tests
+pytest -m "not slow"
+
+# Lint
+ruff check src/ tests/
+```
+
+The CLI entry point is `claude-benchmark` (installed via `pyproject.toml` `[project.scripts]`).
+
+The codebase is a Typer CLI app structured around a pipeline: task loading → execution → scoring → reporting.
+
+## Testing
+
+All tests use mocks — no API key or network access required.
+
+## Configuration
+
+- `pyproject.toml` — Dependencies, ruff config (line-length 100, target Python 3.11)
+- `tasks/*/task.toml` — Individual task definitions
+- `experiments/*.toml` — Experiment configurations
+- `profiles/*.md` — CLAUDE.md profile variants for benchmarking"""
+
+# --- Variant 3: Full /init + proven best practices layered on top ---
+# Adds code-reviewer persona, polite framing, default temperature
+# Tests: Can /init be rescued by layering the optimal stack?
+[[variants]]
+label = "init-plus-practices"
+prompt_prefix = "Could you please "
+temperature = 1.0
+system_prompt_extra = """You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write.
+
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Build & Development
+
+```bash
+# Install (editable dev mode)
+pip install -e ".[dev]"
+
+# Run all tests (uses mocks, no API key needed)
+pytest
+
+# Run a single test file or test
+pytest tests/test_worker_retry.py
+pytest tests/test_worker_retry.py::test_specific_name
+
+# Run tests excluding slow subprocess tests
+pytest -m "not slow"
+
+# Lint
+ruff check src/ tests/
+
+# Type check is not configured — ruff is the primary code quality tool
+```
+
+The CLI entry point is `claude-benchmark` (installed via `pyproject.toml` `[project.scripts]`).
+
+## Architecture
+
+The codebase is a Typer CLI app structured around a pipeline: **task loading → execution → scoring → reporting**.
+
+### Execution Flow
+
+1. **CLI layer** (`cli/commands/`) — Typer commands parse args and invoke the engine or experiment loader
+2. **Experiment expansion** (`experiments/schema.py`, `experiments/loader.py`) — TOML configs define variants; the loader expands them into a full run matrix (variants × tasks × models × profiles × reps)
+3. **Parallel execution** (`execution/parallel.py`, `execution/worker.py`) — `BenchmarkRun` objects are queued and executed concurrently. Workers invoke Claude via either the Claude Code CLI (`npx @anthropic-ai/claude-code`) or the Anthropic API directly, depending on whether variant parameters require API-level control (temperature, system_prompt_extra)
+4. **Scoring pipeline** (`scoring/pipeline.py`) — Two-phase scoring: static analysis (pytest + ruff + radon) runs first with high concurrency, then LLM judge (Haiku 4.5) scores in batch. Results merge via `CompositeScorer` (50% static / 50% LLM judge)
+5. **Reporting** (`reporting/`) — Jinja2 HTML reports with per-variant statistics, Mann-Whitney U tests, effect sizes (Cohen's d), and task × variant heatmaps
+
+### Key Data Models
+
+- `TaskDefinition` (`tasks/schema.py`) — Task spec loaded from `task.toml`: type (code-gen/bug-fix/refactor/instruction), difficulty, prompt, starter code, scoring criteria, language
+- `BenchmarkRun` (`execution/parallel.py`) — Single unit of work: task + model + profile + variant params
+- `RunResult` (`execution/parallel.py`) — Execution output: generated code, token usage, timing
+- `CompositeScore` (`scoring/models.py`) — Final score combining static sub-scores and LLM judge ratings
+- `VariantConfig` / `ExperimentConfig` (`experiments/schema.py`) — Experiment TOML schema: variants can set `prompt_prefix`, `system_prompt_extra`, `temperature`, `padding_tokens`
+
+### Profile System
+
+Profiles are Markdown files in `profiles/` with optional YAML frontmatter. The profile content is injected into Claude's system prompt via `--append-system-prompt`. The `empty.md` profile (no content) serves as the baseline for controlled experiments.
+
+### Cross-Language Support
+
+Tasks support Python (default), Go, JavaScript, and C# (`tasks/schema.py: Language` enum). Language-specific build files (go.mod, package.json, *.csproj) are copied into scoring workspaces. Static scorers are registered per-language in `scoring/registry.py`.
+
+### Catalog System
+
+Completed runs are indexed in `catalog/` for cross-experiment comparison. `compare --cross-variant` finds overlapping (model, profile, task) cells across cataloged runs and performs pairwise statistical analysis, enabling experiments to share control baselines.
+
+## Testing
+
+All tests use mocks — no API key or network access required. CLI integration tests use `typer.testing.CliRunner`. When adding features, add unit tests for core logic and CLI smoke tests.
+
+## Configuration
+
+- `pyproject.toml` — Dependencies, ruff config (line-length 100, target Python 3.11)
+- `tasks/*/task.toml` — Individual task definitions
+- `experiments/*.toml` — Experiment configurations
+- `profiles/*.md` — CLAUDE.md profile variants for benchmarking"""
+
+# --- Variant 4: Trimmed /init + proven best practices ---
+# Hypothesized sweet spot: actionable project facts + minimal proven techniques
+# Tests: Is project facts + best practices the optimal stack?
+[[variants]]
+label = "trimmed-plus-practices"
+prompt_prefix = "Could you please "
+temperature = 1.0
+system_prompt_extra = """You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write.
+
+## Build & Development
+
+```bash
+# Install (editable dev mode)
+pip install -e ".[dev]"
+
+# Run all tests (uses mocks, no API key needed)
+pytest
+
+# Run a single test file or test
+pytest tests/test_worker_retry.py
+pytest tests/test_worker_retry.py::test_specific_name
+
+# Run tests excluding slow subprocess tests
+pytest -m "not slow"
+
+# Lint
+ruff check src/ tests/
+```
+
+The CLI entry point is `claude-benchmark` (installed via `pyproject.toml` `[project.scripts]`).
+
+The codebase is a Typer CLI app structured around a pipeline: task loading → execution → scoring → reporting.
+
+## Testing
+
+All tests use mocks — no API key or network access required.
+
+## Configuration
+
+- `pyproject.toml` — Dependencies, ruff config (line-length 100, target Python 3.11)
+- `tasks/*/task.toml` — Individual task definitions
+- `experiments/*.toml` — Experiment configurations
+- `profiles/*.md` — CLAUDE.md profile variants for benchmarking"""

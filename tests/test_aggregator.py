@@ -365,3 +365,116 @@ class TestAggregateTokenEfficiency:
         assert result.stdev == 0.0
         assert result.ci_lower == 14.0
         assert result.ci_upper == 14.0
+
+
+# ---------------------------------------------------------------------------
+# Tests: StatisticalAggregator.aggregate_cost_efficiency
+# ---------------------------------------------------------------------------
+
+
+class TestAggregateCostEfficiency:
+    """Tests for aggregating cost efficiency (points_per_dollar)."""
+
+    def test_three_with_cost_data(self) -> None:
+        """Aggregate 3 TokenEfficiency objects that have cost data."""
+        efficiencies = [
+            TokenEfficiency(
+                composite_score=93.0,
+                total_tokens=6000,
+                claudemd_tokens=0,
+                task_io_tokens=6000,
+                points_per_1k_tokens=15.5,
+                input_tokens=4000,
+                output_tokens=2000,
+                cost_usd=0.014,
+                points_per_dollar=6642.86,
+                model="haiku",
+            ),
+            TokenEfficiency(
+                composite_score=91.0,
+                total_tokens=6000,
+                claudemd_tokens=0,
+                task_io_tokens=6000,
+                points_per_1k_tokens=15.17,
+                input_tokens=4000,
+                output_tokens=2000,
+                cost_usd=0.014,
+                points_per_dollar=6500.0,
+                model="haiku",
+            ),
+            TokenEfficiency(
+                composite_score=95.0,
+                total_tokens=6000,
+                claudemd_tokens=0,
+                task_io_tokens=6000,
+                points_per_1k_tokens=15.83,
+                input_tokens=4000,
+                output_tokens=2000,
+                cost_usd=0.014,
+                points_per_dollar=6785.71,
+                model="haiku",
+            ),
+        ]
+
+        agg = StatisticalAggregator()
+        result = agg.aggregate_cost_efficiency(efficiencies)
+
+        assert result is not None
+        assert result.n == 3
+        assert result.min_val == 6500.0
+        assert result.max_val == 6785.71
+
+    def test_no_cost_data_returns_none(self) -> None:
+        """When no efficiencies have cost data, returns None."""
+        efficiencies = [
+            TokenEfficiency(
+                composite_score=70.0,
+                total_tokens=5000,
+                claudemd_tokens=1000,
+                task_io_tokens=4000,
+                points_per_1k_tokens=14.0,
+            ),
+            TokenEfficiency(
+                composite_score=80.0,
+                total_tokens=4000,
+                claudemd_tokens=1000,
+                task_io_tokens=3000,
+                points_per_1k_tokens=20.0,
+            ),
+        ]
+
+        agg = StatisticalAggregator()
+        result = agg.aggregate_cost_efficiency(efficiencies)
+
+        assert result is None
+
+    def test_mixed_cost_data(self) -> None:
+        """Only efficiencies with cost data are included in aggregation."""
+        efficiencies = [
+            TokenEfficiency(
+                composite_score=93.0,
+                total_tokens=6000,
+                claudemd_tokens=0,
+                task_io_tokens=6000,
+                points_per_1k_tokens=15.5,
+                input_tokens=4000,
+                output_tokens=2000,
+                cost_usd=0.014,
+                points_per_dollar=6642.86,
+                model="haiku",
+            ),
+            TokenEfficiency(
+                composite_score=70.0,
+                total_tokens=5000,
+                claudemd_tokens=1000,
+                task_io_tokens=4000,
+                points_per_1k_tokens=14.0,
+            ),
+        ]
+
+        agg = StatisticalAggregator()
+        result = agg.aggregate_cost_efficiency(efficiencies)
+
+        assert result is not None
+        assert result.n == 1
+        assert result.mean == 6642.86

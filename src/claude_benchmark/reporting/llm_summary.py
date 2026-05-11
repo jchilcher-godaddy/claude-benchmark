@@ -15,7 +15,7 @@ from typing import Any
 
 _NPX_CLAUDE_PACKAGE = "@anthropic-ai/claude-code@latest"
 _DEFAULT_MODEL = "haiku"
-_TIMEOUT_SECONDS = 90
+_TIMEOUT_SECONDS = 180
 
 logger = logging.getLogger(__name__)
 

@@ -1,0 +1,41 @@
+name = "outcome-vs-implementation"
+description = """Hypothesis: Describing desired outcomes ('WHAT') outperforms dictating implementation \
+details ('HOW') at matched token counts. This claim appears in the best practices guide, presentation, \
+and Confluence doc but has never been tested as an isolated variable. The +0.66 positive-vs-negative \
+framing finding is about valence, not abstraction level. This experiment isolates outcome-focused vs. \
+implementation-focused prompting while controlling for token count (~25-30 words per variant). \
+Each variant pair addresses the same intent — one states the goal, the other dictates the method. \
+Total: 30 reps x 12 tasks x 3 models x 4 variants = 4,320 runs."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- No prefix (bare baseline) ---
+[[variants]]
+label = "bare"
+
+# --- Outcome-focused: describes WHAT, not HOW ---
+# ~30 words. States desired properties of the output.
+[[variants]]
+label = "outcome-focused"
+prompt_prefix = "Produce code that is correct, handles edge cases, and is easy to read. The result should pass all tests and follow standard conventions. "
+
+# --- Implementation-focused: dictates HOW, not WHAT ---
+# ~30 words. Prescribes specific implementation techniques.
+[[variants]]
+label = "implementation-focused"
+prompt_prefix = "Use early returns for validation, extract helper functions for repeated logic, add type hints to all parameters, and use list comprehensions where appropriate. "
+
+# --- Mixed: outcome goal + one implementation hint ---
+# Tests whether a light touch of HOW on top of WHAT helps or hurts.
+[[variants]]
+label = "outcome-plus-hint"
+prompt_prefix = "Produce code that is correct, handles edge cases, and is easy to read. Use early returns to keep nesting shallow. "

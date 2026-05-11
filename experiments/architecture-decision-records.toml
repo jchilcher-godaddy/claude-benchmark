@@ -1,0 +1,116 @@
+name = "architecture-decision-records"
+description = """Hypothesis: Including architecture decision records (ADRs) — short documents explaining \
+WHY a design choice was made — improves code quality more than equivalent tokens of generic instructions. \
+Our best-practices guide recommends ADRs with zero experimental evidence. The /init experiment showed \
+project-specific context (build commands, architecture) is neutral-to-positive and doesn't interfere \
+with the code-reviewer persona. ADRs are a different category: they provide RATIONALE, not facts. \
+If Claude understands why a constraint exists, it may make better judgment calls in ambiguous situations. \
+Tests: no context vs. project facts vs. ADR rationale vs. both, at matched token counts (~150 tokens). \
+Total: 5 variants x 48 tasks x 3 models x 15 reps = 10,800 runs."""
+
+[defaults]
+tasks = [
+    # Python
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    # Go
+    "code-gen-01-go", "code-gen-02-go", "code-gen-03-go", "code-gen-04-go", "code-gen-05-go",
+    "bug-fix-01-go", "bug-fix-02-go", "bug-fix-03-go", "bug-fix-04-go",
+    "refactor-01-go", "refactor-02-go", "refactor-03-go",
+    # JavaScript
+    "code-gen-01-js", "code-gen-02-js", "code-gen-03-js", "code-gen-04-js", "code-gen-05-js",
+    "bug-fix-01-js", "bug-fix-02-js", "bug-fix-03-js", "bug-fix-04-js",
+    "refactor-01-js", "refactor-02-js", "refactor-03-js",
+    # C#
+    "code-gen-01-cs", "code-gen-02-cs", "code-gen-03-cs", "code-gen-04-cs", "code-gen-05-cs",
+    "bug-fix-01-cs", "bug-fix-02-cs", "bug-fix-03-cs", "bug-fix-04-cs",
+    "refactor-01-cs", "refactor-02-cs", "refactor-03-cs",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 15
+
+# =============================================================================
+# v1: Bare baseline — no project context
+# =============================================================================
+[[variants]]
+label = "bare"
+
+# =============================================================================
+# v2: Project facts only (~150 tokens) — WHAT the project looks like
+# Mirrors /init output: build commands, file layout, tech stack.
+# No rationale for why these choices were made.
+# =============================================================================
+[[variants]]
+label = "project-facts"
+system_prompt_extra = """Project Context:
+- Build: `make build`; test: `make test`; lint: `make lint`
+- Source in src/, tests mirror in tests/, config in config/
+- Database: PostgreSQL 16 with connection pooling via pgbouncer
+- API framework: REST with JSON request/response
+- Auth: JWT tokens validated in middleware
+- IDs are ULIDs, not UUIDs
+- All timestamps UTC ISO 8601
+- Background jobs use a task queue with Redis broker
+- Error responses include trace_id from request context"""
+
+# =============================================================================
+# v3: ADR rationale only (~150 tokens) — WHY decisions were made
+# Same approximate token count as project-facts, but focuses entirely on
+# the reasoning behind constraints. No build commands or file layout.
+# =============================================================================
+[[variants]]
+label = "adr-rationale"
+system_prompt_extra = """Architecture Decisions:
+- We chose ULIDs over UUIDs because we need sortable IDs for time-series queries without a secondary index. Do not use UUIDs or auto-increment IDs.
+- We use connection pooling because our worker pool exceeds PostgreSQL's max_connections. Always acquire connections through the pool, never directly.
+- JWT validation happens in middleware, not in individual handlers, because we had a security incident where one endpoint skipped auth. Never add auth checks in handler code.
+- Background jobs go through the task queue (not inline) because a previous synchronous email-send caused a 30-second API timeout. Any I/O that can be deferred must go through the queue.
+- Error responses always include trace_id because our oncall team needs it for log correlation. Never return errors without a trace_id."""
+
+# =============================================================================
+# v4: Project facts + ADR rationale (~300 tokens) — both WHAT and WHY
+# Double the token count of v2 and v3 individually. Tests whether the
+# combination is additive, or whether the extra tokens hurt (as generic
+# instructions do at this length).
+# =============================================================================
+[[variants]]
+label = "facts-plus-adr"
+system_prompt_extra = """Project Context:
+- Build: `make build`; test: `make test`; lint: `make lint`
+- Source in src/, tests mirror in tests/, config in config/
+- Database: PostgreSQL 16 with connection pooling via pgbouncer
+- API framework: REST with JSON request/response
+- Auth: JWT tokens validated in middleware
+- IDs are ULIDs, not UUIDs
+- All timestamps UTC ISO 8601
+- Background jobs use a task queue with Redis broker
+- Error responses include trace_id from request context
+
+Architecture Decisions:
+- We chose ULIDs over UUIDs because we need sortable IDs for time-series queries without a secondary index. Do not use UUIDs or auto-increment IDs.
+- We use connection pooling because our worker pool exceeds PostgreSQL's max_connections. Always acquire connections through the pool, never directly.
+- JWT validation happens in middleware, not in individual handlers, because we had a security incident where one endpoint skipped auth. Never add auth checks in handler code.
+- Background jobs go through the task queue (not inline) because a previous synchronous email-send caused a 30-second API timeout. Any I/O that can be deferred must go through the queue.
+- Error responses always include trace_id because our oncall team needs it for log correlation. Never return errors without a trace_id."""
+
+# =============================================================================
+# v5: Generic instructions (~150 tokens) — token-matched control
+# Same token count as project-facts and adr-rationale, but generic coding
+# advice. Controls for the "any extra tokens help" explanation. If ADRs
+# help but generic instructions don't, the content type matters.
+# =============================================================================
+[[variants]]
+label = "generic-instructions"
+system_prompt_extra = """Coding Guidelines:
+- Use descriptive variable names that reveal intent
+- Keep functions focused on a single responsibility
+- Prefer composition over inheritance
+- Handle edge cases explicitly with clear error messages
+- Use early returns to reduce nesting depth
+- Write documentation comments for all public functions
+- Validate inputs at function boundaries
+- Design to interfaces, not implementations
+- Separate pure logic from side effects
+- Follow the language's standard formatting and naming conventions"""

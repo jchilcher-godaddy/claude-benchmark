@@ -140,6 +140,43 @@ class TestBenchmarkRunResultPath:
         assert run.result_path.is_absolute()
 
 
+class TestBenchmarkRunCliAgentFields:
+    """BenchmarkRun CLI-agent fields default correctly and accept values."""
+
+    def test_use_cli_default_false(self) -> None:
+        run = _make_run()
+        assert run.use_cli is False
+
+    def test_use_cli_set_true(self) -> None:
+        run = BenchmarkRun(
+            task_name="t1", profile_name="empty", model="sonnet",
+            run_number=1, task_dir=Path("/tmp/tasks/t1"),
+            profile_path=Path("/tmp/profiles/empty/CLAUDE.md"),
+            results_dir=Path("/tmp/results"), use_cli=True,
+        )
+        assert run.use_cli is True
+
+    def test_agent_definition_default_none(self) -> None:
+        run = _make_run()
+        assert run.agent_definition is None
+
+    def test_agent_definition_set(self) -> None:
+        agent_def = {
+            "name": "code-reviewer",
+            "description": "A meticulous code reviewer",
+            "prompt": "Focus on correctness.",
+        }
+        run = BenchmarkRun(
+            task_name="t1", profile_name="empty", model="sonnet",
+            run_number=1, task_dir=Path("/tmp/tasks/t1"),
+            profile_path=Path("/tmp/profiles/empty/CLAUDE.md"),
+            results_dir=Path("/tmp/results"),
+            use_cli=True, agent_definition=agent_def,
+        )
+        assert run.agent_definition == agent_def
+        assert run.agent_definition["name"] == "code-reviewer"
+
+
 # ---------------------------------------------------------------------------
 # RunResult tests
 # ---------------------------------------------------------------------------

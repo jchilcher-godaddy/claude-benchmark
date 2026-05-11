@@ -450,12 +450,12 @@ class TestScoringProgressCallbackCalled:
         assert "llm" in started_phases
         assert "composite" in started_phases
 
-        # progress called with correct counts
+        # progress called with correct counts (failed kwarg included)
         mock_cb.scoring_progress.assert_any_call(
-            "static", 1, 1, result.run.result_key
+            "static", 1, 1, result.run.result_key, failed=0,
         )
         mock_cb.scoring_progress.assert_any_call(
-            "llm", 1, 1, result.run.result_key
+            "llm", 1, 1, result.run.result_key, failed=0,
         )
         mock_cb.scoring_progress.assert_any_call(
             "composite", 1, 1, result.run.result_key

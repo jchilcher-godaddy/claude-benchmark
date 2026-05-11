@@ -61,6 +61,7 @@ class GoStaticScorer(BaseStaticScorer):
             "--output.text.path", "stderr",
             "--tests=false",
             "--allow-parallel-runners",
+            "--timeout", "10m",
             "./...",
         ]
         if rules:
@@ -71,12 +72,12 @@ class GoStaticScorer(BaseStaticScorer):
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=120,
+                timeout=600,
                 cwd=str(target_dir),
             )
         except subprocess.TimeoutExpired:
             raise StaticAnalysisError(
-                "golangci-lint timed out after 120 seconds", tool="golangci-lint"
+                "golangci-lint timed out after 600 seconds", tool="golangci-lint"
             )
 
         # golangci-lint returns exit 1 for violations found (expected),

@@ -14,6 +14,11 @@ class VariantConfig(BaseModel):
     temperature: float | None = None
     padding_tokens: int | None = None
     models: list[str] | None = None
+    # Multi-turn conversation support
+    follow_up_prompts: list[str] | None = None
+    # CLI-agent execution fields (agent-mechanism experiment)
+    use_cli: bool = False
+    agent_definition: dict | None = None
 
 
 class ExperimentDefaults(BaseModel):

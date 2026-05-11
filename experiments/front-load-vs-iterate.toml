@@ -1,0 +1,45 @@
+name = "front-load-vs-iterate"
+description = """Hypothesis: Front-loading all context and constraints into a single prompt performs \
+worse than providing only essential context upfront. This is the testable proxy for the 'iteration \
+is the skill' claim: if front-loading doesn't help (or hurts), the implication is that context is \
+better delivered incrementally. We cannot test true multi-turn iteration (the benchmark is single-turn), \
+but we can test whether the information-density strategy that front-loading represents is counterproductive. \
+Three information-loading strategies at matched total information: (1) bare task only, (2) task + \
+light context (what the task is about), (3) task + heavy context (full requirements, constraints, \
+edge cases, and quality criteria pre-specified). If heavy-context underperforms bare or light, it \
+supports the claim that preserving context window for follow-up is better than front-loading. \
+Total: 30 reps x 12 tasks x 3 models x 4 variants = 4,320 runs."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Bare task prompt (no prefix) ---
+[[variants]]
+label = "bare"
+
+# --- Light context: 1-sentence scope framing (~20 words) ---
+# Gives Claude a sense of what the task is about without dictating details.
+[[variants]]
+label = "light-context"
+prompt_prefix = "This is a self-contained coding task. Read the requirements carefully and produce a clean solution. "
+
+# --- Heavy context: full pre-specification (~120 words) ---
+# Front-loads quality criteria, edge case reminders, and structural guidance.
+# This mimics the "write one perfect prompt" approach.
+[[variants]]
+label = "heavy-context"
+prompt_prefix = "This is a self-contained coding task. Before writing code, carefully consider all requirements, edge cases, and potential failure modes. Your solution must handle invalid inputs gracefully with informative error messages. Structure your code with clear separation of concerns, using helper functions for distinct logical steps. Use descriptive variable names and add brief comments for non-obvious logic. Ensure your solution is correct for both the happy path and boundary conditions. Validate all inputs at entry points. Write code that another developer could understand without additional context. "
+
+# --- Exhaustive context: heavy + implementation prescriptions (~200 words) ---
+# The maximum front-loading: tells Claude what to do, how to do it, and what to check.
+[[variants]]
+label = "exhaustive-context"
+prompt_prefix = "This is a self-contained coding task. Before writing code, carefully consider all requirements, edge cases, and potential failure modes. Your solution must handle invalid inputs gracefully with informative error messages. Structure your code with clear separation of concerns, using helper functions for distinct logical steps. Use descriptive variable names and add brief comments for non-obvious logic. Ensure your solution is correct for both the happy path and boundary conditions. Validate all inputs at entry points. Write code that another developer could understand without additional context. Specifically: use early returns for input validation, prefer list comprehensions over manual loops where readability permits, use type hints on all function signatures, raise specific exception types with context messages, keep functions under 25 lines, and use constants instead of magic numbers. After writing the solution, mentally verify it handles empty inputs, single-element inputs, and maximum-size inputs correctly. "

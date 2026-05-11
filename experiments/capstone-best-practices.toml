@@ -1,5 +1,5 @@
 name = "capstone-best-practices"
-description = """Meta-experiment comparing evidence-based best practices from techloom.it \
+description = """Meta-experiment comparing evidence-based best practices from GPE enablement \
 (5,000+ benchmark runs across 6 experiments) against common user archetypes: \
 the terse coder, the prompt engineer, and the kitchen-sink power user."""
 

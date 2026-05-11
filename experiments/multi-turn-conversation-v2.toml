@@ -1,0 +1,99 @@
+name = "multi-turn-conversation-v2"
+description = """\
+Hypothesis: Closed-loop iteration — where the model sees test results between turns — produces \
+higher quality code than single-turn, unlike v1's blind self-review which degraded quality. \
+v1 (12,960 runs) found unconditional "review and fix" follow-ups hurt quality (-0.38 two-turn, \
+-5.09 three-turn) because the model rewrites already-correct code without evidence of problems. \
+Real multi-turn usage is reactive: developers see a specific failure and give targeted feedback. \
+This v2 tests whether injecting test results between turns changes the outcome. \
+Requires framework support: run_tests_between_turns flag that executes the task's test suite \
+after each turn and injects pass/fail output into the next follow-up message via {test_results} \
+placeholder substitution. \
+Total: 5 variants × 48 tasks × 3 models × 15 reps = 10,800 runs (~$513). \
+Smaller than v1 because we cut the unconditional review arms that v1 already disproved."""
+
+[defaults]
+tasks = [
+    # Python
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    # Go
+    "code-gen-01-go", "code-gen-02-go", "code-gen-03-go", "code-gen-04-go", "code-gen-05-go",
+    "bug-fix-01-go", "bug-fix-02-go", "bug-fix-03-go", "bug-fix-04-go",
+    "refactor-01-go", "refactor-02-go", "refactor-03-go",
+    # JavaScript
+    "code-gen-01-js", "code-gen-02-js", "code-gen-03-js", "code-gen-04-js", "code-gen-05-js",
+    "bug-fix-01-js", "bug-fix-02-js", "bug-fix-03-js", "bug-fix-04-js",
+    "refactor-01-js", "refactor-02-js", "refactor-03-js",
+    # C#
+    "code-gen-01-cs", "code-gen-02-cs", "code-gen-03-cs", "code-gen-04-cs", "code-gen-05-cs",
+    "bug-fix-01-cs", "bug-fix-02-cs", "bug-fix-03-cs", "bug-fix-04-cs",
+    "refactor-01-cs", "refactor-02-cs", "refactor-03-cs",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 15
+
+# =============================================================================
+# v1: Single-turn bare (control, same as v1 for direct comparison)
+# =============================================================================
+[[variants]]
+label = "single-turn-bare"
+
+# =============================================================================
+# v2: Single-turn kitchen-sink (control, same as v1)
+# =============================================================================
+[[variants]]
+label = "single-turn-kitchen-sink"
+prompt_prefix = "Before writing any code, analyze the requirements step by step. Consider edge cases and potential issues. Then implement your solution. "
+system_prompt_extra = """\
+You are a senior staff engineer. Think step-by-step before writing code.
+
+Follow the target language's standard naming conventions consistently. Use descriptive names that \
+reveal intent. Use early returns and guard clauses. Every public function must have a documentation \
+comment. Use the language's idiomatic error handling. Validate all inputs at public API boundaries. \
+Test behavior, not implementation."""
+
+# =============================================================================
+# v3: Two-turn with test feedback — the core v2 hypothesis
+# After turn 1, the framework runs the task's test suite and injects results.
+# The {test_results} placeholder is replaced with actual test output.
+# If all tests pass, no follow-up is sent (conditional iteration).
+# =============================================================================
+[[variants]]
+label = "two-turn-test-feedback"
+run_tests_between_turns = true
+follow_up_prompts = [
+    "I ran the tests against your solution. Here are the results:\n\n{test_results}\n\nFix the failing tests. Provide the complete corrected solution.",
+]
+
+# =============================================================================
+# v4: Two-turn with test feedback + kitchen-sink instructions
+# Tests whether front-loaded instructions + reactive iteration compound.
+# =============================================================================
+[[variants]]
+label = "two-turn-test-feedback-kitchen-sink"
+prompt_prefix = "Before writing any code, analyze the requirements step by step. Consider edge cases and potential issues. Then implement your solution. "
+system_prompt_extra = """\
+You are a senior staff engineer. Think step-by-step before writing code.
+
+Follow the target language's standard naming conventions consistently. Use descriptive names that \
+reveal intent. Use early returns and guard clauses. Every public function must have a documentation \
+comment. Use the language's idiomatic error handling. Validate all inputs at public API boundaries. \
+Test behavior, not implementation."""
+run_tests_between_turns = true
+follow_up_prompts = [
+    "I ran the tests against your solution. Here are the results:\n\n{test_results}\n\nFix the failing tests. Provide the complete corrected solution.",
+]
+
+# =============================================================================
+# v5: Two-turn blind review (v1 replicate for controlled comparison)
+# Same as v1's two-turn-bare, included so we can compare blind vs evidence-based
+# follow-ups within the same run, controlling for API model version and time.
+# =============================================================================
+[[variants]]
+label = "two-turn-blind-review"
+follow_up_prompts = [
+    "Review your solution above. Check for bugs, missing edge cases, and code quality issues. If you find any problems, provide a corrected version of the complete solution.",
+]

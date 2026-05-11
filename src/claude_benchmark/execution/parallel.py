@@ -46,7 +46,12 @@ class BenchmarkRun:
     prompt_prefix: str | None = None
     variant_label: str | None = None
     temperature: float | None = None
-    use_gocode: bool = False
+    use_direct_api: bool = False
+    # Multi-turn conversation support
+    follow_up_prompts: list[str] | None = None
+    # CLI-agent execution fields (agent-mechanism experiment)
+    use_cli: bool = False
+    agent_definition: dict | None = None
 
     @property
     def result_key(self) -> str:
@@ -80,6 +85,7 @@ class RunResult:
     total_tokens: int = 0
     cost: float = 0.0
     duration_seconds: float = 0.0
+    turn_count: int = 1
     scores: dict | None = None
 
     def to_dict(self) -> dict:
@@ -104,6 +110,8 @@ class RunResult:
             d["variant_label"] = self.run.variant_label
         if self.run.temperature is not None:
             d["temperature"] = self.run.temperature
+        if self.turn_count > 1:
+            d["turn_count"] = self.turn_count
         return d
 
     @classmethod

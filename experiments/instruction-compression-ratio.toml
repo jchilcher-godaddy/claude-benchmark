@@ -1,0 +1,51 @@
+name = "instruction-compression-ratio"
+description = """Hypothesis: Compressed instructions (~15 tokens) match uncompressed prose (~120 tokens) \
+of the same semantic content because the model already knows the referenced norms — verbose elaboration \
+is filler, not signal. Holds semantic content constant (correctness + readability + specific exceptions \
++ single responsibility) and varies only expression density. Distinct from claudemd-length-curve (which \
+varies amount of distinct content) — this is the missing matched-content control."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- bare baseline ---
+[[variants]]
+label = "bare"
+
+# --- ~12 tokens: telegram style ---
+[[variants]]
+label = "telegram"
+system_prompt_extra = "Correct. Readable. Specific exceptions. Single responsibility."
+
+# --- ~35 tokens: minimal bullets ---
+[[variants]]
+label = "bullets"
+system_prompt_extra = """- Handle edge cases correctly
+- Use descriptive names
+- Raise specific exceptions with messages
+- One responsibility per function"""
+
+# --- ~65 tokens: full sentences ---
+[[variants]]
+label = "prose"
+system_prompt_extra = "Write code that handles all edge cases correctly. Use descriptive variable and function names. Raise specific exception types with actionable messages. Keep each function focused on a single responsibility."
+
+# --- ~140 tokens: verbose elaboration ---
+[[variants]]
+label = "verbose-prose"
+system_prompt_extra = """Write code that handles all edge cases correctly. Think carefully about boundary \
+conditions, empty inputs, and unexpected types — address each one explicitly rather than hoping for the \
+best. Use descriptive variable and function names that reveal intent; a reader should understand the \
+purpose of each identifier without needing to trace through the logic. When raising exceptions, always \
+use the most specific exception type available and include an actionable error message that tells the \
+caller what went wrong and how to fix it — never raise bare Exception or use generic messages like \
+"error occurred." Keep each function focused on a single responsibility; if a function does two things, \
+split it into two functions with clear names that describe their individual purposes."""

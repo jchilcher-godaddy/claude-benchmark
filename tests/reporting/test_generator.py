@@ -642,7 +642,7 @@ class TestVariantAnalysis:
         gen = ReportGenerator(tmp_path)
 
         # Determine best_profile_overall via the generator's own method
-        _, _, _, _, _, _, qbm = gen._extract_chart_data(results)
+        _, _, _, _, _, _, qbm, _ = gen._extract_chart_data(results)
         best_overall, _ = gen._find_best_profile_overall(qbm)
 
         analysis = gen._compute_category_variant_analysis(results, best_overall)
@@ -670,7 +670,7 @@ class TestVariantAnalysis:
         results = _make_multi_category_results()
         gen = ReportGenerator(tmp_path)
 
-        _, _, _, _, _, _, qbm = gen._extract_chart_data(results)
+        _, _, _, _, _, _, qbm, _ = gen._extract_chart_data(results)
         best_overall, _ = gen._find_best_profile_overall(qbm)
 
         analysis = gen._compute_category_variant_analysis(results, best_overall)
@@ -687,7 +687,7 @@ class TestVariantAnalysis:
         results = _make_multi_category_results()
         gen = ReportGenerator(tmp_path)
 
-        _, _, _, _, _, _, qbm = gen._extract_chart_data(results)
+        _, _, _, _, _, _, qbm, _ = gen._extract_chart_data(results)
         best_overall, _ = gen._find_best_profile_overall(qbm)
 
         prefs = gen._compute_model_variant_preferences(qbm, best_overall)

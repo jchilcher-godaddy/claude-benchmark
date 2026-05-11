@@ -26,13 +26,13 @@ from claude_benchmark.scoring.errors import LLMJudgeError, ScoringError, is_dete
 from claude_benchmark.scoring.llm_judge import LLMJudgeScorer
 from claude_benchmark.scoring.models import AggregateStats, CompositeScore, TokenEfficiency
 from claude_benchmark.scoring.registry import get_scorer
+from claude_benchmark.scoring.system_resources import get_auto_static_concurrency
 from claude_benchmark.scoring.token_efficiency import compute_token_efficiency
 from claude_benchmark.tasks.loader import load_judge_rubric, load_task
 from claude_benchmark.tasks.schema import Language
 
 logger = logging.getLogger(__name__)
 
-_STATIC_SCORING_CONCURRENCY = 10
 _LLM_SCORING_CONCURRENCY = 20
 
 
@@ -168,7 +168,7 @@ def _score_llm_single(
             if backoff[attempt] > 0:
                 time.sleep(backoff[attempt])
             llm_score = LLMJudgeScorer(
-                use_gocode=result.run.use_gocode,
+                use_direct_api=result.run.use_direct_api,
             ).score(
                 result.output_dir,
                 task_def.description,
@@ -207,16 +207,17 @@ def _score_llm_single(
 class ScoringProgressCallback(Protocol):
     """Protocol for receiving scoring progress updates."""
 
-    def scoring_started(self, phase: str, total: int) -> None:
+    def scoring_started(self, phase: str, total: int, *, workers: int = 0) -> None:
         """Called when a scoring phase begins.
 
         Args:
             phase: Phase name ("static", "llm", "composite").
             total: Total number of items to score in this phase.
+            workers: Number of concurrent workers for this phase.
         """
         ...
 
-    def scoring_progress(self, phase: str, completed: int, total: int, run_key: str) -> None:
+    def scoring_progress(self, phase: str, completed: int, total: int, run_key: str, *, failed: int = 0) -> None:
         """Called after each run is scored.
 
         Args:
@@ -224,6 +225,7 @@ class ScoringProgressCallback(Protocol):
             completed: Number of items completed so far.
             total: Total number of items in this phase.
             run_key: Unique key identifying the run.
+            failed: Number of items that failed scoring so far.
         """
         ...
 
@@ -320,7 +322,7 @@ def score_run(
                 if backoff[attempt] > 0:
                     time.sleep(backoff[attempt])
                 llm_score = LLMJudgeScorer(
-                    use_gocode=result.run.use_gocode,
+                    use_direct_api=result.run.use_direct_api,
                 ).score(
                     result.output_dir,
                     task_def.description,
@@ -384,7 +386,12 @@ def score_run(
 
             claudemd_tokens = count_tokens_approx(profile_text)
             efficiency = compute_token_efficiency(
-                composite.composite, claudemd_tokens, result.total_tokens
+                composite.composite,
+                claudemd_tokens,
+                result.total_tokens,
+                input_tokens=result.input_tokens,
+                output_tokens=result.output_tokens,
+                model=result.run.model,
             )
             scores["token_efficiency"] = efficiency.model_dump()
         except Exception as exc:
@@ -400,6 +407,8 @@ def score_all_runs(
     skip_llm: bool = False,
     strict: bool = False,
     progress: ScoringProgressCallback | None = None,
+    llm_concurrency: int | None = None,
+    static_concurrency: int | None = None,
 ) -> tuple[list[RunResult], dict[str, dict[str, AggregateStats]]]:
     """Score all successful benchmark results in batch phases.
 
@@ -415,6 +424,8 @@ def score_all_runs(
         skip_llm: If True, skip LLM-as-judge scoring.
         strict: If True, re-raise scorer failures instead of degrading.
         progress: Optional callback for scoring progress updates.
+        llm_concurrency: Max parallel LLM judge workers. Defaults to _LLM_SCORING_CONCURRENCY.
+        static_concurrency: Max parallel static scoring workers. Defaults to _STATIC_SCORING_CONCURRENCY.
 
     Returns:
         Tuple of (results_with_scores, aggregation_dict).
@@ -433,11 +444,14 @@ def score_all_runs(
     scores_dicts: dict[int, dict] = {}  # index -> scores dict
 
     # --- Phase A: Static scoring (parallel) ---
-    if progress:
-        progress.scoring_started("static", len(successful))
-
     completed_static = 0
-    with concurrent.futures.ThreadPoolExecutor(max_workers=_STATIC_SCORING_CONCURRENCY) as executor:
+    failed_static = 0
+    effective_static = static_concurrency or get_auto_static_concurrency()
+    logger.info("Static scoring concurrency: %d", effective_static)
+    if progress:
+        progress.scoring_started("static", len(successful), workers=effective_static)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=effective_static) as executor:
         futures = {
             executor.submit(_score_static_single, i, r, strict): i
             for i, r in enumerate(successful)
@@ -447,10 +461,13 @@ def score_all_runs(
             task_defs[idx] = task_def
             static_scores[idx] = static_score
             completed_static += 1
+            if static_score is None:
+                failed_static += 1
             if progress:
                 progress.scoring_progress(
                     "static", completed_static, len(successful),
                     successful[idx].run.result_key,
+                    failed=failed_static,
                 )
 
     if progress:
@@ -458,11 +475,13 @@ def score_all_runs(
 
     # --- Phase B: LLM scoring (parallel, optional) ---
     if not skip_llm:
-        if progress:
-            progress.scoring_started("llm", len(successful))
-
         completed_llm = 0
-        executor_params = {"max_workers": _LLM_SCORING_CONCURRENCY}
+        failed_llm = 0
+        effective_llm = llm_concurrency or _LLM_SCORING_CONCURRENCY
+        if progress:
+            progress.scoring_started("llm", len(successful), workers=effective_llm)
+
+        executor_params = {"max_workers": effective_llm}
         with concurrent.futures.ThreadPoolExecutor(**executor_params) as executor:
             futures = {
                 executor.submit(_score_llm_single, i, r, task_defs[i], strict): i
@@ -472,10 +491,13 @@ def score_all_runs(
                 idx, llm_score = future.result()
                 llm_scores[idx] = llm_score
                 completed_llm += 1
+                if llm_score is None:
+                    failed_llm += 1
                 if progress:
                     progress.scoring_progress(
                         "llm", completed_llm, len(successful),
                         successful[idx].run.result_key,
+                        failed=failed_llm,
                     )
 
         if progress:
@@ -483,7 +505,7 @@ def score_all_runs(
 
     # --- Phase C: Composite + Token Efficiency ---
     if progress:
-        progress.scoring_started("composite", len(successful))
+        progress.scoring_started("composite", len(successful), workers=1)
 
     for i, result in enumerate(successful):
         static_score = static_scores.get(i)
@@ -535,7 +557,12 @@ def score_all_runs(
 
                 claudemd_tokens = count_tokens_approx(profile_text)
                 efficiency = compute_token_efficiency(
-                    composite.composite, claudemd_tokens, result.total_tokens
+                    composite.composite,
+                    claudemd_tokens,
+                    result.total_tokens,
+                    input_tokens=result.input_tokens,
+                    output_tokens=result.output_tokens,
+                    model=result.run.model,
                 )
                 scores["token_efficiency"] = efficiency.model_dump()
             except Exception as exc:
@@ -586,13 +613,18 @@ def score_all_runs(
             score_aggs_dict = {}
 
         efficiency_agg_dict = {}
+        cost_efficiency_agg_dict = {}
         if efficiencies:
             efficiency_agg = aggregator.aggregate_token_efficiency(efficiencies)
             efficiency_agg_dict = efficiency_agg.model_dump()
+            cost_agg = aggregator.aggregate_cost_efficiency(efficiencies)
+            if cost_agg:
+                cost_efficiency_agg_dict = cost_agg.model_dump()
 
         aggregation[variant_key] = {
             "scores": score_aggs_dict,
             "token_efficiency": efficiency_agg_dict,
+            "cost_efficiency": cost_efficiency_agg_dict,
         }
 
     return results, aggregation

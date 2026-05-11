@@ -1,32 +1,62 @@
 name = "emotional-stakes"
-description = "Test whether consequence framing (high stakes, incentives, accountability) affects code quality."
+description = """Test whether emotional framing affects code quality. Based on EmotionPrompt (Li et al., AAAI 2024) \
+which found ~8% improvement on reasoning tasks but never tested code generation. Tests career-threat, \
+life-or-death, tipping, accountability, and growth-mindset framing — the most common internet-folklore \
+prompting techniques — against neutral and low-stakes controls."""
 
 [defaults]
 tasks = [
+    # Python
     "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
     "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
     "refactor-01", "refactor-02", "refactor-03",
-    "instruction-01", "instruction-02", "instruction-03",
+    # Go
+    "code-gen-01-go", "code-gen-02-go", "code-gen-03-go", "code-gen-04-go", "code-gen-05-go",
+    "bug-fix-01-go", "bug-fix-02-go", "bug-fix-03-go", "bug-fix-04-go",
+    "refactor-01-go", "refactor-02-go", "refactor-03-go",
+    # JavaScript
+    "code-gen-01-js", "code-gen-02-js", "code-gen-03-js", "code-gen-04-js", "code-gen-05-js",
+    "bug-fix-01-js", "bug-fix-02-js", "bug-fix-03-js", "bug-fix-04-js",
+    "refactor-01-js", "refactor-02-js", "refactor-03-js",
+    # C#
+    "code-gen-01-cs", "code-gen-02-cs", "code-gen-03-cs", "code-gen-04-cs", "code-gen-05-cs",
+    "bug-fix-01-cs", "bug-fix-02-cs", "bug-fix-03-cs", "bug-fix-04-cs",
+    "refactor-01-cs", "refactor-02-cs", "refactor-03-cs",
 ]
 models = ["haiku", "sonnet", "opus"]
 profiles = ["empty"]
-reps = 30
+reps = 15
 
+# Control: no emotional framing
 [[variants]]
 label = "neutral"
 
+# Career-threat: personal consequence framing (self-monitoring category from EmotionPrompt)
 [[variants]]
-label = "high-stakes"
-system_prompt_extra = "This code will run in a safety-critical production system. Correctness and robustness are paramount. Every edge case must be handled."
+label = "career-threat"
+prompt_prefix = "I'm being evaluated on this task and will lose my job if the code has bugs. Please be extremely careful. "
 
+# Life-or-death: maximum-stakes consequence framing
+[[variants]]
+label = "life-or-death"
+prompt_prefix = "This code will run on an implanted medical device. Any bug could kill the patient. Triple-check every edge case. "
+
+# Tipping: monetary incentive framing (internet-folklore technique)
 [[variants]]
 label = "tip-incentive"
-prompt_prefix = "I'll tip $500 for excellent, production-quality code. "
+prompt_prefix = "I'll tip you $10,000 for a perfect, production-quality solution with zero bugs. "
 
+# Accountability: expert-review framing (social cognitive category from EmotionPrompt)
 [[variants]]
 label = "accountability"
-system_prompt_extra = "A senior staff engineer will carefully review every line of your code for correctness, style, and maintainability."
+prompt_prefix = "A principal engineer will review every line of this code for correctness, edge cases, and maintainability before it ships. "
 
+# Growth-mindset: positive emotional framing (cognitive emotion regulation from EmotionPrompt)
+[[variants]]
+label = "growth-mindset"
+prompt_prefix = "I know you can write excellent code. Take pride in this solution and make it your best work. "
+
+# Low-stakes: negative control — reduced effort framing
 [[variants]]
 label = "low-stakes"
-prompt_prefix = "This is just a quick prototype, don't overthink it. "
+prompt_prefix = "This is just a throwaway prototype for a hackathon, don't overthink it. "

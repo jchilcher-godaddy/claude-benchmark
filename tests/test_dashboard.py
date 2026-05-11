@@ -215,7 +215,8 @@ class TestDashboardScoringStarted:
         dashboard = Dashboard(total_runs=5, concurrency=2)
         dashboard.scoring_started("static", 5)
         assert dashboard._scoring_task_id is not None
-        assert dashboard.scoring_phase == "Static analysis"
+        assert dashboard.scoring_phase is not None
+        assert "Static analysis" in dashboard.scoring_phase
         assert dashboard.scoring_total == 5
         assert dashboard.scoring_completed_count == 0
 
@@ -228,13 +229,36 @@ class TestDashboardScoringStarted:
         # New task created (old one removed)
         assert second_task_id is not None
         assert second_task_id != first_task_id
-        assert dashboard.scoring_phase == "LLM judging"
+        assert dashboard.scoring_phase is not None
+        assert "LLM judging" in dashboard.scoring_phase
 
     def test_clears_current_run(self) -> None:
         dashboard = Dashboard(total_runs=5, concurrency=2)
         dashboard.scoring_current_run = "leftover"
         dashboard.scoring_started("composite", 3)
         assert dashboard.scoring_current_run == ""
+
+    def test_stores_worker_count(self) -> None:
+        dashboard = Dashboard(total_runs=5, concurrency=2)
+        dashboard.scoring_started("static", 5, workers=8)
+        assert dashboard.scoring_workers == 8
+
+    def test_includes_workers_in_phase_label(self) -> None:
+        dashboard = Dashboard(total_runs=5, concurrency=2)
+        dashboard.scoring_started("static", 5, workers=8)
+        assert dashboard.scoring_phase is not None
+        assert "8 workers" in dashboard.scoring_phase
+
+    def test_omits_workers_for_single_worker(self) -> None:
+        dashboard = Dashboard(total_runs=5, concurrency=2)
+        dashboard.scoring_started("composite", 5, workers=1)
+        assert dashboard.scoring_phase == "Compositing"
+
+    def test_resets_failed_count(self) -> None:
+        dashboard = Dashboard(total_runs=5, concurrency=2)
+        dashboard.scoring_failed_count = 3
+        dashboard.scoring_started("static", 5)
+        assert dashboard.scoring_failed_count == 0
 
 
 class TestDashboardScoringProgress:
@@ -254,6 +278,12 @@ class TestDashboardScoringProgress:
         task = dashboard._scoring_progress.tasks[0]
         assert task.completed == 2
 
+    def test_tracks_failed_count(self) -> None:
+        dashboard = Dashboard(total_runs=5, concurrency=2)
+        dashboard.scoring_started("static", 5)
+        dashboard.scoring_progress("static", 3, 5, "run-key", failed=2)
+        assert dashboard.scoring_failed_count == 2
+
 
 class TestDashboardScoringCompleted:
     """Test scoring_completed clears phase state."""
@@ -272,6 +302,14 @@ class TestDashboardScoringCompleted:
         dashboard.scoring_completed("static")
         task = dashboard._scoring_progress.tasks[0]
         assert task.completed == 5
+
+    def test_clears_workers_and_failed(self) -> None:
+        dashboard = Dashboard(total_runs=5, concurrency=2)
+        dashboard.scoring_started("static", 5, workers=8)
+        dashboard.scoring_progress("static", 3, 5, "run", failed=1)
+        dashboard.scoring_completed("static")
+        assert dashboard.scoring_workers == 0
+        assert dashboard.scoring_failed_count == 0
 
 
 class TestDashboardRenderScoring:
@@ -500,6 +538,63 @@ class TestLogLineOutputSummary:
         assert "5/5" in captured.out
         assert "Failed: 0" in captured.out
         assert "$0.00" in captured.out
+
+
+class TestLogLineOutputScoringStarted:
+    """Test LogLineOutput.scoring_started prints worker info."""
+
+    def test_includes_worker_count(self, capsys: pytest.CaptureFixture[str]) -> None:
+        logger = LogLineOutput()
+        logger.scoring_started("static", 100, workers=8)
+        captured = capsys.readouterr()
+        assert "8 workers" in captured.out
+        assert "100 runs" in captured.out
+        assert "Static analysis" in captured.out
+
+    def test_omits_workers_for_single_worker(self, capsys: pytest.CaptureFixture[str]) -> None:
+        logger = LogLineOutput()
+        logger.scoring_started("composite", 100, workers=1)
+        captured = capsys.readouterr()
+        assert "workers" not in captured.out
+        assert "100 runs" in captured.out
+
+
+class TestLogLineOutputScoringProgress:
+    """Test LogLineOutput.scoring_progress prints throughput and failure info."""
+
+    def test_includes_throughput(self, capsys: pytest.CaptureFixture[str]) -> None:
+        logger = LogLineOutput()
+        logger.scoring_started("static", 10)
+        logger.scoring_progress("static", 10, 10, "run-key")
+        captured = capsys.readouterr()
+        assert "runs/s" in captured.out
+
+    def test_includes_failed_count(self, capsys: pytest.CaptureFixture[str]) -> None:
+        logger = LogLineOutput()
+        logger.scoring_started("static", 10)
+        logger.scoring_progress("static", 10, 10, "run-key", failed=3)
+        captured = capsys.readouterr()
+        assert "3 failed" in captured.out
+
+    def test_omits_failed_when_zero(self, capsys: pytest.CaptureFixture[str]) -> None:
+        logger = LogLineOutput()
+        logger.scoring_started("static", 10)
+        logger.scoring_progress("static", 10, 10, "run-key", failed=0)
+        captured = capsys.readouterr()
+        assert "failed" not in captured.out
+
+
+class TestLogLineOutputScoringCompleted:
+    """Test LogLineOutput.scoring_completed prints elapsed time."""
+
+    def test_includes_elapsed_time(self, capsys: pytest.CaptureFixture[str]) -> None:
+        logger = LogLineOutput()
+        logger.scoring_started("static", 10)
+        logger.scoring_completed("static")
+        captured = capsys.readouterr()
+        assert re.search(r"\d+\.\d+s", captured.out)
+        assert "Static analysis" in captured.out
+        assert "complete" in captured.out
 
 
 class TestDashboardSummary:

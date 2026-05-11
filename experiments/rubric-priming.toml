@@ -1,0 +1,63 @@
+name = "rubric-priming"
+description = """Hypothesis: Telling Claude how its output will be evaluated (the rubric) improves \
+quality, particularly test pass rate which has been flat at ~73-74% across 13 experiments. The \
+educational analog is well-established: giving students the rubric before an exam improves \
+performance. This is distinct from generic quality instructions (which hurt at r=-0.95) because \
+rubric criteria are specific, measurable, and outcome-oriented — they say WHAT matters without \
+prescribing HOW. The static scoring rubric (test pass rate 50%, lint 30%, complexity 20%) and LLM \
+judge criteria (readability, architecture, instruction adherence, correctness) are the actual \
+evaluation criteria used by the benchmark. Variants test: full rubric with weights, static-only \
+rubric (targeting the stuck test pass rate), LLM-only rubric, and a test-pass-rate-only variant \
+that puts maximum emphasis on the biggest untapped lever. \
+Total: 30 reps x 12 tasks x 3 models x 5 variants = 5,400 runs."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Bare baseline ---
+[[variants]]
+label = "bare"
+
+# --- Full rubric: static weights + LLM criteria (~60 words) ---
+# Tells Claude the complete evaluation framework with weights.
+# Tests whether knowing the full scoring system helps.
+[[variants]]
+label = "full-rubric"
+system_prompt_extra = """Your code will be evaluated on two axes. \
+Static analysis (50% of score): test pass rate (most important), lint cleanliness, and cyclomatic complexity. \
+Qualitative review (50% of score): code readability, architecture quality, instruction adherence, and correctness reasoning. \
+Passing all tests is the single highest-weighted criterion."""
+
+# --- Static-only rubric: just the static scoring criteria (~35 words) ---
+# Focuses Claude on the measurable, automated checks.
+# Tests whether making the static criteria explicit moves test pass rate.
+[[variants]]
+label = "static-rubric"
+system_prompt_extra = """Your code will be evaluated by automated analysis: \
+test pass rate (50% weight — most important), lint cleanliness (30%), and cyclomatic complexity (20%). \
+Prioritize making all tests pass above all else."""
+
+# --- LLM-only rubric: just the qualitative criteria (~35 words) ---
+# Focuses Claude on the subjective quality dimensions.
+# Control for whether rubric effects come from static or LLM awareness.
+[[variants]]
+label = "llm-rubric"
+system_prompt_extra = """Your code will be reviewed for: \
+code readability and clarity, architecture quality and separation of concerns, \
+adherence to task instructions, and correctness of logic and edge case handling. \
+Each dimension is scored independently."""
+
+# --- Test-pass-rate-only: maximum emphasis on the stuck metric (~20 words) ---
+# The most targeted variant: all attention on the one metric that hasn't moved.
+# Tests whether a single, clear priority can break through the 73-74% ceiling.
+[[variants]]
+label = "tests-first"
+system_prompt_extra = "Your code will be evaluated primarily on whether it passes all tests. A solution that passes every test is better than an elegant solution that fails any."

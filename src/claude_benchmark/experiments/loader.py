@@ -79,6 +79,9 @@ def expand_experiment(
                                 prompt_prefix=prefix or None,
                                 variant_label=variant.label,
                                 temperature=temp,
+                                follow_up_prompts=variant.follow_up_prompts,
+                                use_cli=variant.use_cli,
+                                agent_definition=variant.agent_definition,
                             )
                         )
     return runs

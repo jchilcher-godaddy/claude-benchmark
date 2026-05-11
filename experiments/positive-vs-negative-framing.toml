@@ -1,0 +1,54 @@
+name = "positive-vs-negative-framing"
+description = """Hypothesis: Positive framing ('use guard clauses') outperforms negative framing \
+('don't nest deeply') when the intent is identical and token count is matched. The current +0.66 \
+finding comes from the capstone as a secondary observation between micro-quality (positive) and \
+anti-pattern (negative) profiles that differed in content, not just valence. This experiment isolates \
+framing direction as the sole variable using 5 matched instruction pairs, each expressing the same \
+intent in positive vs negative form. Also tests whether a mixed list (some positive, some negative) \
+performs between the two extremes or matches one. \
+Total: 30 reps x 12 tasks x 3 models x 4 variants = 4,320 runs."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- No instructions (bare baseline) ---
+[[variants]]
+label = "bare"
+
+# --- All positive framing ---
+# 5 rules, all phrased as DO instructions. ~60 words.
+[[variants]]
+label = "positive"
+system_prompt_extra = """- Use guard clauses and early returns to keep functions flat
+- Extract helper functions when logic repeats
+- Use descriptive names that reveal intent
+- Handle edge cases explicitly with informative error messages
+- Remove unused code before finishing"""
+
+# --- All negative framing ---
+# Same 5 rules, rephrased as DON'T instructions. ~60 words.
+[[variants]]
+label = "negative"
+system_prompt_extra = """- Do not create deeply nested code when guard clauses would work
+- Do not duplicate logic across functions without extracting helpers
+- Do not use abbreviations or single-letter variable names
+- Do not ignore edge cases or use bare except clauses
+- Do not leave dead code, commented-out code, or unused imports"""
+
+# --- Mixed framing (3 positive, 2 negative) ---
+# Tests whether mixing dilutes or averages the effect.
+[[variants]]
+label = "mixed"
+system_prompt_extra = """- Use guard clauses and early returns to keep functions flat
+- Do not duplicate logic across functions without extracting helpers
+- Use descriptive names that reveal intent
+- Do not ignore edge cases or use bare except clauses
+- Remove unused code before finishing"""

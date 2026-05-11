@@ -349,6 +349,124 @@ class TestExpandExperiment:
         assert len(runs) == 2
         assert {r.model for r in runs} == {"sonnet", "haiku"}
 
+    def test_use_cli_wired(self, tmp_path: Path) -> None:
+        config = ExperimentConfig(
+            name="test",
+            defaults=ExperimentDefaults(
+                tasks=["t1"],
+                models=["sonnet"],
+                profiles=["empty"],
+                reps=1,
+            ),
+            variants=[
+                VariantConfig(label="api", use_cli=False),
+                VariantConfig(label="cli", use_cli=True),
+            ],
+        )
+        task_dirs = {"t1": tmp_path / "tasks" / "t1"}
+        profile_paths = {"empty": tmp_path / "profiles" / "empty" / "CLAUDE.md"}
+
+        runs = expand_experiment(
+            config, task_dirs, profile_paths, tmp_path / "results"
+        )
+
+        api_run = [r for r in runs if r.variant_label == "api"][0]
+        cli_run = [r for r in runs if r.variant_label == "cli"][0]
+        assert api_run.use_cli is False
+        assert cli_run.use_cli is True
+
+    def test_agent_definition_wired(self, tmp_path: Path) -> None:
+        agent_def = {
+            "name": "code-reviewer",
+            "description": "A meticulous code reviewer",
+            "prompt": "Focus on correctness.",
+        }
+        config = ExperimentConfig(
+            name="test",
+            defaults=ExperimentDefaults(
+                tasks=["t1"],
+                models=["sonnet"],
+                profiles=["empty"],
+                reps=1,
+            ),
+            variants=[
+                VariantConfig(label="no-agent"),
+                VariantConfig(label="agent", use_cli=True, agent_definition=agent_def),
+            ],
+        )
+        task_dirs = {"t1": tmp_path / "tasks" / "t1"}
+        profile_paths = {"empty": tmp_path / "profiles" / "empty" / "CLAUDE.md"}
+
+        runs = expand_experiment(
+            config, task_dirs, profile_paths, tmp_path / "results"
+        )
+
+        no_agent_run = [r for r in runs if r.variant_label == "no-agent"][0]
+        agent_run = [r for r in runs if r.variant_label == "agent"][0]
+        assert no_agent_run.agent_definition is None
+        assert agent_run.agent_definition == agent_def
+        assert agent_run.use_cli is True
+
+    def test_follow_up_prompts_wired(self, tmp_path: Path) -> None:
+        config = ExperimentConfig(
+            name="test",
+            defaults=ExperimentDefaults(
+                tasks=["t1"],
+                models=["sonnet"],
+                profiles=["empty"],
+                reps=1,
+            ),
+            variants=[
+                VariantConfig(label="single-turn"),
+                VariantConfig(
+                    label="two-turn",
+                    follow_up_prompts=["Review your solution."],
+                ),
+            ],
+        )
+        task_dirs = {"t1": tmp_path / "tasks" / "t1"}
+        profile_paths = {"empty": tmp_path / "profiles" / "empty" / "CLAUDE.md"}
+
+        runs = expand_experiment(
+            config, task_dirs, profile_paths, tmp_path / "results"
+        )
+
+        single_run = [r for r in runs if r.variant_label == "single-turn"][0]
+        multi_run = [r for r in runs if r.variant_label == "two-turn"][0]
+        assert single_run.follow_up_prompts is None
+        assert multi_run.follow_up_prompts == ["Review your solution."]
+
+    def test_follow_up_prompts_from_toml(self, tmp_path: Path) -> None:
+        config_path = tmp_path / "experiment.toml"
+        config_data = {
+            "name": "multi-turn-test",
+            "defaults": {
+                "tasks": ["t1"],
+                "models": ["sonnet"],
+                "profiles": ["empty"],
+                "reps": 1,
+            },
+            "variants": [
+                {"label": "bare"},
+                {
+                    "label": "two-turn",
+                    "follow_up_prompts": ["Review and fix."],
+                },
+                {
+                    "label": "three-turn",
+                    "follow_up_prompts": ["Review.", "Add edge cases."],
+                },
+            ],
+        }
+        with open(config_path, "wb") as f:
+            tomli_w.dump(config_data, f)
+
+        config = load_experiment(config_path)
+
+        assert config.variants[0].follow_up_prompts is None
+        assert config.variants[1].follow_up_prompts == ["Review and fix."]
+        assert config.variants[2].follow_up_prompts == ["Review.", "Add edge cases."]
+
     def test_missing_profile_raises(self, tmp_path: Path) -> None:
         config = ExperimentConfig(
             name="test",

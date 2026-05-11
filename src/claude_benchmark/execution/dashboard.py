@@ -20,6 +20,7 @@ from rich.progress import (
     MofNCompleteColumn,
     Progress,
     TextColumn,
+    TimeElapsedColumn,
     TimeRemainingColumn,
 )
 from rich.table import Table
@@ -64,6 +65,9 @@ class Dashboard:
         self.scoring_total: int = 0
         self.scoring_completed_count: int = 0
         self.scoring_current_run: str = ""
+        self.scoring_workers: int = 0
+        self.scoring_phase_start: float = 0.0
+        self.scoring_failed_count: int = 0
 
         self.progress = Progress(
             TextColumn("[bold blue]Overall"),
@@ -82,6 +86,7 @@ class Dashboard:
             BarColumn(),
             MofNCompleteColumn(),
             TextColumn("[bold]{task.percentage:.0f}%"),
+            TimeElapsedColumn(),
         )
         self._scoring_task_id: int | None = None
         self._scoring_display_active: bool = False
@@ -115,20 +120,33 @@ class Dashboard:
         return Group(self.progress, table)
 
     def _render_scoring(self) -> Group:
-        """Build a scoring-only renderable: progress bar + current run label.
+        """Build a scoring-only renderable: progress bar + status line.
 
         Used during the scoring phase (after execution) so the stale worker
-        table is not shown.
+        table is not shown. Shows throughput and failure count alongside the
+        current run key.
         """
         from rich.text import Text
 
         parts: list = [self._scoring_progress]
+
+        status_parts: list[str] = []
         if self.scoring_current_run:
-            parts.append(
-                Text.from_markup(
-                    f"  [dim]{self.scoring_current_run}[/dim]"
-                )
+            status_parts.append(f"[dim]{self.scoring_current_run}[/dim]")
+
+        elapsed = time.monotonic() - self.scoring_phase_start
+        if elapsed > 0 and self.scoring_completed_count > 0:
+            throughput = self.scoring_completed_count / elapsed
+            status_parts.append(f"[dim]{throughput:.1f} runs/s[/dim]")
+
+        if self.scoring_failed_count > 0:
+            status_parts.append(
+                f"[bold yellow]{self.scoring_failed_count} failed[/bold yellow]"
             )
+
+        if status_parts:
+            parts.append(Text.from_markup("  " + "  ".join(status_parts)))
+
         return Group(*parts)
 
     def _refresh_live(self) -> None:
@@ -182,22 +200,28 @@ class Dashboard:
     # ScoringProgressCallback protocol methods
     # ------------------------------------------------------------------
 
-    def scoring_started(self, phase: str, total: int) -> None:
+    def scoring_started(self, phase: str, total: int, *, workers: int = 0) -> None:
         """Signal that a scoring phase has begun.
 
-        Updates the dashboard to show the current scoring phase name and
-        total item count.  Creates (or resets) a task on the scoring
-        progress bar so it starts fresh for each phase.
+        Updates the dashboard to show the current scoring phase name,
+        total item count, and worker concurrency.  Creates (or resets)
+        a task on the scoring progress bar so it starts fresh for each phase.
 
         Args:
             phase: Phase identifier (``"static"``, ``"llm"``, or ``"composite"``).
             total: Number of items to score in this phase.
+            workers: Number of concurrent workers for this phase.
         """
         display_label = self._SCORING_PHASE_LABELS.get(phase, phase)
+        if workers > 1:
+            display_label = f"{display_label} ({workers} workers)"
         self.scoring_phase = display_label
         self.scoring_total = total
         self.scoring_completed_count = 0
         self.scoring_current_run = ""
+        self.scoring_workers = workers
+        self.scoring_phase_start = time.monotonic()
+        self.scoring_failed_count = 0
 
         # Reset the Rich Progress bar for this phase
         if self._scoring_task_id is not None:
@@ -208,7 +232,7 @@ class Dashboard:
         self._refresh_live()
 
     def scoring_progress(
-        self, phase: str, completed: int, total: int, run_key: str
+        self, phase: str, completed: int, total: int, run_key: str, *, failed: int = 0
     ) -> None:
         """Update the dashboard with per-item scoring progress.
 
@@ -217,9 +241,11 @@ class Dashboard:
             completed: Number of items completed so far.
             total: Total number of items in this phase.
             run_key: Unique key identifying the current run being scored.
+            failed: Number of items that failed scoring so far.
         """
         self.scoring_completed_count = completed
         self.scoring_current_run = run_key
+        self.scoring_failed_count = failed
 
         # Advance the Rich Progress bar
         if self._scoring_task_id is not None:
@@ -244,6 +270,8 @@ class Dashboard:
             )
         self.scoring_phase = None
         self.scoring_current_run = ""
+        self.scoring_workers = 0
+        self.scoring_failed_count = 0
         self._refresh_live()
 
     def summary(

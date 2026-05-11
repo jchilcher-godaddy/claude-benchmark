@@ -1,0 +1,130 @@
+name = "output-compression"
+description = """\
+Hypothesis: Structured output-compression rules (caveman-style) reduce output tokens without \
+degrading code quality, and compressed behavioral instructions are as effective as verbose ones. \
+Three angles: (1) Does telling the model to compress output affect code QUALITY? Gradient from \
+neutral → generic terse → caveman-full → caveman-ultra. (2) Do compressed instructions produce \
+same quality as verbose ones? Matched-content pair at ~200 vs ~80 tokens. (3) Does caveman's \
+specific ruleset add value beyond generic "be concise"? terse-generic vs caveman-full. \
+Motivated by: (a) Brussee caveman toolkit claims ~65% output token reduction while maintaining \
+technical accuracy; (b) Nayab et al. (arXiv 2604.00025, March 2026) found brevity constraints \
+improved accuracy by 26pp on certain benchmarks; (c) our own finding that empty baselines beat \
+verbose prompts for Python (r=-0.95 token/quality) and verbose prompts kill Sonnet+C# quality \
+(-17 pts). This experiment tests whether output-side compression follows the same pattern as \
+input-side compression. \
+Total: 7 variants × 48 tasks × 3 models × 15 reps = 15,120 runs (~$718)."""
+
+[defaults]
+tasks = [
+    # Python
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    # Go
+    "code-gen-01-go", "code-gen-02-go", "code-gen-03-go", "code-gen-04-go", "code-gen-05-go",
+    "bug-fix-01-go", "bug-fix-02-go", "bug-fix-03-go", "bug-fix-04-go",
+    "refactor-01-go", "refactor-02-go", "refactor-03-go",
+    # JavaScript
+    "code-gen-01-js", "code-gen-02-js", "code-gen-03-js", "code-gen-04-js", "code-gen-05-js",
+    "bug-fix-01-js", "bug-fix-02-js", "bug-fix-03-js", "bug-fix-04-js",
+    "refactor-01-js", "refactor-02-js", "refactor-03-js",
+    # C#
+    "code-gen-01-cs", "code-gen-02-cs", "code-gen-03-cs", "code-gen-04-cs", "code-gen-05-cs",
+    "bug-fix-01-cs", "bug-fix-02-cs", "bug-fix-03-cs", "bug-fix-04-cs",
+    "refactor-01-cs", "refactor-02-cs", "refactor-03-cs",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 15
+
+# =============================================================================
+# Angle 1: Output compression — does terse output hurt code quality?
+# Gradient: bare → terse-generic → caveman-full → caveman-ultra
+# =============================================================================
+
+# Bare control — no compression instructions
+[[variants]]
+label = "bare"
+
+# Generic conciseness (caveman's own control arm for direct comparability)
+[[variants]]
+label = "terse-generic"
+system_prompt_extra = "Answer concisely."
+
+# Caveman full-intensity rules (adapted from SKILL.md, stripped of persistence/wenyan/auto-clarity)
+[[variants]]
+label = "caveman-full"
+system_prompt_extra = """\
+Respond terse like smart caveman. All technical substance stay. Only fluff die.
+
+Rules: Drop articles (a/an/the), filler (just/really/basically/actually/simply), \
+pleasantries (sure/certainly/of course/happy to), hedging. Fragments OK. Short \
+synonyms (big not extensive, fix not "implement a solution for"). Technical terms \
+exact. Code blocks unchanged. Errors quoted exact.
+
+Pattern: [thing] [action] [reason]. [next step]."""
+
+# Caveman ultra-intensity — maximum compression with abbreviations and arrows
+[[variants]]
+label = "caveman-ultra"
+system_prompt_extra = """\
+Respond terse like smart caveman. All technical substance stay. Only fluff die.
+
+Rules: Drop articles (a/an/the), filler, pleasantries, hedging. Fragments OK. \
+Short synonyms. Technical terms exact. Code blocks unchanged. Errors quoted exact. \
+Abbreviate common terms (DB/auth/config/req/res/fn/impl). Strip conjunctions. \
+Arrows for causality (X → Y). One word when one word enough.
+
+Pattern: [thing] [action] [reason]. [next step]."""
+
+# =============================================================================
+# Angle 1 bonus: Code-adapted compression — compress prose, preserve code quality
+# Hypothesis: token savings on explanation text without degrading code itself.
+# =============================================================================
+
+[[variants]]
+label = "code-adapted"
+system_prompt_extra = """\
+Compress all explanation and commentary text: drop articles, filler, pleasantries, \
+hedging. Fragments OK. Short synonyms. Technical terms exact.
+
+Code quality rules are exempt from compression — preserve fully:
+- Descriptive variable and function names (never abbreviate identifiers)
+- Type hints / type annotations on all signatures
+- Specific exception types with actionable error messages
+- Docstrings / doc comments on public APIs
+- Full test names and assertions
+
+Pattern for prose: [thing] [action] [reason]. [next step]. \
+Pattern for code: write it as you normally would — clean, idiomatic, complete."""
+
+# =============================================================================
+# Angle 2: Instruction compression — verbose vs compressed behavioral rules
+# Same semantic content, different token density.
+# =============================================================================
+
+# Verbose coding quality instructions (~200 tokens)
+[[variants]]
+label = "verbose-rules"
+system_prompt_extra = """\
+Write code that handles all edge cases correctly. Think carefully about boundary \
+conditions, empty inputs, and invalid types, and address each one explicitly \
+rather than relying on defaults. Use descriptive variable and function names that \
+reveal intent so that a reader can understand the purpose of each identifier \
+without tracing through the logic. When raising errors, always use the most \
+specific error type available for the language and include an actionable message \
+that tells the caller what went wrong and how to fix it. Never raise generic \
+errors or use vague messages like "something went wrong." Keep each function \
+focused on a single responsibility; if a function does two distinct things, split \
+it into two functions with clear names. Use the target language's idiomatic type \
+system to make invalid states difficult or impossible to represent. Validate all \
+inputs at public API boundaries before proceeding with the core logic."""
+
+# Same rules compressed caveman-style (~80 tokens)
+[[variants]]
+label = "compressed-rules"
+system_prompt_extra = """\
+Handle all edge cases — boundaries, empty inputs, invalid types. Descriptive \
+names that reveal intent. Specific error types with actionable messages, never \
+generic errors. One responsibility per function — split if doing two things. Use \
+type system to prevent invalid states. Validate inputs at public API boundaries."""

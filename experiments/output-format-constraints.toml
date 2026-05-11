@@ -1,0 +1,35 @@
+name = "output-format-constraints"
+description = """Hypothesis: Structural output constraints ("code only, no prose") reduce output tokens \
+without hurting composite score because prose and markdown wrapping are pure overhead that static \
+analysis and LLM judge largely ignore. First experiment targeting output-side token behavior. Output \
+tokens cost 5x input tokens in API billing, so output efficiency dominates cost."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- bare baseline ---
+[[variants]]
+label = "bare"
+
+# --- code only, no prose ---
+[[variants]]
+label = "code-only"
+prompt_prefix = "Respond with code only. No prose, no explanations. "
+
+# --- no markdown formatting ---
+[[variants]]
+label = "no-markdown"
+prompt_prefix = "Do not use markdown formatting or code fences. "
+
+# --- no reasoning explanation ---
+[[variants]]
+label = "no-reasoning"
+prompt_prefix = "Do not explain your reasoning. Return the solution directly. "

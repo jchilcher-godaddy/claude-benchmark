@@ -303,6 +303,7 @@ def build_scatter_with_frontier(
     token_counts: dict[str, float],
     quality_scores: dict[str, float],
     colors: list[str] | None = None,
+    x_label: str = "Tokens Consumed",
 ) -> dict:
     """Build a Chart.js scatter config with efficient frontier line.
 
@@ -312,9 +313,10 @@ def build_scatter_with_frontier(
 
     Args:
         profiles: List of profile identifiers.
-        token_counts: Mapping of profile -> token count (X-axis).
+        token_counts: Mapping of profile -> x-axis value (tokens or cost).
         quality_scores: Mapping of profile -> quality score 0-100 (Y-axis).
         colors: Optional custom color list. Defaults to COLOR_PALETTE.
+        x_label: Label for the X-axis.
 
     Returns:
         Chart.js 4.x scatter configuration dict.
@@ -376,7 +378,7 @@ def build_scatter_with_frontier(
                 "x": {
                     "title": {
                         "display": True,
-                        "text": "Tokens Consumed",
+                        "text": x_label,
                     },
                 },
                 "y": {
@@ -413,6 +415,7 @@ def build_all_chart_configs(
     scores_by_dim_by_model: dict[str, dict[str, dict[str, dict[str, float]]]] | None = None,
     token_counts_by_model: dict[str, dict[str, float]] | None = None,
     quality_scores_by_model: dict[str, dict[str, float]] | None = None,
+    cost_by_model: dict[str, dict[str, float]] | None = None,
 ) -> dict[str, dict]:
     """Build all chart configs for a benchmark report.
 
@@ -467,10 +470,19 @@ def build_all_chart_configs(
         )
 
     # Scatter plot: token efficiency (aggregate)
+    # Use cost data for x-axis when available
+    agg_cost: dict[str, float] = {}
+    if cost_by_model:
+        for profile in profiles:
+            agg_cost[profile] = sum(
+                mc.get(profile, 0.0) for mc in cost_by_model.values()
+            )
+    has_cost = any(v > 0 for v in agg_cost.values())
     configs["scatter-efficiency"] = build_scatter_with_frontier(
         profiles=profiles,
-        token_counts=token_counts,
+        token_counts=agg_cost if has_cost else token_counts,
         quality_scores=quality_scores,
+        x_label="Estimated Cost (USD)" if has_cost else "Tokens Consumed",
     )
 
     # Per-model bar charts when multi-model
@@ -493,11 +505,14 @@ def build_all_chart_configs(
         for model in models:
             model_tokens = token_counts_by_model.get(model, {})
             model_quality = quality_scores_by_model.get(model, {})
+            model_cost = (cost_by_model or {}).get(model, {})
+            has_model_cost = any(v > 0 for v in model_cost.values())
             canvas_id = f"scatter-efficiency-{model}"
             configs[canvas_id] = build_scatter_with_frontier(
                 profiles=profiles,
-                token_counts=model_tokens,
+                token_counts=model_cost if has_model_cost else model_tokens,
                 quality_scores=model_quality,
+                x_label="Estimated Cost (USD)" if has_model_cost else "Tokens Consumed",
             )
 
     return configs

@@ -1,0 +1,46 @@
+name = "agent-mechanism"
+description = """\
+Hypothesis: Claude Code's /agents mechanism (which processes agent definitions \
+internally and structures them into the context) produces different quality \
+results than delivering the same instructions via raw --append-system-prompt, \
+even when both use the CLI path. This isolates the mechanism from the framing \
+by controlling for the execution path. Four-arm design: bare baseline, \
+API-raw (replicates prior finding), CLI-raw (controls for CLI vs API path), \
+and CLI-agent (the actual mechanism under test). Prior finding: code-reviewer \
+persona = +2.9 pts on refactoring via raw system_prompt_extra (run-009)."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Bare baseline (API path, no instructions) ---
+[[variants]]
+label = "bare"
+
+# --- API path with raw system prompt (replicates prior persona finding) ---
+[[variants]]
+label = "api-raw-reviewer"
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."
+
+# --- CLI path with raw --append-system-prompt (controls for CLI vs API) ---
+[[variants]]
+label = "cli-raw-reviewer"
+use_cli = true
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."
+
+# --- CLI path with agent definition (the actual mechanism under test) ---
+[[variants]]
+label = "cli-agent-reviewer"
+use_cli = true
+
+[variants.agent_definition]
+name = "code-reviewer"
+description = "A meticulous code reviewer focused on correctness and maintainability"
+prompt = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."

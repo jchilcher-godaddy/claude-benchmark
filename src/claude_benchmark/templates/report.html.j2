@@ -1159,6 +1159,9 @@ document.addEventListener("DOMContentLoaded", function() {
       html += '<div class="' + cardClass("tokens") + '"><h4>Token Usage</h4>';
       html += '<div class="drilldown-value">' + (tk.total || 0).toLocaleString() + ' tokens</div>';
       html += '<div class="drilldown-sub">' + (tk.points_per_1k != null ? tk.points_per_1k.toFixed(1) : "0") + ' pts/1k tokens</div>';
+      if (tk.points_per_dollar != null && tk.points_per_dollar > 0) {
+        html += '<div class="drilldown-sub">' + tk.points_per_dollar.toFixed(0) + ' pts/$ &middot; $' + tk.cost_usd.toFixed(4) + '</div>';
+      }
       html += '</div>';
     }
 

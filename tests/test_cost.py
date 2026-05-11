@@ -21,6 +21,7 @@ class FakeRun:
     """Minimal run-like object with a model attribute for cost estimation."""
 
     model: str
+    follow_up_prompts: list[str] | None = None
 
 
 class TestCostTrackerNoCap:
@@ -237,3 +238,41 @@ class TestEstimateSuiteCostWithJudge:
         )
         assert "judge" not in costs
         assert costs["total"] == pytest.approx(costs["haiku"])
+
+
+class TestMultiTurnCostEstimation:
+    """estimate_total_cost accounts for multi-turn conversation cost scaling."""
+
+    def test_single_turn_unchanged(self) -> None:
+        tracker = CostTracker()
+        runs = [FakeRun("haiku")]
+        cost = tracker.estimate_total_cost(runs, include_judge=False)
+        expected = tracker.estimate_run_cost("haiku", 4000, 2000)
+        assert cost == pytest.approx(expected)
+
+    def test_two_turn_costs_more_than_single(self) -> None:
+        tracker = CostTracker()
+        single = [FakeRun("sonnet")]
+        multi = [FakeRun("sonnet", follow_up_prompts=["Review."])]
+        single_cost = tracker.estimate_total_cost(single, include_judge=False)
+        multi_cost = tracker.estimate_total_cost(multi, include_judge=False)
+        assert multi_cost > single_cost
+
+    def test_three_turn_costs_more_than_two(self) -> None:
+        tracker = CostTracker()
+        two = [FakeRun("sonnet", follow_up_prompts=["Review."])]
+        three = [FakeRun("sonnet", follow_up_prompts=["Review.", "Fix."])]
+        two_cost = tracker.estimate_total_cost(two, include_judge=False)
+        three_cost = tracker.estimate_total_cost(three, include_judge=False)
+        assert three_cost > two_cost
+
+    def test_none_follow_ups_same_as_no_attr(self) -> None:
+        tracker = CostTracker()
+        run_none = [FakeRun("haiku", follow_up_prompts=None)]
+        run_empty = [FakeRun("haiku", follow_up_prompts=[])]
+        run_default = [FakeRun("haiku")]
+        cost_none = tracker.estimate_total_cost(run_none, include_judge=False)
+        cost_empty = tracker.estimate_total_cost(run_empty, include_judge=False)
+        cost_default = tracker.estimate_total_cost(run_default, include_judge=False)
+        assert cost_none == pytest.approx(cost_default)
+        assert cost_empty == pytest.approx(cost_default)

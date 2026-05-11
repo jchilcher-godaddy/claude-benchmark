@@ -92,10 +92,32 @@ class CostTracker:
 
         Each run must have a .model attribute. When *include_judge* is True
         (the default), adds one Haiku judge call per run.
+
+        Multi-turn runs (with follow_up_prompts) are estimated with a
+        per-turn multiplier: each follow-up re-sends the growing conversation
+        history, so input tokens scale roughly as n*(n+1)/2 for n turns.
         """
         total = 0.0
         for run in runs:
-            total += self.estimate_run_cost(run.model, avg_input_tokens, avg_output_tokens)
+            follow_ups = getattr(run, "follow_up_prompts", None) or []
+            turn_count = 1 + len(follow_ups)
+            if turn_count == 1:
+                total += self.estimate_run_cost(run.model, avg_input_tokens, avg_output_tokens)
+            else:
+                # Each turn re-sends prior history. Approximate: turn k sees
+                # avg_input + k * avg_output cached tokens, plus its own output.
+                # Triangular sum for input, linear for output.
+                pricing = MODEL_PRICING.get(run.model, MODEL_PRICING["sonnet"])
+                cumulative_input = 0
+                cumulative_output = 0
+                for turn in range(turn_count):
+                    turn_input = avg_input_tokens + turn * avg_output_tokens
+                    cumulative_input += turn_input
+                    cumulative_output += avg_output_tokens
+                total += (
+                    (cumulative_input / 1_000_000) * pricing["input"]
+                    + (cumulative_output / 1_000_000) * pricing["output"]
+                )
         if include_judge:
             total += self.estimate_judge_cost(len(runs))
         return total

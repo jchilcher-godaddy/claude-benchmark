@@ -16,6 +16,7 @@ Run with: pytest tests/test_task_integrity.py -v
 
 import shutil
 import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
@@ -123,7 +124,7 @@ def test_reference_solutions_pass_tests(task_name: str, task_dir: Path, task_con
     copy_task_files(task_dir, tmp_path, reference_file, task_config)
 
     result = subprocess.run(
-        ["python", "-m", "pytest", "test_solution.py", "-v"],
+        [sys.executable, "-m", "pytest", "test_solution.py", "-v"],
         cwd=tmp_path,
         capture_output=True,
         text=True,
@@ -158,7 +159,7 @@ def test_bugfix_starters_have_bugs(task_name: str, task_dir: Path, task_config: 
     copy_task_files(task_dir, tmp_path, starter_file, task_config)
 
     result = subprocess.run(
-        ["python", "-m", "pytest", "test_solution.py", "-v"],
+        [sys.executable, "-m", "pytest", "test_solution.py", "-v"],
         cwd=tmp_path,
         capture_output=True,
         text=True,
@@ -209,7 +210,7 @@ def test_refactor_starters_are_functional(task_name: str, task_dir: Path, task_c
     deselect_args = [f"--deselect=test_solution.py::{pattern}" for pattern in skip_patterns]
 
     result = subprocess.run(
-        ["python", "-m", "pytest", "test_solution.py", "-v"] + deselect_args,
+        [sys.executable, "-m", "pytest", "test_solution.py", "-v"] + deselect_args,
         cwd=tmp_path,
         capture_output=True,
         text=True,

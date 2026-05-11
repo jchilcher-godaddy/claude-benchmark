@@ -6,6 +6,7 @@ import asyncio
 import json
 import tomllib
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich.console import Console
@@ -95,7 +96,7 @@ def _load_results(
     force: bool = False,
     rerun_empty: bool = False,
     variant_configs: dict[str, dict] | None = None,
-    use_gocode: bool = False,
+    use_direct_api: bool = False,
 ) -> list[RunResult]:
     """Walk results_dir for run-*.json files and reconstruct RunResult objects.
 
@@ -183,7 +184,7 @@ def _load_results(
             temperature=data.get("temperature") or vc.get("temperature"),
             system_prompt_extra=vc.get("system_prompt_extra"),
             prompt_prefix=vc.get("prompt_prefix"),
-            use_gocode=use_gocode,
+            use_direct_api=use_direct_api,
         )
 
         result = RunResult(
@@ -210,7 +211,9 @@ def _rescore_single(
     strict_scoring: bool,
     force: bool,
     rerun_empty: bool,
-    use_gocode: bool = False,
+    use_direct_api: bool = False,
+    judge_concurrency: int | None = None,
+    static_concurrency: int | None = None,
 ) -> None:
     """Rescore a single results directory."""
     if not results_dir.exists():
@@ -229,7 +232,7 @@ def _rescore_single(
     run_results = _load_results(
         results_dir, task_dirs, profile_paths,
         force=force, rerun_empty=rerun_empty, variant_configs=variant_configs,
-        use_gocode=use_gocode,
+        use_direct_api=use_direct_api,
     )
 
     if not run_results:
@@ -276,6 +279,8 @@ def _rescore_single(
         run_results,
         skip_llm=skip_llm_judge,
         strict=strict_scoring,
+        llm_concurrency=judge_concurrency,
+        static_concurrency=static_concurrency,
     )
 
     # Write scores back to disk
@@ -334,11 +339,21 @@ def rescore(
         "--rerun-empty",
         help="Re-execute runs with empty output directories before scoring",
     ),
-    gocode: bool = typer.Option(
+    direct_api: bool = typer.Option(
         False,
-        "--gocode",
-        help="Use GoCode API endpoint instead of AWS Bedrock for LLM judge scoring. "
-        "Requires ANTHROPIC_BASE_URL and GOCODE_API_TOKEN env vars.",
+        "--direct-api",
+        help="Use direct Anthropic API instead of AWS Bedrock for LLM judge scoring. "
+        "Requires ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY env vars.",
+    ),
+    judge_concurrency: Optional[int] = typer.Option(
+        None,
+        "--judge-concurrency",
+        help="Number of parallel LLM judge workers. Defaults to internal default (20).",
+    ),
+    static_concurrency: Optional[int] = typer.Option(
+        None,
+        "--static-concurrency",
+        help="Number of parallel static scoring workers. Auto-detected from system specs if not set.",
     ),
 ) -> None:
     """Rescore existing benchmark results that are missing scores.
@@ -348,13 +363,25 @@ def rescore(
 
     Accepts one or more results directories.
     """
-    if gocode:
-        from claude_benchmark.execution.client import validate_gocode_env
+    if direct_api:
+        from claude_benchmark.execution.gocode_auth import is_gocode_configured
 
-        missing = validate_gocode_env()
-        if missing:
-            console.print(f"[red]Error:[/red] --gocode requires: {', '.join(missing)}")
-            raise typer.Exit(1)
+        if is_gocode_configured():
+            from claude_benchmark.execution.gocode_auth import validate_gocode_credentials
+
+            cred_error = validate_gocode_credentials()
+            if cred_error:
+                console.print(f"[red]Error:[/red] GoCode credential check failed: {cred_error}")
+                raise typer.Exit(1)
+        else:
+            from claude_benchmark.execution.client import validate_direct_api_env
+
+            missing = validate_direct_api_env()
+            if missing:
+                console.print(
+                    f"[red]Error:[/red] --direct-api requires: {', '.join(missing)}"
+                )
+                raise typer.Exit(1)
     else:
         from claude_benchmark.execution.client import (
             attempt_sso_login,
@@ -384,5 +411,7 @@ def rescore(
             strict_scoring=strict_scoring,
             force=force,
             rerun_empty=rerun_empty,
-            use_gocode=gocode,
+            use_direct_api=direct_api,
+            judge_concurrency=judge_concurrency,
+            static_concurrency=static_concurrency,
         )

@@ -15,6 +15,7 @@ from typing import Any
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
+from claude_benchmark.execution.cost import MODEL_PRICING
 from claude_benchmark.reporting.charts import (
     DIMENSION_LABELS,
     build_all_chart_configs,
@@ -189,7 +190,7 @@ class ReportGenerator:
         (
             scores_by_model, scores_by_dimension, token_counts, quality_scores,
             scores_by_dim_by_model, token_counts_by_model,
-            quality_scores_by_model,
+            quality_scores_by_model, cost_by_model,
         ) = self._extract_chart_data(results)
 
         chart_configs = build_all_chart_configs(
@@ -204,6 +205,7 @@ class ReportGenerator:
             scores_by_dim_by_model=scores_by_dim_by_model,
             token_counts_by_model=token_counts_by_model,
             quality_scores_by_model=quality_scores_by_model,
+            cost_by_model=cost_by_model,
         )
 
         # 4. Build comparison data and generate diffs
@@ -226,7 +228,9 @@ class ReportGenerator:
 
         # 7. Compute executive summary data (reuse quality_scores from step 3)
         best_profile = self._find_best_profile(results, quality_scores=quality_scores)
-        token_winner = self._find_token_winner(results, quality_scores=quality_scores)
+        token_winner = self._find_token_winner(
+            results, quality_scores=quality_scores, cost_by_model=cost_by_model,
+        )
 
         # 7b. Model/profile combo metrics for multi-model reports
         best_combo_model, best_combo_profile, best_combo_score = (
@@ -237,6 +241,7 @@ class ReportGenerator:
         )
         tw_model, tw_profile, tw_score = self._find_token_winner_combo(
             quality_scores_by_model, token_counts_by_model,
+            cost_by_model=cost_by_model,
         )
 
         # 7c. Variant analysis insights
@@ -562,9 +567,26 @@ class ReportGenerator:
                 else:
                     quality_scores_by_model[model][profile_id] = 0.0
 
+        # cost_by_model: {model: {profile: total_cost_usd}}
+        cost_by_model: dict[str, dict[str, float]] = {}
+        for model in results.models:
+            pricing = MODEL_PRICING.get(model, MODEL_PRICING.get("sonnet", {}))
+            cost_by_model[model] = {}
+            for profile_id, profile_result in results.profiles.items():
+                total_cost = 0.0
+                for task_result in profile_result.tasks.values():
+                    for run in task_result.runs:
+                        if run.model == model:
+                            total_cost += (
+                                (run.input_tokens / 1_000_000) * pricing.get("input", 0)
+                                + (run.output_tokens / 1_000_000) * pricing.get("output", 0)
+                            )
+                cost_by_model[model][profile_id] = total_cost
+
         return (
             scores_by_model, scores_by_dimension, token_counts, quality_scores,
             scores_by_dim_by_model, token_counts_by_model, quality_scores_by_model,
+            cost_by_model,
         )
 
     def _find_best_profile(
@@ -606,22 +628,22 @@ class ReportGenerator:
         self,
         results: BenchmarkResults,
         quality_scores: dict[str, float] | None = None,
+        cost_by_model: dict[str, dict[str, float]] | None = None,
     ) -> str:
-        """Find the profile with the highest quality-per-token ratio.
+        """Find the profile with the highest quality-per-cost ratio.
+
+        Uses cost-weighted efficiency when cost data is available,
+        falling back to quality-per-token when it's not.
 
         Args:
             results: Full benchmark results.
-            quality_scores: Pre-computed {profile: avg_composite} from
-                _extract_chart_data. Avoids redundant iteration.
+            quality_scores: Pre-computed {profile: avg_composite}.
+            cost_by_model: Pre-computed {model: {profile: total_cost_usd}}.
         """
         best_ratio = -1.0
         best_profile = "N/A"
 
         for profile_id, profile_result in results.profiles.items():
-            total_tokens = profile_result.total_tokens
-            if total_tokens == 0:
-                continue
-
             if quality_scores and profile_id in quality_scores:
                 avg_quality = quality_scores[profile_id]
             else:
@@ -634,11 +656,25 @@ class ReportGenerator:
                                 composites.append(composite)
                 avg_quality = sum(composites) / len(composites) if composites else 0.0
 
-            if avg_quality > 0:
+            if avg_quality <= 0:
+                continue
+
+            total_cost = 0.0
+            if cost_by_model:
+                for model_costs in cost_by_model.values():
+                    total_cost += model_costs.get(profile_id, 0.0)
+
+            if total_cost > 0:
+                ratio = avg_quality / total_cost
+            else:
+                total_tokens = profile_result.total_tokens
+                if total_tokens == 0:
+                    continue
                 ratio = avg_quality / total_tokens
-                if ratio > best_ratio:
-                    best_ratio = ratio
-                    best_profile = profile_id
+
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_profile = profile_id
 
         return best_profile
 
@@ -700,12 +736,17 @@ class ReportGenerator:
         self,
         quality_scores_by_model: dict[str, dict[str, float]],
         token_counts_by_model: dict[str, dict[str, float]],
+        cost_by_model: dict[str, dict[str, float]] | None = None,
     ) -> tuple[str, str, float]:
-        """Find the model/profile pair with the best quality-per-token ratio.
+        """Find the model/profile pair with the best quality-per-cost ratio.
+
+        Uses cost-weighted efficiency when cost data is available,
+        falling back to quality-per-token when it's not.
 
         Args:
             quality_scores_by_model: {model: {profile: avg_composite}}.
             token_counts_by_model: {model: {profile: total_tokens}}.
+            cost_by_model: {model: {profile: total_cost_usd}}.
 
         Returns:
             (model, profile, quality_score) for the most efficient pair,
@@ -715,10 +756,18 @@ class ReportGenerator:
         best_ratio = -1.0
         for model, profiles in quality_scores_by_model.items():
             for profile, score in profiles.items():
-                tokens = token_counts_by_model.get(model, {}).get(profile, 0.0)
-                if tokens <= 0 or score <= 0:
+                if score <= 0:
                     continue
-                ratio = score / tokens
+
+                cost = (cost_by_model or {}).get(model, {}).get(profile, 0.0)
+                if cost > 0:
+                    ratio = score / cost
+                else:
+                    tokens = token_counts_by_model.get(model, {}).get(profile, 0.0)
+                    if tokens <= 0:
+                        continue
+                    ratio = score / tokens
+
                 if ratio > best_ratio:
                     best_ratio = ratio
                     best_model, best_profile, best_score = model, profile, score

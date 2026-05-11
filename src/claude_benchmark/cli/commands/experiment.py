@@ -108,7 +108,17 @@ def experiment(
         3,
         "--concurrency",
         "-c",
-        help="Number of parallel workers (default: 3)",
+        help="Number of parallel workers (default: 3). Also sets LLM judge and static scoring concurrency unless overridden.",
+    ),
+    judge_concurrency: Optional[int] = typer.Option(
+        None,
+        "--judge-concurrency",
+        help="Number of parallel LLM judge workers. Defaults to --concurrency value.",
+    ),
+    static_concurrency: Optional[int] = typer.Option(
+        None,
+        "--static-concurrency",
+        help="Number of parallel static scoring workers. Auto-detected from system specs if not set.",
     ),
     max_cost: Optional[float] = typer.Option(
         None,
@@ -146,11 +156,11 @@ def experiment(
         "--retry-failures",
         help="Re-run previously failed runs instead of skipping them on resume.",
     ),
-    gocode: bool = typer.Option(
+    direct_api: bool = typer.Option(
         False,
-        "--gocode",
-        help="Use GoCode API endpoint instead of AWS Bedrock. "
-        "Requires ANTHROPIC_BASE_URL and GOCODE_API_TOKEN env vars.",
+        "--direct-api",
+        help="Use direct Anthropic API instead of AWS Bedrock. "
+        "Requires ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY env vars.",
     ),
 ) -> None:
     """Run an experiment defined in a TOML configuration file.
@@ -158,13 +168,25 @@ def experiment(
     Experiments define multiple treatment arms (variants) that are executed
     across tasks, profiles, and models with statistical replication.
     """
-    if gocode:
-        from claude_benchmark.execution.client import validate_gocode_env
+    if direct_api:
+        from claude_benchmark.execution.gocode_auth import is_gocode_configured
 
-        missing = validate_gocode_env()
-        if missing:
-            console.print(f"[red]Error:[/red] --gocode requires: {', '.join(missing)}")
-            raise typer.Exit(1)
+        if is_gocode_configured():
+            from claude_benchmark.execution.gocode_auth import validate_gocode_credentials
+
+            cred_error = validate_gocode_credentials()
+            if cred_error:
+                console.print(f"[red]Error:[/red] GoCode credential check failed: {cred_error}")
+                raise typer.Exit(1)
+        else:
+            from claude_benchmark.execution.client import validate_direct_api_env
+
+            missing = validate_direct_api_env()
+            if missing:
+                console.print(
+                    f"[red]Error:[/red] --direct-api requires: {', '.join(missing)}"
+                )
+                raise typer.Exit(1)
     else:
         from claude_benchmark.execution.client import (
             attempt_sso_login,
@@ -239,10 +261,10 @@ def experiment(
         )
         raise typer.Exit(1)
 
-    # 5b. Apply gocode backend to all runs if specified
-    if gocode:
+    # 5b. Apply direct-api backend to all runs if specified
+    if direct_api:
         for r in runs:
-            r.use_gocode = True
+            r.use_direct_api = True
 
     # 6. Check for resume
     skipped_count = 0
@@ -393,6 +415,9 @@ def experiment(
     # 13. Score all results
     from claude_benchmark.scoring.pipeline import score_all_runs
 
+    effective_judge_concurrency = judge_concurrency if judge_concurrency is not None else concurrency
+    effective_static_concurrency = static_concurrency
+
     if is_tty:
 
         def _do_scoring(progress_cb):
@@ -401,6 +426,8 @@ def experiment(
                 skip_llm=skip_llm_judge,
                 strict=strict_scoring,
                 progress=progress_cb,
+                llm_concurrency=effective_judge_concurrency,
+                static_concurrency=effective_static_concurrency,
             )
 
         results, aggregation = dashboard.run_scoring_with_display(_do_scoring)
@@ -410,6 +437,8 @@ def experiment(
             skip_llm=skip_llm_judge,
             strict=strict_scoring,
             progress=log_output,
+            llm_concurrency=effective_judge_concurrency,
+            static_concurrency=effective_static_concurrency,
         )
     progress_output = dashboard if is_tty else log_output  # type: ignore[possibly-undefined]
 
@@ -435,6 +464,8 @@ def experiment(
                 unscored,
                 skip_llm=skip_llm_judge,
                 strict=strict_scoring,
+                llm_concurrency=effective_judge_concurrency,
+                static_concurrency=effective_static_concurrency,
             )
             for r in rescore_results:
                 if r.scores:

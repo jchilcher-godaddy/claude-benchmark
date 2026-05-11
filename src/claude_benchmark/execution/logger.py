@@ -8,6 +8,7 @@ as Dashboard so the orchestrator can use either interchangeably.
 
 from __future__ import annotations
 
+import time
 from datetime import datetime
 from typing import Any
 
@@ -24,6 +25,9 @@ class LogLineOutput:
         [HH:MM:SS] DONE  model | profile | task | run N | 1234 tok | $0.0012
         [HH:MM:SS] FAIL  model | profile | task | run N | error message
     """
+
+    def __init__(self) -> None:
+        self._scoring_phase_start: float = 0.0
 
     @staticmethod
     def _timestamp() -> str:
@@ -83,19 +87,22 @@ class LogLineOutput:
         "composite": "Compositing",
     }
 
-    def scoring_started(self, phase: str, total: int) -> None:
+    def scoring_started(self, phase: str, total: int, *, workers: int = 0) -> None:
         """Print a [SCORING] start line for the given phase.
 
         Args:
             phase: Phase identifier (``"static"``, ``"llm"``, or ``"composite"``).
             total: Number of items to score in this phase.
+            workers: Number of concurrent workers for this phase.
         """
+        self._scoring_phase_start = time.monotonic()
         ts = self._timestamp()
         label = self._SCORING_PHASE_LABELS.get(phase, phase)
-        print(f"[{ts}] [SCORING] {label}: starting ({total} runs)")
+        worker_info = f", {workers} workers" if workers > 1 else ""
+        print(f"[{ts}] [SCORING] {label}: starting ({total} runs{worker_info})")
 
     def scoring_progress(
-        self, phase: str, completed: int, total: int, run_key: str
+        self, phase: str, completed: int, total: int, run_key: str, *, failed: int = 0
     ) -> None:
         """Print a [SCORING] progress line, throttled for large batches.
 
@@ -107,6 +114,7 @@ class LogLineOutput:
             completed: Number of items completed so far.
             total: Total number of items in this phase.
             run_key: Unique key identifying the current run being scored.
+            failed: Number of items that failed scoring so far.
         """
         # Throttle: print every Nth item or the last item
         step = max(1, total // 10)
@@ -115,7 +123,10 @@ class LogLineOutput:
 
         ts = self._timestamp()
         label = self._SCORING_PHASE_LABELS.get(phase, phase)
-        print(f"[{ts}] [SCORING] {label}: {completed}/{total} | {run_key}")
+        elapsed = time.monotonic() - self._scoring_phase_start
+        throughput = f"{completed / elapsed:.1f} runs/s" if elapsed > 0 else ""
+        failed_info = f" | {failed} failed" if failed > 0 else ""
+        print(f"[{ts}] [SCORING] {label}: {completed}/{total} | {throughput} | {run_key}{failed_info}")
 
     def scoring_completed(self, phase: str) -> None:
         """Print a [SCORING] completion line for the given phase.
@@ -125,7 +136,8 @@ class LogLineOutput:
         """
         ts = self._timestamp()
         label = self._SCORING_PHASE_LABELS.get(phase, phase)
-        print(f"[{ts}] [SCORING] {label}: complete")
+        elapsed = time.monotonic() - self._scoring_phase_start
+        print(f"[{ts}] [SCORING] {label}: complete ({elapsed:.1f}s)")
 
     def summary(
         self,

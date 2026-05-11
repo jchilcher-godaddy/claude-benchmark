@@ -438,6 +438,8 @@ def _parse_parallel_run(data: dict, path: Path) -> ReportRunResult:
         scores=scores,
         score_details=data.get("scores") or {},
         token_count=data.get("total_tokens", 0) or 0,
+        input_tokens=data.get("input_tokens", 0) or 0,
+        output_tokens=data.get("output_tokens", 0) or 0,
         code_output=code_output,
         success=data.get("status") == "success",
         error=data.get("error"),
@@ -467,6 +469,8 @@ def _parse_storage_run(data: dict, path: Path) -> ReportRunResult:
         model=model,
         scores={},  # Storage format has no scores (scoring wired in Phase 7)
         token_count=token_count,
+        input_tokens=usage.get("input_tokens", 0) or 0,
+        output_tokens=usage.get("output_tokens", 0) or 0,
         code_output=code_output,
         success=data.get("success", False),
         error=data.get("error"),

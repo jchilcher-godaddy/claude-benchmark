@@ -124,7 +124,7 @@ section { scroll-margin-top: 1rem; }
     <div style="margin-top:0.5rem;font-size:0.82rem">
       Top errors:
       {% for err, count in run_health.common_errors %}
-      <div><code>{{ err[:120] }}</code> (&times;{{ count }})</div>
+      <div><code>{{ err[:300] }}</code> (&times;{{ count }})</div>
       {% endfor %}
     </div>
     {% endif %}
@@ -169,6 +169,15 @@ section { scroll-margin-top: 1rem; }
         <div class="card-label">Token Efficiency Winner</div>
         <div class="card-value">{{ summary.efficiency_winner | variant_label }}</div>
       </div>
+      {% if summary.best_value_variant and summary.best_value_variant != 'N/A' %}
+      <div class="summary-card">
+        <div class="card-label">Best Value (Quality/Cost)</div>
+        <div class="card-value">{{ summary.best_value_variant | variant_label }}</div>
+        {% if summary.cheapest_cost_per_run > 0 %}
+        <div style="font-size:0.85rem;color:#718096">Cheapest: {{ summary.cheapest_variant | variant_label }} (${{ '%.4f'|format(summary.cheapest_cost_per_run) }}/run)</div>
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
   </section>
 
@@ -221,6 +230,11 @@ section { scroll-margin-top: 1rem; }
             <th>Power</th>
             <th>Significant?</th>
             <th>N</th>
+            <th title="Mean input tokens per run">Inp Tok</th>
+            <th title="Mean output tokens per run">Out Tok</th>
+            <th title="Mean cost per run in USD">$/Run</th>
+            <th title="Cost difference vs control">Cost Delta</th>
+            <th title="Statistically significant cost difference?">Cost Sig?</th>
           </tr>
         </thead>
         <tbody>
@@ -245,6 +259,15 @@ section { scroll-margin-top: 1rem; }
               {% if row.is_significant_adjusted %}Yes{% else %}No{% endif %}
             </td>
             <td style="font-size:0.8rem;color:#718096">{{ row.n_variant }} vs {{ row.n_control }}</td>
+            <td style="font-size:0.82rem">{% if row.mean_input_tokens %}{{ '{:,.0f}'.format(row.mean_input_tokens) }}{% else %}-{% endif %}</td>
+            <td style="font-size:0.82rem">{% if row.mean_output_tokens %}{{ '{:,.0f}'.format(row.mean_output_tokens) }}{% else %}-{% endif %}</td>
+            <td style="font-size:0.82rem">{% if row.mean_cost %}${{ '%.4f'|format(row.mean_cost) }}{% else %}-{% endif %}</td>
+            <td style="font-size:0.82rem" class="{% if row.cost_delta < 0 %}delta-positive{% elif row.cost_delta > 0 %}delta-negative{% endif %}">
+              {% if row.cost_delta %}{{ '%+.4f'|format(row.cost_delta) }}{% else %}-{% endif %}
+            </td>
+            <td class="{% if row.cost_is_significant %}sig-yes{% else %}sig-no{% endif %}">
+              {% if row.cost_is_significant %}Yes (p={{ '%.3f'|format(row.cost_p_value) }}){% else %}No{% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -329,6 +352,10 @@ section { scroll-margin-top: 1rem; }
 
     <div class="chart-card" style="height:400px">
       <canvas id="scatter-efficiency" style="width:100%;height:100%"></canvas>
+    </div>
+
+    <div class="chart-card" style="height:400px">
+      <canvas id="scatter-cost-quality" style="width:100%;height:100%"></canvas>
     </div>
   </section>
 

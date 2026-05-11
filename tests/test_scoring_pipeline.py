@@ -566,14 +566,28 @@ class TestScoreAllRunsProgressCallback:
             [result], skip_llm=True, strict=False, progress=mock_progress
         )
 
-        # Verify static phase callbacks
-        mock_progress.scoring_started.assert_any_call("static", 1)
-        mock_progress.scoring_progress.assert_any_call("static", 1, 1, result.run.result_key)
+        # Verify static phase callbacks (workers kwarg passed)
+        static_started = [
+            c for c in mock_progress.scoring_started.call_args_list
+            if c.args[0] == "static"
+        ]
+        assert len(static_started) == 1
+        assert static_started[0].args == ("static", 1)
+        assert "workers" in static_started[0].kwargs
+
+        mock_progress.scoring_progress.assert_any_call(
+            "static", 1, 1, result.run.result_key, failed=0,
+        )
         mock_progress.scoring_completed.assert_any_call("static")
 
-        # Verify composite phase callbacks
-        mock_progress.scoring_started.assert_any_call("composite", 1)
-        mock_progress.scoring_progress.assert_any_call("composite", 1, 1, result.run.result_key)
+        # Verify composite phase callbacks (workers=1)
+        composite_started = [
+            c for c in mock_progress.scoring_started.call_args_list
+            if c.args[0] == "composite"
+        ]
+        assert len(composite_started) == 1
+        assert composite_started[0].kwargs["workers"] == 1
+
         mock_progress.scoring_completed.assert_any_call("composite")
 
     @patch("claude_benchmark.scoring.pipeline.LLMJudgeScorer")
@@ -598,10 +612,14 @@ class TestScoreAllRunsProgressCallback:
             [result], skip_llm=False, strict=False, progress=mock_progress
         )
 
-        # Verify all three phases
-        started_calls = [c.args[0] for c in mock_progress.scoring_started.call_args_list]
+        # Verify all three phases with workers kwarg
+        started_calls = {
+            c.args[0]: c.kwargs for c in mock_progress.scoring_started.call_args_list
+        }
         assert "static" in started_calls
+        assert "workers" in started_calls["static"]
         assert "llm" in started_calls
+        assert "workers" in started_calls["llm"]
         assert "composite" in started_calls
 
 
@@ -617,11 +635,11 @@ class TestScoringProgressCallbackProtocol:
         """ScoringProgressCallback is runtime_checkable."""
 
         class ValidCallback:
-            def scoring_started(self, phase: str, total: int) -> None:
+            def scoring_started(self, phase: str, total: int, *, workers: int = 0) -> None:
                 pass
 
             def scoring_progress(
-                self, phase: str, completed: int, total: int, run_key: str
+                self, phase: str, completed: int, total: int, run_key: str, *, failed: int = 0
             ) -> None:
                 pass
 

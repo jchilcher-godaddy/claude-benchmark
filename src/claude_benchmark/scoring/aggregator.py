@@ -166,3 +166,20 @@ class StatisticalAggregator:
         return compute_aggregate(
             [e.points_per_1k_tokens for e in efficiencies]
         )
+
+    def aggregate_cost_efficiency(
+        self,
+        efficiencies: list[TokenEfficiency],
+    ) -> AggregateStats | None:
+        """Aggregate cost efficiency (points_per_dollar) across multiple runs.
+
+        Args:
+            efficiencies: List of TokenEfficiency objects.
+
+        Returns:
+            AggregateStats for points_per_dollar values, or None if no cost data.
+        """
+        ppd_values = [e.points_per_dollar for e in efficiencies if e.points_per_dollar > 0]
+        if not ppd_values:
+            return None
+        return compute_aggregate(ppd_values)

@@ -50,6 +50,40 @@ class TestVariantConfig:
         config = VariantConfig(label="default")
         assert config.models is None
 
+    def test_use_cli_default_false(self):
+        config = VariantConfig(label="x")
+        assert config.use_cli is False
+
+    def test_use_cli_set(self):
+        config = VariantConfig(label="cli", use_cli=True)
+        assert config.use_cli is True
+
+    def test_agent_definition_default_none(self):
+        config = VariantConfig(label="x")
+        assert config.agent_definition is None
+
+    def test_agent_definition_set(self):
+        agent_def = {
+            "name": "code-reviewer",
+            "description": "A meticulous code reviewer",
+            "prompt": "Focus on correctness.",
+        }
+        config = VariantConfig(label="agent", agent_definition=agent_def)
+        assert config.agent_definition == agent_def
+        assert config.agent_definition["name"] == "code-reviewer"
+
+    def test_follow_up_prompts_default_none(self):
+        config = VariantConfig(label="x")
+        assert config.follow_up_prompts is None
+
+    def test_follow_up_prompts_set(self):
+        config = VariantConfig(
+            label="multi-turn",
+            follow_up_prompts=["Review your work.", "Now fix the bugs."],
+        )
+        assert config.follow_up_prompts == ["Review your work.", "Now fix the bugs."]
+        assert len(config.follow_up_prompts) == 2
+
     def test_missing_label_raises(self):
         with pytest.raises(ValidationError):
             VariantConfig()

@@ -1,16 +1,31 @@
 name = "skeleton-of-thought"
-description = "Test whether outlining code structure before implementing improves quality. Alternative to CoT that focuses on architecture rather than reasoning steps."
+description = """Test whether outlining code structure before implementing improves quality. Alternative \
+to CoT that focuses on architecture rather than reasoning steps. Cross-language: the original Python-only \
+experiment (270 runs) showed -7.7 on refactoring. CoT helps Go/C# — does skeleton-of-thought follow \
+the same pattern, or is architectural outlining a different mechanism?"""
 
 [defaults]
 tasks = [
+    # Python
     "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
-    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
     "refactor-01", "refactor-02", "refactor-03",
-    "instruction-01", "instruction-02", "instruction-03",
+    # Go
+    "code-gen-01-go", "code-gen-02-go", "code-gen-03-go", "code-gen-04-go", "code-gen-05-go",
+    "bug-fix-01-go", "bug-fix-02-go", "bug-fix-03-go", "bug-fix-04-go",
+    "refactor-01-go", "refactor-02-go", "refactor-03-go",
+    # JavaScript
+    "code-gen-01-js", "code-gen-02-js", "code-gen-03-js", "code-gen-04-js", "code-gen-05-js",
+    "bug-fix-01-js", "bug-fix-02-js", "bug-fix-03-js", "bug-fix-04-js",
+    "refactor-01-js", "refactor-02-js", "refactor-03-js",
+    # C#
+    "code-gen-01-cs", "code-gen-02-cs", "code-gen-03-cs", "code-gen-04-cs", "code-gen-05-cs",
+    "bug-fix-01-cs", "bug-fix-02-cs", "bug-fix-03-cs", "bug-fix-04-cs",
+    "refactor-01-cs", "refactor-02-cs", "refactor-03-cs",
 ]
 models = ["haiku", "sonnet", "opus"]
 profiles = ["empty"]
-reps = 30
+reps = 15
 
 [[variants]]
 label = "direct"
@@ -21,8 +36,8 @@ prompt_prefix = "First, outline the function signatures and key data structures 
 
 [[variants]]
 label = "skeleton-typed"
-prompt_prefix = "Start by writing type-annotated function signatures and class/dataclass definitions with docstrings. Then fill in each implementation. "
+prompt_prefix = "Start by writing type-annotated function signatures and class/type definitions with documentation comments. Then fill in each implementation. "
 
 [[variants]]
 label = "skeleton-pseudocode"
-prompt_prefix = "Write 3-5 lines of pseudocode showing the high-level algorithm. Then implement in Python. "
+prompt_prefix = "Write 3-5 lines of pseudocode showing the high-level algorithm. Then implement. "

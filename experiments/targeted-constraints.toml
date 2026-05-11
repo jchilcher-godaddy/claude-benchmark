@@ -1,0 +1,36 @@
+name = "targeted-constraints"
+description = """Hypothesis: A single targeted behavioral constraint addressing a specific Claude behavior \
+(verbose docstrings) will be neutral-to-positive, unlike generic coding rules which hurt (r=-0.95). \
+This tests whether the "all rules hurt" finding applies to rules that constrain specific observed \
+behaviors vs. rules that restate training data. Motivated by user feedback that Claude produces \
+overly verbose docstrings that bloat code files."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- No constraints (bare baseline) ---
+[[variants]]
+label = "bare"
+
+# --- Brief docstrings (targeted constraint) ---
+[[variants]]
+label = "brief-docstrings"
+system_prompt_extra = "Keep docstrings brief — one line for simple functions, at most 3 lines for complex ones."
+
+# --- No docstrings (aggressive constraint) ---
+[[variants]]
+label = "no-docstrings"
+system_prompt_extra = "Do not write docstrings unless the function signature is ambiguous."
+
+# --- Verbose docstrings (opposite direction) ---
+[[variants]]
+label = "verbose-docstrings"
+system_prompt_extra = "Write comprehensive Google-style docstrings for every function and class, including Args, Returns, Raises, and Examples sections."

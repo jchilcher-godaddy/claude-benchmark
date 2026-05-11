@@ -1,0 +1,110 @@
+name = "multi-turn-conversation"
+description = """Hypothesis: Multi-turn iterative prompting produces higher quality code than single-turn \
+prompts, and the optimal CLAUDE.md strategy may differ between single-turn and multi-turn workflows. \
+All 158,000+ runs in our benchmark are single-turn (one prompt, one response). But most real Claude Code \
+usage involves multi-turn conversations with follow-ups, corrections, and refinements. The "less is more" \
+finding (r=-0.95) may only hold for single-turn — in multi-turn, a lean CLAUDE.md preserves more context \
+window for conversation history, which could amplify the benefit. Alternatively, a verbose CLAUDE.md \
+might compensate for lack of iteration. Tests: single-turn vs. 2-turn (initial + "review and fix") vs. \
+3-turn (initial + "review" + "now add edge case handling") at bare and kitchen-sink CLAUDE.md levels. \
+Total: 6 variants x 48 tasks x 3 models x 15 reps = 12,960 runs.
+
+IMPORTANT: This experiment requires multi-turn support in the execution framework. Each variant with \
+follow_up_prompts will send additional prompts after the initial response, using the model's own output \
+as context. If the framework does not yet support follow_up_prompts, this field should be treated as \
+a sequential prompt chain where each prompt includes the previous response."""
+
+[defaults]
+tasks = [
+    # Python
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    # Go
+    "code-gen-01-go", "code-gen-02-go", "code-gen-03-go", "code-gen-04-go", "code-gen-05-go",
+    "bug-fix-01-go", "bug-fix-02-go", "bug-fix-03-go", "bug-fix-04-go",
+    "refactor-01-go", "refactor-02-go", "refactor-03-go",
+    # JavaScript
+    "code-gen-01-js", "code-gen-02-js", "code-gen-03-js", "code-gen-04-js", "code-gen-05-js",
+    "bug-fix-01-js", "bug-fix-02-js", "bug-fix-03-js", "bug-fix-04-js",
+    "refactor-01-js", "refactor-02-js", "refactor-03-js",
+    # C#
+    "code-gen-01-cs", "code-gen-02-cs", "code-gen-03-cs", "code-gen-04-cs", "code-gen-05-cs",
+    "bug-fix-01-cs", "bug-fix-02-cs", "bug-fix-03-cs", "bug-fix-04-cs",
+    "refactor-01-cs", "refactor-02-cs", "refactor-03-cs",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 15
+
+# =============================================================================
+# v1: Single-turn bare (existing baseline — consistency check)
+# =============================================================================
+[[variants]]
+label = "single-turn-bare"
+
+# =============================================================================
+# v2: Two-turn bare — initial attempt + generic review prompt
+# The follow-up is task-agnostic: asks the model to self-review and fix.
+# Tests whether a second pass adds value without any CLAUDE.md guidance.
+# =============================================================================
+[[variants]]
+label = "two-turn-bare"
+follow_up_prompts = [
+    "Review your solution above. Check for bugs, missing edge cases, and code quality issues. If you find any problems, provide a corrected version of the complete solution.",
+]
+
+# =============================================================================
+# v3: Three-turn bare — initial + review + targeted hardening
+# Adds a third pass focused on robustness. Tests diminishing returns.
+# =============================================================================
+[[variants]]
+label = "three-turn-bare"
+follow_up_prompts = [
+    "Review your solution above. Check for bugs, missing edge cases, and code quality issues. If you find any problems, provide a corrected version of the complete solution.",
+    "Now add handling for these edge cases if not already covered: empty input, null/nil/None values, boundary conditions, and invalid types. Provide the complete corrected solution.",
+]
+
+# =============================================================================
+# v4: Single-turn kitchen-sink (existing finding: +2.17 overall)
+# Control for comparing iteration vs front-loaded instructions.
+# =============================================================================
+[[variants]]
+label = "single-turn-kitchen-sink"
+prompt_prefix = "Before writing any code, analyze the requirements step by step. Consider edge cases and potential issues. Then implement your solution. "
+temperature = 0.0
+system_prompt_extra = """You are a senior staff engineer. Think step-by-step before writing code.
+
+Follow the target language's standard naming conventions consistently. Use descriptive names that \
+reveal intent. Use early returns and guard clauses. Every public function must have a documentation \
+comment. Use the language's idiomatic error handling. Validate all inputs at public API boundaries. \
+Test behavior, not implementation."""
+
+# =============================================================================
+# v5: Two-turn kitchen-sink — front-loaded instructions + one review pass
+# Tests whether iteration compounds with verbose instructions or is redundant.
+# =============================================================================
+[[variants]]
+label = "two-turn-kitchen-sink"
+prompt_prefix = "Before writing any code, analyze the requirements step by step. Consider edge cases and potential issues. Then implement your solution. "
+temperature = 0.0
+system_prompt_extra = """You are a senior staff engineer. Think step-by-step before writing code.
+
+Follow the target language's standard naming conventions consistently. Use descriptive names that \
+reveal intent. Use early returns and guard clauses. Every public function must have a documentation \
+comment. Use the language's idiomatic error handling. Validate all inputs at public API boundaries. \
+Test behavior, not implementation."""
+follow_up_prompts = [
+    "Review your solution above. Check for bugs, missing edge cases, and code quality issues. If you find any problems, provide a corrected version of the complete solution.",
+]
+
+# =============================================================================
+# v6: Two-turn bare with specific feedback — simulates real user behavior
+# Instead of generic "review your work", gives pointed feedback similar to
+# what a developer would say after reading the first attempt.
+# =============================================================================
+[[variants]]
+label = "two-turn-specific-feedback"
+follow_up_prompts = [
+    "The solution works but could be improved. Please: (1) add input validation if missing, (2) simplify any complex conditionals, (3) ensure all error paths return meaningful messages. Provide the complete corrected solution.",
+]

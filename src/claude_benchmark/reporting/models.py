@@ -24,6 +24,8 @@ class RunResult(BaseModel):
     scores: dict[str, float] = Field(default_factory=dict)
     score_details: dict = Field(default_factory=dict)
     token_count: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
     code_output: str = ""
     success: bool = True
     error: Optional[str] = None
@@ -139,6 +141,8 @@ class BenchmarkResults(BaseModel):
                         "success": run.success,
                         "error": run.error or "",
                         "token_count": run.token_count,
+                        "input_tokens": run.input_tokens,
+                        "output_tokens": run.output_tokens,
                         "code_output": run.code_output,
                     }
                     if run.variant_label:

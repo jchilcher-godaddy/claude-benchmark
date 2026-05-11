@@ -18,7 +18,7 @@ from pathlib import Path
 import anthropic
 from pydantic import ValidationError
 
-from claude_benchmark.execution.client import create_client, resolve_model_id
+from claude_benchmark.execution.client import create_client, create_gocode_client, resolve_model_id
 
 from .errors import LLMJudgeError
 from .models import LLMCriterionScore, LLMScore
@@ -52,10 +52,10 @@ class LLMJudgeScorer:
     def __init__(
         self,
         model: str | None = None,
-        use_gocode: bool = False,
+        use_direct_api: bool = False,
     ) -> None:
         self.model = model or DEFAULT_JUDGE_MODEL
-        self.use_gocode = use_gocode
+        self.use_direct_api = use_direct_api
         self._logger = logging.getLogger(__name__)
 
     def _parse_response(
@@ -186,15 +186,15 @@ class LLMJudgeScorer:
             language=language,
         )
 
-        # First attempt — prefer direct API (temperature=0 for determinism)
-        call_fn = self._call_api_direct
+        # First attempt — prefer GoCode > direct API > CLI
+        call_fn = self._select_call_fn()
         try:
             response_text = call_fn(user_prompt)
             criterion_scores = self._parse_response(response_text, expected_names)
             return self._compute_llm_score(criterion_scores)
         except LLMJudgeError:
-            # Direct API unavailable (no credentials); fall back to CLI
-            self._logger.info("Direct API unavailable, falling back to CLI")
+            # API unavailable (no credentials); fall back to CLI
+            self._logger.info("API unavailable, falling back to CLI")
             call_fn = self._call_api
             try:
                 response_text = call_fn(user_prompt)
@@ -225,6 +225,51 @@ class LLMJudgeScorer:
                 retry_attempted=True,
             ) from exc
 
+    def _select_call_fn(self):
+        """Select the best available API call function.
+
+        Priority: GoCode (if direct_api + GoCode configured) > direct API > CLI.
+        Matches the routing logic in worker.py.
+        """
+        if self.use_direct_api:
+            from claude_benchmark.execution.gocode_auth import is_gocode_configured
+            if is_gocode_configured():
+                self._logger.debug("LLM judge using GoCode path")
+                return self._call_api_gocode
+        return self._call_api_direct
+
+    def _call_api_gocode(self, user_prompt: str) -> str:
+        """Call GoCode (OpenAI-compatible) API with temperature=0 for deterministic judging.
+
+        Returns:
+            A JSON string containing the ``evaluations`` array.
+
+        Raises:
+            LLMJudgeError: If the API call fails or credentials are unavailable.
+        """
+        model_id = resolve_model_id(self.model, use_gocode=True)
+
+        try:
+            client = create_gocode_client()
+            messages: list[dict] = [
+                {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ]
+            response = client.chat.completions.create(
+                model=model_id,
+                max_tokens=2048,
+                temperature=0,
+                messages=messages,
+            )
+        except Exception as exc:
+            raise LLMJudgeError(f"GoCode API call failed: {exc}") from exc
+
+        choice = response.choices[0] if response.choices else None
+        if not choice or not choice.message or not choice.message.content:
+            raise LLMJudgeError("GoCode API returned no content")
+
+        return self._extract_json(choice.message.content)
+
     def _call_api_direct(self, user_prompt: str) -> str:
         """Call the Anthropic API directly with temperature=0 for deterministic judging.
 
@@ -237,10 +282,10 @@ class LLMJudgeScorer:
         Raises:
             LLMJudgeError: If the API call fails or credentials are unavailable.
         """
-        model_id = resolve_model_id(self.model, use_gocode=self.use_gocode)
+        model_id = resolve_model_id(self.model, use_direct_api=self.use_direct_api)
 
         try:
-            client = create_client(use_gocode=self.use_gocode)
+            client = create_client(use_direct_api=self.use_direct_api)
             response = client.messages.create(
                 model=model_id,
                 max_tokens=2048,
@@ -258,9 +303,14 @@ class LLMJudgeScorer:
         if not text_parts:
             raise LLMJudgeError("Direct API returned no text content")
 
-        raw_text = "\n".join(text_parts)
+        return self._extract_json("\n".join(text_parts))
 
-        # Extract JSON from the response (may be wrapped in markdown code block)
+    @staticmethod
+    def _extract_json(raw_text: str) -> str:
+        """Extract JSON from model response text.
+
+        Handles responses wrapped in markdown code blocks or bare JSON.
+        """
         code_block = re.search(
             r"```(?:json)?\s*(\{.*?\})\s*```", raw_text, re.DOTALL
         )

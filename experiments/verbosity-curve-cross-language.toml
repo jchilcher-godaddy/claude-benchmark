@@ -1,0 +1,213 @@
+name = "verbosity-curve-cross-language"
+description = """\
+Hypothesis: The quality degradation from instruction verbosity (r=-0.95 in Python, \
+capstone-best-practices) is Python-specific. Cross-language data from capstone-v2 \
+shows kitchen-sink HELPS low-baseline languages (JS +7.25, Go +6.90). This \
+experiment maps the verbosity-vs-quality curve per language with LANGUAGE-NEUTRAL \
+instructions (no snake_case, PEP 8, or Python idioms) to determine whether the \
+0-20 line sweet spot holds universally or only for high-baseline languages. \
+Also tests slide 11 claim "remove generic coding advice → quality improves" — \
+if bare > lines-20 in Python but bare < lines-20 in JS/Go/C#, the claim needs \
+a language qualifier. \
+Backs: presentation slides 3, 4, and 11 (cheat sheet "remove generic advice" row). \
+Total: 4 variants × 48 tasks × 3 models × 15 reps = 8,640 runs (~$410)."""
+
+[defaults]
+tasks = [
+    # Python
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    # Go
+    "code-gen-01-go", "code-gen-02-go", "code-gen-03-go", "code-gen-04-go", "code-gen-05-go",
+    "bug-fix-01-go", "bug-fix-02-go", "bug-fix-03-go", "bug-fix-04-go",
+    "refactor-01-go", "refactor-02-go", "refactor-03-go",
+    # JavaScript
+    "code-gen-01-js", "code-gen-02-js", "code-gen-03-js", "code-gen-04-js", "code-gen-05-js",
+    "bug-fix-01-js", "bug-fix-02-js", "bug-fix-03-js", "bug-fix-04-js",
+    "refactor-01-js", "refactor-02-js", "refactor-03-js",
+    # C#
+    "code-gen-01-cs", "code-gen-02-cs", "code-gen-03-cs", "code-gen-04-cs", "code-gen-05-cs",
+    "bug-fix-01-cs", "bug-fix-02-cs", "bug-fix-03-cs", "bug-fix-04-cs",
+    "refactor-01-cs", "refactor-02-cs", "refactor-03-cs",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 15
+
+# --- 0 lines (bare) ---
+[[variants]]
+label = "bare"
+
+# --- ~20 lines: minimal guidelines (language-neutral) ---
+[[variants]]
+label = "lines-20"
+system_prompt_extra = """\
+Use descriptive variable and function names that reveal intent.
+Add type annotations on all function signatures where the language supports them.
+Use early returns to reduce nesting depth.
+
+Validate inputs at function boundaries.
+Use specific error types with actionable messages.
+Never silently swallow errors.
+
+Keep functions focused on a single responsibility.
+Prefer readability over cleverness.
+Handle edge cases explicitly."""
+
+# --- ~100 lines: comprehensive guidelines (language-neutral) ---
+[[variants]]
+label = "lines-100"
+system_prompt_extra = """\
+Use descriptive variable and function names that reveal intent.
+Add type annotations on all function signatures where the language supports them.
+Use early returns to reduce nesting depth.
+Group imports/includes by category: standard library, third-party, local.
+One blank line between functions, two between top-level definitions.
+
+Follow the target language's standard naming conventions consistently.
+Avoid abbreviations unless universally understood (url, id, config).
+Use descriptive loop variable names, not single letters.
+Prefix boolean variables or functions with is_, has_, can_, should_ or equivalent.
+
+Validate all inputs at function boundaries.
+Use specific error types with actionable messages.
+Never silently swallow errors.
+Fail fast: reject invalid state early.
+Use the language's resource management idiom for cleanup (context managers, defer, try-with-resources, using).
+Errors should carry enough context for debugging.
+Always clean up resources in error paths.
+Log errors with sufficient context before propagating.
+
+Keep functions focused on a single responsibility.
+Prefer composition over inheritance.
+Design to interfaces or abstractions, not implementations.
+Use explicit dependency injection over global state.
+Prefer readability over cleverness.
+Handle edge cases explicitly.
+No premature optimization.
+Separate pure logic from side effects.
+Use structured data types for grouped fields (structs, dataclasses, records).
+Keep cyclomatic complexity below 10 per function.
+Extract complex conditionals into well-named boolean variables.
+Use enums or constants instead of magic strings for finite sets.
+Prefer returning new values over mutating inputs.
+
+Write code that is easy to test: pure functions where possible.
+Keep side effects at the edges of the system.
+Use dependency injection for testability.
+Return values rather than modifying state in place.
+Each function should have a clear contract.
+
+Comments explain WHY, not WHAT.
+Document non-obvious design decisions.
+Inline comments for tricky algorithms only."""
+
+# --- ~200 lines: exhaustive specification (language-neutral) ---
+[[variants]]
+label = "lines-200"
+system_prompt_extra = """\
+Use descriptive variable and function names that reveal intent.
+Add type annotations on all function signatures where the language supports them.
+Use early returns to reduce nesting depth.
+Group imports/includes by category: standard library, third-party, local.
+One blank line between functions, two between top-level definitions.
+Prefer the language's idiomatic string formatting over concatenation.
+Use the language's standard path manipulation library for file operations.
+Prefer collection literals over constructor calls where available.
+Keep expressions simple — split complex ones across multiple lines.
+Use destructuring or tuple unpacking for multiple return values.
+
+Follow the target language's standard naming conventions consistently.
+Avoid abbreviations unless universally understood (url, id, config).
+Use descriptive loop variable names, not single letters.
+Prefix boolean variables or functions with is_, has_, can_, should_ or equivalent.
+Use verbs for functions (get_user, validate_input, parse_response).
+Use nouns for classes or types (UserManager, ResponseParser, ConfigLoader).
+Name factory methods create_* or from_*.
+Name conversion methods to_* (to_json, to_string).
+Name predicates with is_ or has_ prefix.
+
+Validate all inputs at function boundaries.
+Use specific error types with actionable messages.
+Never silently swallow errors.
+Fail fast: reject invalid state early.
+Use the language's resource management idiom for cleanup.
+Errors should carry enough context for debugging.
+Always clean up resources in error paths.
+Log errors with sufficient context before propagating.
+Include the failed value in the error message when validating.
+Use chained errors to preserve the original cause.
+Define custom error types in a dedicated errors module or file.
+Error messages should suggest what the caller can do to fix the issue.
+Distinguish between user errors and system errors.
+Use the language's deprecation mechanism for sunset paths.
+Wrap third-party errors at module boundaries.
+Set timeouts on all external calls (network, subprocess, database).
+
+Keep functions focused on a single responsibility.
+Prefer composition over inheritance.
+Design to interfaces or abstractions, not implementations.
+Use explicit dependency injection over global state.
+Prefer readability over cleverness.
+Handle edge cases explicitly.
+No premature optimization.
+Separate pure logic from side effects.
+Use structured data types for grouped fields.
+Keep cyclomatic complexity below 10 per function.
+Extract complex conditionals into well-named boolean variables.
+Use enums or constants instead of magic strings for finite sets.
+Prefer returning new values over mutating inputs.
+Layer your code: entrypoint > orchestration > business logic > data access.
+Use the Strategy pattern for pluggable algorithms.
+Avoid circular dependencies through interface segregation.
+Keep modules or files small and focused (under 300 lines ideally).
+Explicitly define the public API of each module.
+Separate configuration from logic.
+Use factory methods for alternative construction paths.
+Minimize the public API surface of each module.
+Prefer synchronous code unless concurrency is explicitly needed.
+
+Write code that is easy to test: pure functions where possible.
+Keep side effects at the edges of the system.
+Use dependency injection for testability.
+Return values rather than modifying state in place.
+Each function should have a clear contract (preconditions, postconditions).
+Document invariants that callers must maintain.
+Structure code so that unit tests need no mocking for core logic.
+Make invalid states difficult to represent through types.
+Prefer parameterized tests for similar test cases.
+Use test fixtures for common setup.
+Each test should test one behavior.
+Name tests descriptively: test_function_scenario_expected.
+Use arrange-act-assert pattern.
+Mock at system boundaries only.
+Test error paths, not just happy paths.
+Test boundary conditions: empty inputs, single elements, max values.
+
+Comments explain WHY, not WHAT.
+Document non-obvious design decisions.
+Inline comments for tricky algorithms only.
+Module-level comments explaining purpose and usage.
+Type-level documentation with usage examples.
+Document thread safety guarantees or lack thereof.
+Note any external dependencies or system requirements.
+
+Use generators or iterators for large sequences.
+Avoid unnecessary copies of large data structures.
+Use appropriate data structures (set for membership, map for lookup).
+Profile before optimizing.
+Document any intentional performance tradeoffs.
+Use caching for expensive computations where appropriate.
+Batch external queries to avoid N+1 problems.
+Minimize allocations in hot loops.
+
+Never hardcode credentials or secrets.
+Validate and sanitize all external inputs.
+Use parameterized queries for database operations.
+Escape output in the appropriate context.
+Use cryptographically secure randomness for security-sensitive values.
+Principle of least privilege for file and network access.
+Never evaluate dynamic code with untrusted input.
+Use constant-time comparison for sensitive values.
+Log security events but never log sensitive data."""

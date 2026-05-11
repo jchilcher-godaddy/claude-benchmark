@@ -4,28 +4,41 @@ compliance than identical instructions buried at the end, due to primacy effects
 system prompt. The leaked Claude Code source reveals CLAUDE.md is one section among 11 layers \
 (tool definitions, environment info, reminders, etc.), reloaded every turn. Instructions at the top \
 of the CLAUDE.md section may receive more attention than those buried after 50+ lines of filler. \
-Tests primacy vs. recency vs. reinforcement at constant total token count."""
+Tests primacy vs. recency vs. reinforcement at constant total token count across all 4 languages \
+(Python, Go, JS, C#)."""
 
 [defaults]
 tasks = [
-    "code-gen-01", "code-gen-02", "code-gen-03",
-    "bug-fix-01", "bug-fix-02", "bug-fix-03",
+    # Python
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
     "refactor-01", "refactor-02", "refactor-03",
-    "instruction-01", "instruction-02", "instruction-03",
+    # Go
+    "code-gen-01-go", "code-gen-02-go", "code-gen-03-go", "code-gen-04-go", "code-gen-05-go",
+    "bug-fix-01-go", "bug-fix-02-go", "bug-fix-03-go", "bug-fix-04-go",
+    "refactor-01-go", "refactor-02-go", "refactor-03-go",
+    # JavaScript
+    "code-gen-01-js", "code-gen-02-js", "code-gen-03-js", "code-gen-04-js", "code-gen-05-js",
+    "bug-fix-01-js", "bug-fix-02-js", "bug-fix-03-js", "bug-fix-04-js",
+    "refactor-01-js", "refactor-02-js", "refactor-03-js",
+    # C#
+    "code-gen-01-cs", "code-gen-02-cs", "code-gen-03-cs", "code-gen-04-cs", "code-gen-05-cs",
+    "bug-fix-01-cs", "bug-fix-02-cs", "bug-fix-03-cs", "bug-fix-04-cs",
+    "refactor-01-cs", "refactor-02-cs", "refactor-03-cs",
 ]
 models = ["haiku", "sonnet", "opus"]
 profiles = ["empty"]
-reps = 30
+reps = 15
 
 # --- Critical instruction only (ceiling control) ---
 [[variants]]
 label = "critical-only"
-system_prompt_extra = "Always use type hints on all function parameters and return types. Raise ValueError with a descriptive message for any invalid input."
+system_prompt_extra = "Always validate all function inputs at the boundary. Return or raise descriptive errors for any invalid input. Every public function must have a documentation comment."
 
 # --- Critical instruction at top, followed by 50 lines of filler guidelines ---
 [[variants]]
 label = "critical-at-top"
-system_prompt_extra = """Always use type hints on all function parameters and return types. Raise ValueError with a descriptive message for any invalid input.
+system_prompt_extra = """Always validate all function inputs at the boundary. Return or raise descriptive errors for any invalid input. Every public function must have a documentation comment.
 
 Code Style:
 - Use descriptive variable names that reveal intent
@@ -122,12 +135,12 @@ Performance:
 - Use appropriate data structures (set for membership, dict for lookup)
 - Profile before optimizing
 
-Always use type hints on all function parameters and return types. Raise ValueError with a descriptive message for any invalid input."""
+Always validate all function inputs at the boundary. Return or raise descriptive errors for any invalid input. Every public function must have a documentation comment."""
 
 # --- Critical instruction at both top AND bottom (reinforcement) ---
 [[variants]]
 label = "critical-at-both"
-system_prompt_extra = """Always use type hints on all function parameters and return types. Raise ValueError with a descriptive message for any invalid input.
+system_prompt_extra = """Always validate all function inputs at the boundary. Return or raise descriptive errors for any invalid input. Every public function must have a documentation comment.
 
 Code Style:
 - Use descriptive variable names that reveal intent
@@ -175,4 +188,4 @@ Performance:
 - Use appropriate data structures (set for membership, dict for lookup)
 - Profile before optimizing
 
-Always use type hints on all function parameters and return types. Raise ValueError with a descriptive message for any invalid input."""
+Always validate all function inputs at the boundary. Return or raise descriptive errors for any invalid input. Every public function must have a documentation comment."""

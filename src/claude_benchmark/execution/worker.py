@@ -19,7 +19,11 @@ from pathlib import Path
 import anthropic
 import anyio
 
-from claude_benchmark.execution.client import create_client, resolve_model_id
+from claude_benchmark.execution.client import (
+    create_client,
+    create_gocode_client,
+    resolve_model_id,
+)
 from claude_benchmark.execution.cost import MODEL_PRICING
 from claude_benchmark.execution.parallel import BenchmarkRun, RunResult
 
@@ -43,6 +47,22 @@ _WRITE_FILE_TOOL = {
             "content": {"type": "string", "description": "File content"},
         },
         "required": ["path", "content"],
+    },
+}
+
+_WRITE_FILE_TOOL_OPENAI = {
+    "type": "function",
+    "function": {
+        "name": "write_file",
+        "description": "Write content to a file in the current directory",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "File path (relative)"},
+                "content": {"type": "string", "description": "File content"},
+            },
+            "required": ["path", "content"],
+        },
     },
 }
 
@@ -104,6 +124,13 @@ def is_auth_error(exc_or_msg: Exception | str | None) -> bool:
         if isinstance(exc_or_msg, (anthropic.AuthenticationError, anthropic.PermissionDeniedError)):
             return True
         try:
+            import openai as _openai_mod
+
+            if isinstance(exc_or_msg, _openai_mod.AuthenticationError):
+                return True
+        except ImportError:
+            pass
+        try:
             from botocore.exceptions import (
                 CredentialRetrievalError,
                 NoCredentialsError,
@@ -136,6 +163,95 @@ def _clean_env() -> dict[str, str]:
     return {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
 
 
+def _run_anthropic_tool_loop(
+    client: anthropic.Anthropic | anthropic.AnthropicBedrock,
+    model_id: str,
+    system_prompt: str,
+    messages: list[dict],
+    temperature: float | None,
+    work_dir: Path,
+    result_key: str,
+) -> tuple[int, int]:
+    """Run the tool-iteration loop for one conversation turn (Anthropic API).
+
+    Sends messages to the API, processes write_file tool calls, and appends
+    assistant/tool messages until the model stops requesting tools or the
+    iteration limit is reached.
+
+    Returns (input_tokens, output_tokens) accumulated during this turn.
+    """
+    turn_input = 0
+    turn_output = 0
+
+    for _ in range(_MAX_TOOL_ITERATIONS):
+        for attempt in range(_RATE_LIMIT_MAX_RETRIES + 1):
+            try:
+                create_kwargs: dict = dict(
+                    model=model_id,
+                    max_tokens=4096,
+                    system=system_prompt,
+                    tools=[_WRITE_FILE_TOOL],
+                    messages=messages,
+                )
+                if temperature is not None:
+                    create_kwargs["temperature"] = temperature
+                response = client.messages.create(**create_kwargs)
+                break
+            except (anthropic.RateLimitError, anthropic.InternalServerError) as rate_exc:
+                if attempt >= _RATE_LIMIT_MAX_RETRIES:
+                    raise
+                delay = _RATE_LIMIT_BASE_DELAY * (2 ** attempt) + random.uniform(0, 1)
+                logger.warning(
+                    "Rate limited on %s (attempt %d/%d), retrying in %.1fs",
+                    result_key, attempt + 1, _RATE_LIMIT_MAX_RETRIES, delay,
+                )
+                time.sleep(delay)
+
+        turn_input += response.usage.input_tokens
+        turn_output += response.usage.output_tokens
+
+        tool_uses = [b for b in response.content if b.type == "tool_use"]
+
+        if not tool_uses or response.stop_reason == "end_turn":
+            # Append the final assistant message so follow-up turns see it
+            messages.append({"role": "assistant", "content": response.content})
+            break
+
+        tool_results = []
+        for tool_use in tool_uses:
+            if tool_use.name == "write_file":
+                path_val = tool_use.input.get("path")
+                content_val = tool_use.input.get("content")
+                if not path_val or content_val is None:
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tool_use.id,
+                        "content": "Error: write_file requires 'path' and 'content' parameters",
+                        "is_error": True,
+                    })
+                    continue
+                file_path = work_dir / path_val
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                file_path.write_text(content_val, encoding="utf-8")
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tool_use.id,
+                    "content": f"Wrote {path_val}",
+                })
+            else:
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tool_use.id,
+                    "content": f"Unknown tool: {tool_use.name}",
+                    "is_error": True,
+                })
+
+        messages.append({"role": "assistant", "content": response.content})
+        messages.append({"role": "user", "content": tool_results})
+
+    return turn_input, turn_output
+
+
 def _execute_via_api_sync(
     run: BenchmarkRun,
     work_dir: Path,
@@ -147,86 +263,37 @@ def _execute_via_api_sync(
 
     Uses the Messages API directly so we can pass temperature.
     Provides a write_file tool so the model can write code to disk.
+    Supports multi-turn conversations via run.follow_up_prompts.
     """
     start_time = time.monotonic()
 
-    model_id = resolve_model_id(run.model, use_gocode=run.use_gocode)
-    client = create_client(use_gocode=run.use_gocode)
+    model_id = resolve_model_id(run.model, use_direct_api=run.use_direct_api)
+    client = create_client(use_direct_api=run.use_direct_api)
 
     messages = [{"role": "user", "content": task_prompt}]
     total_input = 0
     total_output = 0
+    turn_count = 1
 
     try:
-        for _ in range(_MAX_TOOL_ITERATIONS):
-            # Retry loop for rate-limit (429) errors with exponential backoff
-            last_exc: Exception | None = None
-            for attempt in range(_RATE_LIMIT_MAX_RETRIES + 1):
-                try:
-                    create_kwargs: dict = dict(
-                        model=model_id,
-                        max_tokens=4096,
-                        system=system_prompt,
-                        tools=[_WRITE_FILE_TOOL],
-                        messages=messages,
-                    )
-                    if run.temperature is not None:
-                        create_kwargs["temperature"] = run.temperature
-                    response = client.messages.create(**create_kwargs)
-                    break  # success
-                except (anthropic.RateLimitError, anthropic.InternalServerError) as rate_exc:
-                    last_exc = rate_exc
-                    if attempt >= _RATE_LIMIT_MAX_RETRIES:
-                        raise
-                    delay = _RATE_LIMIT_BASE_DELAY * (2 ** attempt) + random.uniform(0, 1)
-                    logger.warning(
-                        "Rate limited on %s (attempt %d/%d), retrying in %.1fs",
-                        run.result_key, attempt + 1, _RATE_LIMIT_MAX_RETRIES, delay,
-                    )
-                    time.sleep(delay)
+        # Initial turn
+        inp, out = _run_anthropic_tool_loop(
+            client, model_id, system_prompt, messages,
+            run.temperature, work_dir, run.result_key,
+        )
+        total_input += inp
+        total_output += out
 
-            total_input += response.usage.input_tokens
-            total_output += response.usage.output_tokens
-
-            # Process tool use blocks
-            tool_uses = [b for b in response.content if b.type == "tool_use"]
-
-            if not tool_uses or response.stop_reason == "end_turn":
-                break
-
-            # Execute each tool call
-            tool_results = []
-            for tool_use in tool_uses:
-                if tool_use.name == "write_file":
-                    path_val = tool_use.input.get("path")
-                    content_val = tool_use.input.get("content")
-                    if not path_val or content_val is None:
-                        tool_results.append({
-                            "type": "tool_result",
-                            "tool_use_id": tool_use.id,
-                            "content": "Error: write_file requires 'path' and 'content' parameters",
-                            "is_error": True,
-                        })
-                        continue
-                    file_path = work_dir / path_val
-                    file_path.parent.mkdir(parents=True, exist_ok=True)
-                    file_path.write_text(content_val, encoding="utf-8")
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": tool_use.id,
-                        "content": f"Wrote {path_val}",
-                    })
-                else:
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": tool_use.id,
-                        "content": f"Unknown tool: {tool_use.name}",
-                        "is_error": True,
-                    })
-
-            # Append assistant response and tool results for next turn
-            messages.append({"role": "assistant", "content": response.content})
-            messages.append({"role": "user", "content": tool_results})
+        # Follow-up turns
+        for follow_up in run.follow_up_prompts or []:
+            turn_count += 1
+            messages.append({"role": "user", "content": follow_up})
+            inp, out = _run_anthropic_tool_loop(
+                client, model_id, system_prompt, messages,
+                run.temperature, work_dir, run.result_key,
+            )
+            total_input += inp
+            total_output += out
 
         # Copy files from work_dir to output_dir
         for item in work_dir.iterdir():
@@ -253,6 +320,7 @@ def _execute_via_api_sync(
             total_tokens=total_tokens,
             cost=cost,
             duration_seconds=duration,
+            turn_count=turn_count,
         )
 
     except Exception as exc:
@@ -260,6 +328,195 @@ def _execute_via_api_sync(
         error_msg = str(exc)
         if is_auth_error(exc):
             error_msg = f"aws_credentials_expired: {exc}"
+        return RunResult(
+            run=run,
+            status="failure",
+            error=error_msg,
+            output_dir=output_dir,
+            duration_seconds=duration,
+        )
+
+
+def _run_gocode_tool_loop(
+    client,
+    model_id: str,
+    messages: list[dict],
+    temperature: float | None,
+    work_dir: Path,
+    result_key: str,
+) -> tuple[int, int]:
+    """Run the tool-iteration loop for one conversation turn (GoCode/OpenAI API).
+
+    Returns (input_tokens, output_tokens) accumulated during this turn.
+    The client is returned in case it was refreshed during auth retry.
+    """
+    import openai
+
+    from claude_benchmark.execution.gocode_auth import get_token_manager
+
+    turn_input = 0
+    turn_output = 0
+
+    for _ in range(_MAX_TOOL_ITERATIONS):
+        for attempt in range(_RATE_LIMIT_MAX_RETRIES + 1):
+            try:
+                create_kwargs: dict = dict(
+                    model=model_id,
+                    max_tokens=4096,
+                    tools=[_WRITE_FILE_TOOL_OPENAI],
+                    messages=messages,
+                )
+                if temperature is not None:
+                    create_kwargs["temperature"] = temperature
+                response = client.chat.completions.create(**create_kwargs)
+                break
+            except openai.AuthenticationError:
+                mgr = get_token_manager()
+                mgr.invalidate()
+                client = create_gocode_client()
+                if attempt >= _RATE_LIMIT_MAX_RETRIES:
+                    raise
+            except openai.RateLimitError:
+                if attempt >= _RATE_LIMIT_MAX_RETRIES:
+                    raise
+                delay = _RATE_LIMIT_BASE_DELAY * (2**attempt) + random.uniform(0, 1)
+                logger.warning(
+                    "Rate limited on %s (attempt %d/%d), retrying in %.1fs",
+                    result_key, attempt + 1, _RATE_LIMIT_MAX_RETRIES, delay,
+                )
+                time.sleep(delay)
+            except openai.InternalServerError:
+                if attempt >= _RATE_LIMIT_MAX_RETRIES:
+                    raise
+                delay = _RATE_LIMIT_BASE_DELAY * (2**attempt) + random.uniform(0, 1)
+                logger.warning(
+                    "Server error on %s (attempt %d/%d), retrying in %.1fs",
+                    result_key, attempt + 1, _RATE_LIMIT_MAX_RETRIES, delay,
+                )
+                time.sleep(delay)
+
+        choice = response.choices[0]
+        if response.usage:
+            turn_input += response.usage.prompt_tokens
+            turn_output += response.usage.completion_tokens
+
+        if choice.finish_reason != "tool_calls" or not choice.message.tool_calls:
+            # Append the final assistant message so follow-up turns see it
+            messages.append(choice.message.model_dump())
+            break
+
+        messages.append(choice.message.model_dump())
+        for tool_call in choice.message.tool_calls:
+            if tool_call.function.name == "write_file":
+                try:
+                    args = json.loads(tool_call.function.arguments)
+                except json.JSONDecodeError:
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": "Error: invalid JSON in arguments",
+                    })
+                    continue
+                path_val = args.get("path")
+                content_val = args.get("content")
+                if not path_val or content_val is None:
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": "Error: write_file requires 'path' and 'content'",
+                    })
+                    continue
+                file_path = work_dir / path_val
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                file_path.write_text(content_val, encoding="utf-8")
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": f"Wrote {path_val}",
+                })
+            else:
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": f"Unknown tool: {tool_call.function.name}",
+                })
+
+    return turn_input, turn_output
+
+
+def _execute_via_gocode_sync(
+    run: BenchmarkRun,
+    work_dir: Path,
+    output_dir: Path,
+    task_prompt: str,
+    system_prompt: str,
+) -> RunResult:
+    """Execute a run via GoCode (OpenAI-compatible) API with cert-based JWT auth.
+
+    Supports multi-turn conversations via run.follow_up_prompts.
+    """
+    start_time = time.monotonic()
+    model_id = resolve_model_id(run.model, use_gocode=True)
+    client = create_gocode_client()
+
+    messages: list[dict] = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": task_prompt})
+
+    total_input = 0
+    total_output = 0
+    turn_count = 1
+
+    try:
+        # Initial turn
+        inp, out = _run_gocode_tool_loop(
+            client, model_id, messages, run.temperature, work_dir, run.result_key,
+        )
+        total_input += inp
+        total_output += out
+
+        # Follow-up turns
+        for follow_up in run.follow_up_prompts or []:
+            turn_count += 1
+            messages.append({"role": "user", "content": follow_up})
+            inp, out = _run_gocode_tool_loop(
+                client, model_id, messages, run.temperature, work_dir, run.result_key,
+            )
+            total_input += inp
+            total_output += out
+
+        for item in work_dir.iterdir():
+            if item.is_file():
+                shutil.copy2(item, output_dir / item.name)
+            elif item.is_dir() and not item.name.startswith("."):
+                shutil.copytree(item, output_dir / item.name, dirs_exist_ok=True)
+
+        duration = time.monotonic() - start_time
+        total_tokens = total_input + total_output
+        pricing = MODEL_PRICING.get(run.model, MODEL_PRICING["sonnet"])
+        cost = (
+            (total_input / 1_000_000) * pricing["input"]
+            + (total_output / 1_000_000) * pricing["output"]
+        )
+
+        return RunResult(
+            run=run,
+            status="success",
+            output_dir=output_dir,
+            input_tokens=total_input,
+            output_tokens=total_output,
+            total_tokens=total_tokens,
+            cost=cost,
+            duration_seconds=duration,
+            turn_count=turn_count,
+        )
+
+    except Exception as exc:
+        duration = time.monotonic() - start_time
+        error_msg = str(exc)
+        if is_auth_error(exc):
+            error_msg = f"gocode_auth_failed: {exc}"
         return RunResult(
             run=run,
             status="failure",
@@ -382,13 +639,112 @@ async def execute_single_run(run: BenchmarkRun) -> RunResult:
     if run.system_prompt_extra:
         cmd.extend(["--append-system-prompt", run.system_prompt_extra])
 
-    # Use Anthropic API directly for experiment runs (variant_label set),
+    # CLI-agent execution: when agent_definition is set, use the CLI with
+    # --agents/--agent flags.  When use_cli is set (without agent), use the
+    # CLI with --append-system-prompt for fair path-controlled comparison.
+    if run.agent_definition or run.use_cli:
+        if run.agent_definition:
+            agent_name = run.agent_definition["name"]
+            agents_payload = {
+                agent_name: {
+                    "description": run.agent_definition["description"],
+                    "prompt": run.agent_definition["prompt"],
+                }
+            }
+            cmd.extend(["--agents", json.dumps(agents_payload), "--agent", agent_name])
+        if run.prompt_prefix:
+            task_prompt = run.prompt_prefix + task_prompt
+        cmd.append(task_prompt)
+        try:
+            async with await anyio.open_process(
+                cmd,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=str(work_dir),
+                env=_clean_env(),
+            ) as process:
+                stdout_chunks: list[bytes] = []
+                stderr_chunks: list[bytes] = []
+                assert process.stdout is not None
+                assert process.stderr is not None
+
+                async with anyio.create_task_group() as tg:
+                    async def _read_stdout_cli() -> None:
+                        async for chunk in process.stdout:
+                            stdout_chunks.append(chunk)
+
+                    async def _read_stderr_cli() -> None:
+                        async for chunk in process.stderr:
+                            stderr_chunks.append(chunk)
+
+                    tg.start_soon(_read_stdout_cli)
+                    tg.start_soon(_read_stderr_cli)
+
+                await process.wait()
+
+                # Copy generated files from work_dir to output_dir for scoring
+                for item in work_dir.iterdir():
+                    if item.is_file():
+                        shutil.copy2(item, output_dir / item.name)
+                    elif item.is_dir() and not item.name.startswith("."):
+                        shutil.copytree(item, output_dir / item.name, dirs_exist_ok=True)
+
+                stdout_text = b"".join(stdout_chunks).decode(errors="replace")
+                stderr_text = b"".join(stderr_chunks).decode(errors="replace")
+                duration = time.monotonic() - start_time
+
+                if process.returncode != 0:
+                    error_msg = stderr_text.strip() or f"Exit code {process.returncode}"
+                    return RunResult(
+                        run=run, status="failure", error=error_msg,
+                        output_dir=output_dir, duration_seconds=duration,
+                    )
+
+                input_tokens = 0
+                output_tokens = 0
+                cost = 0.0
+                try:
+                    output_data = json.loads(stdout_text)
+                    if isinstance(output_data, dict):
+                        usage = output_data.get("usage", {})
+                        input_tokens = usage.get("input_tokens", 0)
+                        output_tokens = usage.get("output_tokens", 0)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+                if input_tokens or output_tokens:
+                    pricing = MODEL_PRICING.get(run.model, MODEL_PRICING["sonnet"])
+                    cost = (
+                        (input_tokens / 1_000_000) * pricing["input"]
+                        + (output_tokens / 1_000_000) * pricing["output"]
+                    )
+
+                return RunResult(
+                    run=run, status="success", output_dir=output_dir,
+                    input_tokens=input_tokens, output_tokens=output_tokens,
+                    total_tokens=input_tokens + output_tokens,
+                    cost=cost, duration_seconds=duration,
+                )
+        except Exception as exc:
+            duration = time.monotonic() - start_time
+            error_msg = str(exc)
+            if is_auth_error(exc):
+                error_msg = f"aws_credentials_expired: {exc}"
+            return RunResult(
+                run=run, status="failure", error=error_msg,
+                output_dir=output_dir, duration_seconds=duration,
+            )
+        finally:
+            shutil.rmtree(work_dir, ignore_errors=True)
+
+    # Use API directly for experiment runs (variant_label set),
     # temperature overrides, or when prompt_prefix is present.
     # Reasons: (1) CLI arg parser chokes on large/special-char prefixes
     # (e.g. context-padding starting with "---") by misinterpreting them as
     # option flags.  (2) All variants within an experiment must use the same
     # execution path to avoid confounding treatment effects with path differences.
-    if run.temperature is not None or run.prompt_prefix or run.variant_label or run.use_gocode:
+    if run.temperature is not None or run.prompt_prefix or run.variant_label or run.use_direct_api:
         system_parts = []
         if run.profile_path and run.profile_path.exists():
             profile_content = run.profile_path.read_text(encoding="utf-8").strip()
@@ -403,6 +759,14 @@ async def execute_single_run(run: BenchmarkRun) -> RunResult:
         if run.prompt_prefix:
             api_task_prompt = run.prompt_prefix + api_task_prompt
         try:
+            from claude_benchmark.execution.gocode_auth import is_gocode_configured
+
+            if run.use_direct_api and is_gocode_configured():
+                return await anyio.to_thread.run_sync(
+                    lambda: _execute_via_gocode_sync(
+                        run, work_dir, output_dir, api_task_prompt, system_prompt
+                    )
+                )
             return await anyio.to_thread.run_sync(
                 lambda: _execute_via_api_sync(run, work_dir, output_dir, api_task_prompt, system_prompt)
             )

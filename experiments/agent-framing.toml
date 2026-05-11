@@ -1,0 +1,62 @@
+name = "agent-framing"
+description = """\
+Hypothesis: Structuring persona instructions in Claude Code's agent definition \
+format (YAML frontmatter with name/description + markdown body) produces \
+different quality results than delivering the same instructions as raw system \
+prompt text. The structured format provides explicit identity boundaries \
+(name, role description) that may help the model maintain persona consistency. \
+Additionally tests whether this framing effect is modulated by persona-task \
+alignment (code-reviewer on refactor tasks vs. debugger on bug-fix tasks). \
+Prior finding: code-reviewer persona = +2.9 pts on refactoring via raw \
+system_prompt_extra (run-009)."""
+
+[defaults]
+tasks = [
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    "instruction-01", "instruction-02", "instruction-03",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 30
+
+# --- Bare baseline (no persona, no framing) ---
+[[variants]]
+label = "bare"
+
+# --- Raw reviewer: plain prose system prompt ---
+[[variants]]
+label = "raw-reviewer"
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."
+
+# --- Agent-framed reviewer: same content in agent definition format ---
+[[variants]]
+label = "agent-framed-reviewer"
+system_prompt_extra = """\
+---
+name: code-reviewer
+description: A meticulous code reviewer focused on correctness and maintainability
+---
+
+# Code Reviewer Agent
+
+You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."""
+
+# --- Raw debugger: plain prose system prompt ---
+[[variants]]
+label = "raw-debugger"
+system_prompt_extra = "You are an expert debugger and bug-fix specialist. Trace root causes methodically, verify fixes handle the original failing case, and ensure fixes don't break adjacent functionality."
+
+# --- Agent-framed debugger: same content in agent definition format ---
+[[variants]]
+label = "agent-framed-debugger"
+system_prompt_extra = """\
+---
+name: debugger
+description: Expert debugger and bug-fix specialist who traces root causes methodically
+---
+
+# Debugger Agent
+
+You are an expert debugger and bug-fix specialist. Trace root causes methodically, verify fixes handle the original failing case, and ensure fixes don't break adjacent functionality."""

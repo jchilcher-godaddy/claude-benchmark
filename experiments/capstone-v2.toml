@@ -1,0 +1,164 @@
+name = "capstone-v2"
+description = """Comprehensive cross-language capstone testing the 8 highest-value open questions \
+in a single experiment. Validates per-language optimal stacks as units, tests the persona × CoT \
+interaction (highest-value unknown), closes 3 Tier 0 presentation gaps (outcome-vs-implementation, \
+positive-vs-negative framing, optimal stacks), and measures verification lift on an optimized stack. \
+All 4 languages, all 3 models, 10 variants.
+Total: 15 reps x 48 tasks x 3 models x 10 variants = 21,600 runs."""
+
+[defaults]
+tasks = [
+    # Python
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    # Go
+    "code-gen-01-go", "code-gen-02-go", "code-gen-03-go", "code-gen-04-go", "code-gen-05-go",
+    "bug-fix-01-go", "bug-fix-02-go", "bug-fix-03-go", "bug-fix-04-go",
+    "refactor-01-go", "refactor-02-go", "refactor-03-go",
+    # JavaScript
+    "code-gen-01-js", "code-gen-02-js", "code-gen-03-js", "code-gen-04-js", "code-gen-05-js",
+    "bug-fix-01-js", "bug-fix-02-js", "bug-fix-03-js", "bug-fix-04-js",
+    "refactor-01-js", "refactor-02-js", "refactor-03-js",
+    # C#
+    "code-gen-01-cs", "code-gen-02-cs", "code-gen-03-cs", "code-gen-04-cs", "code-gen-05-cs",
+    "bug-fix-01-cs", "bug-fix-02-cs", "bug-fix-03-cs", "bug-fix-04-cs",
+    "refactor-01-cs", "refactor-02-cs", "refactor-03-cs",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 15
+
+# =============================================================================
+# v1: Bare control — within-experiment baseline
+# =============================================================================
+[[variants]]
+label = "bare"
+
+# =============================================================================
+# v2: Python/JS optimal stack — persona + polite, no CoT
+# Validated in Python (+1.0 to +1.64) but never as a unit cross-language.
+# Expected: helps Python/JS, hurts Go/C#.
+# =============================================================================
+[[variants]]
+label = "python-js-stack"
+prompt_prefix = "Could you please "
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."
+
+# =============================================================================
+# v3: Go/C# optimal stack — CoT only, no persona, no polite
+# Never tested as a combined unit. Expected: helps Go (+5.3) and C# (+7.7),
+# hurts Python (-0.5).
+# =============================================================================
+[[variants]]
+label = "go-cs-stack"
+prompt_prefix = "Think step by step. "
+
+# =============================================================================
+# v4: Persona + CoT — highest-value untested interaction
+# The two strongest single-factor effects point in opposite directions across
+# languages. If synergistic, changes recommendation from per-language routing
+# to a universal stack.
+# =============================================================================
+[[variants]]
+label = "persona-plus-cot"
+prompt_prefix = "Think step by step. "
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."
+
+# =============================================================================
+# v5: Outcome-focused — "state WHAT not HOW" (untested guide claim)
+# ~30 words. States desired properties of the output.
+# =============================================================================
+[[variants]]
+label = "outcome-focused"
+prompt_prefix = "Produce code that is correct, handles edge cases, and is easy to read. The result should pass all tests and follow standard conventions. "
+
+# =============================================================================
+# v6: Implementation-focused — paired comparison for v5
+# ~30 words. Prescribes specific techniques. Same intent, matched token count.
+# =============================================================================
+[[variants]]
+label = "implementation-focused"
+prompt_prefix = "Use early returns for validation, extract helper functions for repeated logic, add type hints to all parameters, and use list comprehensions where appropriate. "
+
+# =============================================================================
+# v7: Positive framing — isolated valence test
+# 5 rules, positive phrasing (~60 words). Isolates framing direction from
+# the confounded +0.66 capstone observation.
+# =============================================================================
+[[variants]]
+label = "positive-framing"
+system_prompt_extra = """- Use guard clauses and early returns to keep functions flat
+- Extract helper functions when logic repeats
+- Use descriptive names that reveal intent
+- Handle edge cases explicitly with informative error messages
+- Remove unused code before finishing"""
+
+# =============================================================================
+# v8: Negative framing — paired comparison for v7
+# Same 5 rules, negative phrasing, matched token count.
+# =============================================================================
+[[variants]]
+label = "negative-framing"
+system_prompt_extra = """- Do not create deeply nested code when guard clauses would work
+- Do not duplicate logic across functions without extracting helpers
+- Do not use abbreviations or single-letter variable names
+- Do not ignore edge cases or use bare except clauses
+- Do not leave dead code, commented-out code, or unused imports"""
+
+# =============================================================================
+# v9: Verification on optimized stack — interaction test
+# Layers verify-with-examples (best verification strategy, +2.1% Python-only)
+# onto the Python/JS stack (v2). Comparing v9 vs v2 isolates the marginal
+# value of verification on an already-optimized configuration.
+# =============================================================================
+[[variants]]
+label = "verify-on-stack"
+prompt_prefix = "Could you please "
+system_prompt_extra = """You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write.
+After writing your code, trace through at least 3 concrete input/output examples including one edge case. If any example produces wrong output, fix your code before finalizing."""
+
+# =============================================================================
+# v10: Kitchen sink — anti-pattern anchor
+# Exact text from capstone-best-practices.toml. Already tested in Python;
+# cross-language data shows whether the anti-pattern is universal.
+# =============================================================================
+[[variants]]
+label = "kitchen-sink"
+prompt_prefix = "Before writing any code, analyze the requirements step by step. Consider edge cases and potential issues. Then implement your solution. "
+temperature = 0.0
+system_prompt_extra = """You are a senior staff engineer with deep experience in distributed systems and API design. Think step-by-step before writing code. Outline your approach in comments before implementation.
+
+Code Style Rules:
+- Use snake_case for variables and functions, PascalCase for classes
+- Prefix booleans with is_, has_, can_, should_
+- Use descriptive names, never single letters except loop counters
+- 4 spaces indentation, max 100 char line length
+- Trailing commas in multi-line collections
+- Use early returns to reduce nesting depth
+- Group imports: standard library, third-party, local (separated by blank lines)
+- Every public function and class MUST have a docstring
+- Write comments that explain "why", not "what"
+
+Architecture Principles:
+- Prefer composition over inheritance
+- Design to interfaces, not implementations
+- Single Responsibility Principle for every function and class
+- Explicit dependency injection over global state
+- Make illegal states unrepresentable through types
+- Validate all inputs at system boundaries
+
+Error Handling:
+- Use custom exception classes organized by domain
+- Never catch generic exceptions unless you re-raise
+- Exceptions should carry enough context for debugging
+- Fail fast: validate inputs early and reject invalid state
+- Error messages must be actionable
+
+Testing:
+- Write tests first for bug fixes
+- Test behavior, not implementation
+- Each test tests one thing with a descriptive name
+- Arrange-act-assert pattern
+- Mock at system boundaries only, prefer real implementations
+- Aim for 80%+ coverage on new code"""

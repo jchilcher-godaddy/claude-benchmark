@@ -1,6 +1,6 @@
 """Anthropic API client factory.
 
-Centralizes client creation so the --gocode flag only needs
+Centralizes client creation so the --direct-api flag only needs
 one code path for switching between Bedrock and direct API.
 Also provides pre-flight credential validation and interactive
 SSO re-authentication for the Bedrock path.
@@ -24,57 +24,84 @@ BEDROCK_MODEL_MAP: dict[str, str] = {
     "opus": "us.anthropic.claude-opus-4-6-v1",
 }
 
-# Short model name -> standard Anthropic model ID (GoCode endpoint)
-GOCODE_MODEL_MAP: dict[str, str] = {
+# Short model name -> standard Anthropic model ID (direct API)
+ANTHROPIC_MODEL_MAP: dict[str, str] = {
     "sonnet": "claude-sonnet-4-6",
     "haiku": "claude-haiku-4-5-20251001",
     "opus": "claude-opus-4-6",
 }
 
+# Short model name -> GoCode model ID (OpenAI-compatible proxy)
+GOCODE_MODEL_MAP: dict[str, str] = {
+    "sonnet": "claude-sonnet-4-5-20250929",
+    "haiku": "claude-haiku-4-5-20251001",
+    "opus": "claude-opus-4-6",
+}
 
-def create_client(use_gocode: bool = False) -> anthropic.Anthropic | anthropic.AnthropicBedrock:
+
+def create_client(use_direct_api: bool = False) -> anthropic.Anthropic | anthropic.AnthropicBedrock:
     """Create an Anthropic API client for the appropriate backend.
 
     Args:
-        use_gocode: If True, use the GoCode (standard Anthropic) endpoint
-            configured via ANTHROPIC_BASE_URL and GOCODE_API_TOKEN env vars.
+        use_direct_api: If True, use the direct Anthropic API endpoint
+            configured via ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY env vars.
             If False, use AWS Bedrock (default).
 
     Returns:
         An Anthropic or AnthropicBedrock client instance.
 
     Raises:
-        RuntimeError: If use_gocode is True but required env vars are missing.
+        RuntimeError: If use_direct_api is True but required env vars are missing.
     """
-    if use_gocode:
+    if use_direct_api:
         base_url = os.environ.get("ANTHROPIC_BASE_URL")
-        api_key = os.environ.get("GOCODE_API_TOKEN") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
         if not base_url or not api_key:
             raise RuntimeError(
-                "--gocode requires ANTHROPIC_BASE_URL and GOCODE_API_TOKEN "
+                "--direct-api requires ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY "
                 "(or ANTHROPIC_AUTH_TOKEN) environment variables"
             )
         return anthropic.Anthropic(base_url=base_url, api_key=api_key)
     return anthropic.AnthropicBedrock()
 
 
-def resolve_model_id(short_name: str, use_gocode: bool = False) -> str:
+def create_gocode_client():
+    """Create an OpenAI client pointed at GoCode with cert-based JWT auth.
+
+    Returns:
+        An openai.OpenAI client instance.
+    """
+    import openai
+
+    from claude_benchmark.execution.gocode_auth import get_token_manager
+
+    mgr = get_token_manager()
+    token = mgr.get_token()
+    return openai.OpenAI(base_url=mgr.base_url, api_key=token)
+
+
+def resolve_model_id(
+    short_name: str, use_direct_api: bool = False, use_gocode: bool = False
+) -> str:
     """Map a short model name to the appropriate model ID.
 
     Args:
         short_name: Short model name (e.g. "sonnet", "haiku", "opus").
-        use_gocode: If True, return standard Anthropic model ID.
+        use_direct_api: If True, return standard Anthropic model ID.
             If False, return Bedrock model ID.
+        use_gocode: If True, return GoCode model ID.
 
     Returns:
         The resolved model ID string, or short_name unchanged if not mapped.
     """
-    model_map = GOCODE_MODEL_MAP if use_gocode else BEDROCK_MODEL_MAP
+    if use_gocode:
+        return GOCODE_MODEL_MAP.get(short_name, short_name)
+    model_map = ANTHROPIC_MODEL_MAP if use_direct_api else BEDROCK_MODEL_MAP
     return model_map.get(short_name, short_name)
 
 
-def validate_gocode_env() -> list[str]:
-    """Check that required GoCode environment variables are set.
+def validate_direct_api_env() -> list[str]:
+    """Check that required direct Anthropic API environment variables are set.
 
     Returns:
         List of missing variable names (empty if all present).
@@ -82,8 +109,8 @@ def validate_gocode_env() -> list[str]:
     missing = []
     if not os.environ.get("ANTHROPIC_BASE_URL"):
         missing.append("ANTHROPIC_BASE_URL")
-    if not (os.environ.get("GOCODE_API_TOKEN") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
-        missing.append("GOCODE_API_TOKEN (or ANTHROPIC_AUTH_TOKEN)")
+    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
+        missing.append("ANTHROPIC_API_KEY (or ANTHROPIC_AUTH_TOKEN)")
     return missing
 
 

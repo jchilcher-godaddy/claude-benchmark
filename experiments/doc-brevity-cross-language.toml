@@ -1,0 +1,46 @@
+name = "doc-brevity-cross-language"
+description = """\
+Hypothesis: The "keep docstrings brief" rule's 19% output reduction (targeted-constraints, \
+4,320 Python-only runs) generalizes cross-language when the instruction is adapted to each \
+language's documentation idiom. The original experiment used Python-specific "docstrings" \
+phrasing — Go uses comments, JS uses JSDoc, C# uses XML doc comments. This experiment \
+tests a universal phrasing and measures per-language output reduction and quality impact. \
+Backs: presentation slide 6 and slide 11 cheat sheet row 1. \
+Total: 3 variants × 48 tasks × 3 models × 15 reps = 6,480 runs (~$310)."""
+
+[defaults]
+tasks = [
+    # Python
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    # Go
+    "code-gen-01-go", "code-gen-02-go", "code-gen-03-go", "code-gen-04-go", "code-gen-05-go",
+    "bug-fix-01-go", "bug-fix-02-go", "bug-fix-03-go", "bug-fix-04-go",
+    "refactor-01-go", "refactor-02-go", "refactor-03-go",
+    # JavaScript
+    "code-gen-01-js", "code-gen-02-js", "code-gen-03-js", "code-gen-04-js", "code-gen-05-js",
+    "bug-fix-01-js", "bug-fix-02-js", "bug-fix-03-js", "bug-fix-04-js",
+    "refactor-01-js", "refactor-02-js", "refactor-03-js",
+    # C#
+    "code-gen-01-cs", "code-gen-02-cs", "code-gen-03-cs", "code-gen-04-cs", "code-gen-05-cs",
+    "bug-fix-01-cs", "bug-fix-02-cs", "bug-fix-03-cs", "bug-fix-04-cs",
+    "refactor-01-cs", "refactor-02-cs", "refactor-03-cs",
+]
+models = ["haiku", "sonnet", "opus"]
+profiles = ["empty"]
+reps = 15
+
+# --- Bare baseline ---
+[[variants]]
+label = "bare"
+
+# --- Brief documentation (universal phrasing) ---
+[[variants]]
+label = "brief-docs"
+system_prompt_extra = "Keep documentation comments brief — one line for simple functions, at most 3 lines for complex ones. No boilerplate parameter listings unless the types are ambiguous."
+
+# --- No documentation (aggressive constraint) ---
+[[variants]]
+label = "no-docs"
+system_prompt_extra = "Do not write documentation comments unless the function signature is genuinely ambiguous. The code should be self-documenting through clear naming and structure."
