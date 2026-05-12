@@ -61,3 +61,7 @@ class ComparisonReport(BaseModel):
     overlapping_keys: list[dict[str, str]] = Field(default_factory=list)  # serialized ComparisonKeys
     unique_keys: dict[str, list[dict[str, str]]] = Field(default_factory=dict)  # run_id -> unique keys
     comparisons: list[PairwiseComparison] = Field(default_factory=list)
+    # Count of (entry-pair, overlapping-key, dimension) comparisons skipped because one or
+    # both sides had fewer than 2 scores. Surfacing this prevents silently dropping
+    # whole cells from a report.
+    skipped_low_sample: int = 0

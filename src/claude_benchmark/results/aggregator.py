@@ -16,8 +16,8 @@ def _safe_stats(data: list[float]) -> StatsSummary:
         return StatsSummary(mean=data[0], variance=0.0, stdev=0.0)
 
     mean = statistics.mean(data)
-    variance = statistics.variance(data, xbar=mean)
-    stdev = statistics.stdev(data, xbar=mean)
+    variance = statistics.variance(data)
+    stdev = statistics.stdev(data)
 
     return StatsSummary(mean=mean, variance=variance, stdev=stdev)
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import pytest
 
 from claude_benchmark.reporting.models import (
@@ -14,6 +16,7 @@ from claude_benchmark.reporting.models import (
 from claude_benchmark.reporting.regression import (
     benjamini_hochberg,
     check_regression,
+    compute_effect_size,
     detect_all_regressions,
     summarize_regressions,
 )
@@ -71,6 +74,31 @@ def _make_results(
         tasks=[task_id],
         metadata=ReportMetadata(date="2026-02-26"),
     )
+
+
+# --- compute_effect_size tests ---
+
+
+class TestComputeEffectSize:
+    def test_identical_scores_returns_zero(self):
+        assert compute_effect_size([5.0, 5.0, 5.0], [5.0, 5.0, 5.0]) == 0.0
+
+    def test_insufficient_sample_returns_zero(self):
+        assert compute_effect_size([5.0], [6.0, 7.0]) == 0.0
+        assert compute_effect_size([5.0, 6.0], [7.0]) == 0.0
+
+    def test_zero_variance_different_means_returns_positive_inf(self):
+        """Both groups constant but different means => perfect separation, not 'no effect'."""
+        d = compute_effect_size([5.0, 5.0, 5.0], [7.0, 7.0, 7.0])
+        assert d == math.inf
+
+    def test_zero_variance_different_means_negative_direction(self):
+        d = compute_effect_size([7.0, 7.0, 7.0], [5.0, 5.0, 5.0])
+        assert d == -math.inf
+
+    def test_normal_case(self):
+        d = compute_effect_size([50.0, 52.0, 51.0], [60.0, 62.0, 61.0])
+        assert d > 0
 
 
 # --- check_regression tests ---
@@ -147,15 +175,16 @@ class TestCheckRegression:
         assert result.is_regression is True
         assert result.delta_pct < -0.05
 
-    def test_zero_baseline_no_crash(self):
-        """Zero baseline mean doesn't cause division by zero."""
+    def test_zero_baseline_delta_is_nan(self):
+        """Zero baseline mean yields NaN delta (undefined) rather than masking as 0.0."""
         baseline = [0.0, 0.0, 0.0]
         profile = [10.0, 12.0, 11.0]
         result = check_regression(
             baseline, profile, profile="typical", task="t1", dimension="correctness"
         )
-        assert result.delta_pct == 0.0
-        assert result.is_regression is False  # Can't be regression with delta_pct == 0
+        assert math.isnan(result.delta_pct)
+        # NaN comparisons evaluate to False, so dual-threshold regression stays False.
+        assert result.is_regression is False
 
     def test_result_contains_test_name(self):
         """RegressionResult includes which test was used."""

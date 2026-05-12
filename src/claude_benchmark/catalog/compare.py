@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import math
 from collections import defaultdict
 from itertools import combinations
 from pathlib import Path
@@ -215,6 +216,8 @@ def compare_entries(
         len(entry_pairs) * len(overlapping_keys) * len(dimensions)
     )
 
+    skipped_low_sample = 0
+
     for entry_a, entry_b in entry_pairs:
         if entry_a.run_id not in results_by_id or entry_b.run_id not in results_by_id:
             continue
@@ -235,14 +238,16 @@ def compare_entries(
                 scores_b = [run.scores[dimension] for run in runs_b if dimension in run.scores]
 
                 if len(scores_a) < 2 or len(scores_b) < 2:
+                    skipped_low_sample += 1
                     continue
 
                 mean_a = sum(scores_a) / len(scores_a)
                 mean_b = sum(scores_b) / len(scores_b)
 
-                # Calculate percentage delta
+                # Percentage delta is undefined when the baseline mean is zero;
+                # surface as NaN rather than masking it as 0.0.
                 if mean_a == 0.0:
-                    delta_pct = 0.0
+                    delta_pct = math.nan
                 else:
                     delta_pct = (mean_b - mean_a) / mean_a
 
@@ -313,4 +318,5 @@ def compare_entries(
         overlapping_keys=overlapping_keys_serialized,
         unique_keys=unique_keys_by_id,
         comparisons=comparisons,
+        skipped_low_sample=skipped_low_sample,
     )

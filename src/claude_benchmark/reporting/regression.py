@@ -10,6 +10,8 @@ preventing false positives from normal run-to-run variance.
 
 from __future__ import annotations
 
+import math
+
 from scipy import stats
 
 from claude_benchmark.reporting.models import BenchmarkResults, RegressionResult
@@ -24,7 +26,9 @@ def compute_effect_size(
     Cohen's d = (mean_treatment - mean_baseline) / pooled_std.
     Positive d means treatment scored higher than baseline.
 
-    Returns 0.0 when pooled standard deviation is zero (identical scores).
+    Returns 0.0 when both groups have identical means and zero variance.
+    Returns +inf / -inf when variance is zero but the means differ — that's
+    perfect separation with no spread, not "no effect."
     """
     n1 = len(baseline_scores)
     n2 = len(treatment_scores)
@@ -39,7 +43,9 @@ def compute_effect_size(
 
     pooled_std = ((var1 * (n1 - 1) + var2 * (n2 - 1)) / (n1 + n2 - 2)) ** 0.5
     if pooled_std < 1e-10:
-        return 0.0
+        if math.isclose(mean1, mean2, abs_tol=1e-10):
+            return 0.0
+        return math.inf if mean2 > mean1 else -math.inf
 
     return (mean2 - mean1) / pooled_std
 
@@ -77,9 +83,10 @@ def check_regression(
     baseline_mean = sum(baseline_scores) / len(baseline_scores)
     profile_mean = sum(profile_scores) / len(profile_scores)
 
-    # Calculate percentage delta (negative = profile is worse)
+    # Percentage delta is undefined when the baseline mean is zero;
+    # surface as NaN rather than masking it as 0.0.
     if baseline_mean == 0.0:
-        delta_pct = 0.0
+        delta_pct = math.nan
     else:
         delta_pct = (profile_mean - baseline_mean) / baseline_mean
 

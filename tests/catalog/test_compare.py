@@ -360,3 +360,82 @@ def test_compare_entries_with_unique_keys(tmp_path):
     # B has no unique keys
     unique_b = report.unique_keys["run-002"]
     assert len(unique_b) == 0
+
+
+def _make_results_dir(
+    tmp_path: Path,
+    name: str,
+    scores_per_run: list[dict[str, float]],
+    profile: str = "profile1",
+    task: str = "task1",
+    model: str = "model1",
+) -> Path:
+    """Build a minimal results directory with one run file per score dict."""
+    results_dir = tmp_path / name
+    results_dir.mkdir()
+    manifest = {
+        "timestamp": "2024-01-01T00:00:00Z",
+        "models": [model],
+        "profiles": [profile],
+        "tasks": [task],
+    }
+    (results_dir / "manifest.json").write_text(json.dumps(manifest))
+    for i, scores in enumerate(scores_per_run, start=1):
+        (results_dir / f"run-{i}.json").write_text(
+            json.dumps({
+                "status": "success",
+                "profile_name": profile,
+                "task_name": task,
+                "model": model,
+                "scores": scores,
+                "total_tokens": 100,
+            })
+        )
+    return results_dir
+
+
+def _entry(run_id: str, name: str, path: Path, total_runs: int) -> CatalogEntry:
+    return CatalogEntry(
+        run_id=run_id,
+        name=name,
+        timestamp="2024-01-01T00:00:00Z",
+        results_path=str(path.resolve()),
+        tags=[],
+        models=["model1"],
+        profiles=["profile1"],
+        tasks=["task1"],
+        variants=[],
+        total_runs=total_runs,
+    )
+
+
+def test_compare_entries_zero_baseline_yields_nan_delta(tmp_path):
+    """When mean of side A is zero, delta_pct is undefined and surfaces as NaN, not 0.0."""
+    import math
+
+    dir_a = _make_results_dir(
+        tmp_path, "results_a", [{"composite": 0.0}, {"composite": 0.0}]
+    )
+    dir_b = _make_results_dir(
+        tmp_path, "results_b", [{"composite": 10.0}, {"composite": 12.0}]
+    )
+    report = compare_entries([_entry("run-001", "A", dir_a, 2), _entry("run-002", "B", dir_b, 2)])
+
+    comp = next(c for c in report.comparisons if c.dimension == "composite")
+    assert math.isnan(comp.delta_pct)
+    # NaN comparisons are False; dual-threshold significance stays False.
+    assert comp.is_significant is False
+
+
+def test_compare_entries_skipped_low_sample_counted(tmp_path):
+    """Dimensions with <2 scores on one side are skipped AND counted, not silently dropped."""
+    # A has 2 runs with composite, B has only 1 run with composite (singleton).
+    dir_a = _make_results_dir(
+        tmp_path, "results_a", [{"composite": 80.0}, {"composite": 82.0}]
+    )
+    dir_b = _make_results_dir(tmp_path, "results_b", [{"composite": 90.0}])
+    report = compare_entries([_entry("run-001", "A", dir_a, 2), _entry("run-002", "B", dir_b, 1)])
+
+    # The composite comparison is skipped because len(scores_b) < 2.
+    assert report.skipped_low_sample >= 1
+    assert all(c.dimension != "composite" for c in report.comparisons) or len(report.comparisons) == 0
