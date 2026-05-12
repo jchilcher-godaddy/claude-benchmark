@@ -102,8 +102,10 @@ class CSharpStaticScorer(BaseStaticScorer):
                                 "column": change.get("CharNumber", 0),
                             },
                         })
-            except Exception:
-                logger.warning("Failed to parse dotnet format report")
+            except (json.JSONDecodeError, OSError, TypeError, AttributeError) as exc:
+                # TypeError/AttributeError cover unexpected JSON shape
+                # (e.g. FileChanges missing or not iterable).
+                logger.warning("Failed to parse dotnet format report: %s", exc)
 
         # If no report, count based on exit code
         if not violations and result.returncode != 0:

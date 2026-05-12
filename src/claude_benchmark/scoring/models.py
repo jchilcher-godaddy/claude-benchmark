@@ -13,6 +13,10 @@ from pydantic import BaseModel, Field, model_validator
 # Bump when composite weights, judge criteria, or judge model change
 SCORING_VERSION = "1.0"
 
+# Tolerance for weight-sum validation. Used anywhere user-provided weights
+# must add to 1.0 (ScoringWeights, CompositeScorer).
+WEIGHT_SUM_TOLERANCE = 1e-3
+
 
 class StaticScore(BaseModel):
     """Result of static analysis scoring (Ruff, pytest, radon)."""
@@ -112,7 +116,7 @@ class ScoringWeights(BaseModel):
     @model_validator(mode="after")
     def validate_weights_sum(self) -> ScoringWeights:
         total = self.test_pass_rate + self.lint_score + self.complexity_score
-        if abs(total - 1.0) > 0.001:
+        if abs(total - 1.0) > WEIGHT_SUM_TOLERANCE:
             raise ValueError(
                 f"Weights must sum to 1.0 (got {total:.4f}): "
                 f"test_pass_rate={self.test_pass_rate}, "

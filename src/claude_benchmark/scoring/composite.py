@@ -7,7 +7,7 @@ unavailable.
 
 from __future__ import annotations
 
-from .models import CompositeScore, LLMScore, StaticScore
+from .models import WEIGHT_SUM_TOLERANCE, CompositeScore, LLMScore, StaticScore
 
 
 class CompositeScorer:
@@ -29,7 +29,7 @@ class CompositeScorer:
         static_weight: float = 0.5,
         llm_weight: float = 0.5,
     ) -> None:
-        if abs(static_weight + llm_weight - 1.0) > 0.001:
+        if abs(static_weight + llm_weight - 1.0) > WEIGHT_SUM_TOLERANCE:
             raise ValueError(
                 f"Weights must sum to 1.0 (got {static_weight + llm_weight:.4f}): "
                 f"static_weight={static_weight}, llm_weight={llm_weight}"

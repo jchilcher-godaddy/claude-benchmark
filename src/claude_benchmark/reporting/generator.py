@@ -603,7 +603,12 @@ class ReportGenerator:
         """
         if quality_scores:
             best_profile = max(quality_scores, key=quality_scores.get)
-            return best_profile if quality_scores[best_profile] > 0 else "N/A"
+            best_val = quality_scores[best_profile]
+            # NaN indicates missing/undefined data. A legitimate all-zero run
+            # (every profile scored 0) should still report a winner, not "N/A".
+            if math.isnan(best_val) or best_val < 0:
+                return "N/A"
+            return best_profile
 
         best_score = -1.0
         best_profile = "N/A"

@@ -243,3 +243,26 @@ class TestWeightValidation:
         result = scorer.compute(make_static(80.0), make_llm(60.0))
 
         assert result.composite == 74.0
+
+
+class TestWeightTolerance:
+    """Constant-sourced tolerance should be applied consistently."""
+
+    def test_tolerance_constant_exported(self) -> None:
+        from claude_benchmark.scoring.models import WEIGHT_SUM_TOLERANCE
+
+        # Sanity: positive, small, finite.
+        assert 0 < WEIGHT_SUM_TOLERANCE < 0.1
+
+    def test_composite_scorer_uses_shared_tolerance(self) -> None:
+        from claude_benchmark.scoring.composite import CompositeScorer
+        from claude_benchmark.scoring.models import WEIGHT_SUM_TOLERANCE
+
+        # Just inside tolerance: accepted.
+        just_inside = WEIGHT_SUM_TOLERANCE / 2
+        CompositeScorer(static_weight=0.5 + just_inside, llm_weight=0.5 - just_inside)
+
+        # Just outside tolerance: rejected.
+        just_outside = WEIGHT_SUM_TOLERANCE * 10
+        with pytest.raises(ValueError, match="must sum to 1.0"):
+            CompositeScorer(static_weight=0.5 + just_outside, llm_weight=0.5)

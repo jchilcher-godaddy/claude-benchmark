@@ -737,3 +737,33 @@ class TestVariantAnalysis:
 
         # Single model → model preferences section hidden
         assert "Model-Specific Preferences" not in html
+
+
+class TestFindBestProfile:
+    """Regression tests for the N/A heuristic in _find_best_profile."""
+
+    def test_all_zero_scores_returns_profile_name_not_na(self, tmp_path: Path) -> None:
+        """When every profile tied at 0.0, report a winner rather than 'N/A'.
+
+        Prior behavior used `> 0` to detect 'no data', which conflated
+        'legitimately all zero' with 'no scores'.
+        """
+        gen = ReportGenerator(tmp_path)
+        quality_scores = {"empty": 0.0, "typical": 0.0}
+        best = gen._find_best_profile(
+            _make_sample_results(single_profile=True),
+            quality_scores=quality_scores,
+        )
+        assert best in {"empty", "typical"}
+
+    def test_nan_values_return_na(self, tmp_path: Path) -> None:
+        """NaN in quality_scores indicates missing data and should still map to 'N/A'."""
+        import math
+
+        gen = ReportGenerator(tmp_path)
+        quality_scores = {"empty": math.nan}
+        best = gen._find_best_profile(
+            _make_sample_results(single_profile=True),
+            quality_scores=quality_scores,
+        )
+        assert best == "N/A"
