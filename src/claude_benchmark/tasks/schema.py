@@ -30,12 +30,16 @@ class Language(str, Enum):
 
 
 class RubricCriteria(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str
     description: str
     weight: float = 1.0
 
 
 class ScoringCriteria(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     test_file: str
     lint_rules: Optional[list[str]] = None
     ruff_rules: Optional[list[str]] = None  # deprecated: use lint_rules
@@ -59,7 +63,7 @@ class ScoringCriteria(BaseModel):
 
 
 class TaskDefinition(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
     name: str
     task_type: TaskType

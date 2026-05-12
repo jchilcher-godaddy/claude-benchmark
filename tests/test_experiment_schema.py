@@ -122,3 +122,31 @@ class TestExperimentConfig:
     def test_missing_variants_raises(self):
         with pytest.raises(ValidationError):
             ExperimentConfig(name="x")
+
+
+class TestStrictValidation:
+    """`extra='forbid'` should reject typos in any of the three experiment schemas."""
+
+    def test_variant_unknown_field_rejected(self):
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError, match="temprature"):
+            VariantConfig(label="v1", temprature=1.0)
+
+    def test_defaults_unknown_field_rejected(self):
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError, match="repps"):
+            ExperimentDefaults(repps=10)
+
+    def test_config_unknown_field_rejected(self):
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError, match="descripshun"):
+            ExperimentConfig(
+                name="x",
+                descripshun="oops",
+                variants=[VariantConfig(label="a")],
+            )
+
+    def test_run_tests_between_turns_is_recognized(self):
+        """Placeholder field for unimplemented framework support still loads."""
+        v = VariantConfig(label="v1", run_tests_between_turns=True)
+        assert v.run_tests_between_turns is True

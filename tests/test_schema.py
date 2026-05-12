@@ -161,3 +161,32 @@ def test_task_validation_error_formatting():
         assert "my-task" in error.message
         assert "Validation failed" in error.message
         assert "name" in error.message
+
+
+def test_unknown_top_level_field_rejected():
+    """A typo'd top-level field should fail fast, not silently drop."""
+    task_dict = {
+        "name": "test-task",
+        "task_type": "code-gen",
+        "difficulty": "easy",
+        "description": "Test description",
+        "prompt": "Test prompt",
+        "scoring": {"test_file": "test_solution.py"},
+        "tagz": ["oops"],  # typo of "tags"
+    }
+    with pytest.raises(ValidationError, match="tagz"):
+        TaskDefinition(**task_dict)
+
+
+def test_unknown_scoring_field_rejected():
+    """A typo inside the scoring block (e.g. ruff_ruls vs ruff_rules) should fail."""
+    task_dict = {
+        "name": "test-task",
+        "task_type": "code-gen",
+        "difficulty": "easy",
+        "description": "Test description",
+        "prompt": "Test prompt",
+        "scoring": {"test_file": "test_solution.py", "ruff_ruls": ["E501"]},
+    }
+    with pytest.raises(ValidationError, match="ruff_ruls"):
+        TaskDefinition(**task_dict)
