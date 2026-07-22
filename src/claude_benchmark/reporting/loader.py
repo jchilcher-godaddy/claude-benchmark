@@ -431,15 +431,23 @@ def _parse_parallel_run(data: dict, path: Path) -> ReportRunResult:
 
     code_output = _read_code_output_from_output_dir(data.get("output_dir"))
 
+    score_details = data.get("scores") or {}
+    eff = score_details.get("token_efficiency") if isinstance(score_details, dict) else None
+    cost_breakdown = (eff.get("cost_breakdown_usd") if isinstance(eff, dict) else None) or {}
+
     return ReportRunResult(
         profile=data.get("profile_name", "unknown"),
         task=data.get("task_name", "unknown"),
         model=data.get("model", "unknown"),
         scores=scores,
-        score_details=data.get("scores") or {},
+        score_details=score_details,
         token_count=data.get("total_tokens", 0) or 0,
         input_tokens=data.get("input_tokens", 0) or 0,
         output_tokens=data.get("output_tokens", 0) or 0,
+        cache_creation_input_tokens=data.get("cache_creation_input_tokens", 0) or 0,
+        cache_read_input_tokens=data.get("cache_read_input_tokens", 0) or 0,
+        cost_usd=data.get("cost", 0.0) or 0.0,
+        cost_breakdown_usd=cost_breakdown,
         code_output=code_output,
         success=data.get("status") == "success",
         error=data.get("error"),
@@ -457,9 +465,11 @@ def _parse_storage_run(data: dict, path: Path) -> ReportRunResult:
     model, profile, task = _infer_from_path(path)
 
     usage = data.get("usage") or {}
-    token_count = (usage.get("input_tokens", 0) or 0) + (
-        usage.get("output_tokens", 0) or 0
-    )
+    in_tok = usage.get("input_tokens", 0) or 0
+    out_tok = usage.get("output_tokens", 0) or 0
+    cc_tok = usage.get("cache_creation_input_tokens", 0) or 0
+    cr_tok = usage.get("cache_read_input_tokens", 0) or 0
+    token_count = in_tok + out_tok + cc_tok + cr_tok
 
     code_output = _read_code_output_from_output_files(data.get("output_files"))
 
@@ -469,8 +479,11 @@ def _parse_storage_run(data: dict, path: Path) -> ReportRunResult:
         model=model,
         scores={},  # Storage format has no scores (scoring wired in Phase 7)
         token_count=token_count,
-        input_tokens=usage.get("input_tokens", 0) or 0,
-        output_tokens=usage.get("output_tokens", 0) or 0,
+        input_tokens=in_tok,
+        output_tokens=out_tok,
+        cache_creation_input_tokens=cc_tok,
+        cache_read_input_tokens=cr_tok,
+        cost_usd=data.get("total_cost_usd") or 0.0,
         code_output=code_output,
         success=data.get("success", False),
         error=data.get("error"),

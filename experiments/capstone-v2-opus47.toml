@@ -1,0 +1,156 @@
+name = "capstone-v2-opus47"
+description = """Opus 4.7 replay of capstone-v2 — opus slice only, 5-rep pilot. \
+Pair with experiment-capstone-v2-20260423-120039 via `compare --cross-variant` \
+for the 4.7 vs 4.6 delta. Directional signal only at 5 reps; \
+findings are pilot-level, not confirmed. \
+Findings (run-058, 2026-05-12): aggregate parity vs 4.6 (-0.58), Python +1.73, \
+C# regression -3.40, "stack-resistance" pattern where persona/CoT/verify variants \
+that lifted 4.6 hurt 4.7 (python-js-stack -4.53, go-cs-stack -3.05). \
+Kitchen-sink had zero scored runs — `temperature = 0.0` is rejected by Opus 4.7 \
+("`temperature` is deprecated for this model"); variant now uses default temp. \
+A 15-rep follow-up was attempted (run dir 20260512-152859) but tripped the \
+proxy token's $300 budget cap after 143 runs; deferred until cap is raised. \
+Total: 5 reps x 48 tasks x 1 model x 10 variants = 2,400 runs."""
+
+[defaults]
+tasks = [
+    # Python
+    "code-gen-01", "code-gen-02", "code-gen-03", "code-gen-04", "code-gen-05",
+    "bug-fix-01", "bug-fix-02", "bug-fix-03", "bug-fix-04",
+    "refactor-01", "refactor-02", "refactor-03",
+    # Go
+    "code-gen-01-go", "code-gen-02-go", "code-gen-03-go", "code-gen-04-go", "code-gen-05-go",
+    "bug-fix-01-go", "bug-fix-02-go", "bug-fix-03-go", "bug-fix-04-go",
+    "refactor-01-go", "refactor-02-go", "refactor-03-go",
+    # JavaScript
+    "code-gen-01-js", "code-gen-02-js", "code-gen-03-js", "code-gen-04-js", "code-gen-05-js",
+    "bug-fix-01-js", "bug-fix-02-js", "bug-fix-03-js", "bug-fix-04-js",
+    "refactor-01-js", "refactor-02-js", "refactor-03-js",
+    # C#
+    "code-gen-01-cs", "code-gen-02-cs", "code-gen-03-cs", "code-gen-04-cs", "code-gen-05-cs",
+    "bug-fix-01-cs", "bug-fix-02-cs", "bug-fix-03-cs", "bug-fix-04-cs",
+    "refactor-01-cs", "refactor-02-cs", "refactor-03-cs",
+]
+models = ["opus-4-7"]
+profiles = ["empty"]
+reps = 5
+
+# =============================================================================
+# v1: Bare control — within-experiment baseline
+# =============================================================================
+[[variants]]
+label = "bare"
+
+# =============================================================================
+# v2: Python/JS optimal stack — persona + polite, no CoT
+# =============================================================================
+[[variants]]
+label = "python-js-stack"
+prompt_prefix = "Could you please "
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."
+
+# =============================================================================
+# v3: Go/C# optimal stack — CoT only, no persona, no polite
+# =============================================================================
+[[variants]]
+label = "go-cs-stack"
+prompt_prefix = "Think step by step. "
+
+# =============================================================================
+# v4: Persona + CoT — highest-value untested interaction
+# =============================================================================
+[[variants]]
+label = "persona-plus-cot"
+prompt_prefix = "Think step by step. "
+system_prompt_extra = "You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write."
+
+# =============================================================================
+# v5: Outcome-focused — "state WHAT not HOW"
+# =============================================================================
+[[variants]]
+label = "outcome-focused"
+prompt_prefix = "Produce code that is correct, handles edge cases, and is easy to read. The result should pass all tests and follow standard conventions. "
+
+# =============================================================================
+# v6: Implementation-focused — paired comparison for v5
+# =============================================================================
+[[variants]]
+label = "implementation-focused"
+prompt_prefix = "Use early returns for validation, extract helper functions for repeated logic, add type hints to all parameters, and use list comprehensions where appropriate. "
+
+# =============================================================================
+# v7: Positive framing — isolated valence test
+# =============================================================================
+[[variants]]
+label = "positive-framing"
+system_prompt_extra = """- Use guard clauses and early returns to keep functions flat
+- Extract helper functions when logic repeats
+- Use descriptive names that reveal intent
+- Handle edge cases explicitly with informative error messages
+- Remove unused code before finishing"""
+
+# =============================================================================
+# v8: Negative framing — paired comparison for v7
+# =============================================================================
+[[variants]]
+label = "negative-framing"
+system_prompt_extra = """- Do not create deeply nested code when guard clauses would work
+- Do not duplicate logic across functions without extracting helpers
+- Do not use abbreviations or single-letter variable names
+- Do not ignore edge cases or use bare except clauses
+- Do not leave dead code, commented-out code, or unused imports"""
+
+# =============================================================================
+# v9: Verification on optimized stack — interaction test
+# =============================================================================
+[[variants]]
+label = "verify-on-stack"
+prompt_prefix = "Could you please "
+system_prompt_extra = """You are a meticulous code reviewer. Focus on correctness, edge cases, and maintainability in every line you write.
+After writing your code, trace through at least 3 concrete input/output examples including one edge case. If any example produces wrong output, fix your code before finalizing."""
+
+# =============================================================================
+# v10: Kitchen sink — anti-pattern anchor
+# NOTE: temperature override removed — Opus 4.7 rejects explicit temperature
+# ("`temperature` is deprecated for this model"). Original capstone-v2 ran this
+# variant with temperature=0.0 on Opus 4.6; cross-version comparison should
+# acknowledge this small drift.
+# =============================================================================
+[[variants]]
+label = "kitchen-sink"
+prompt_prefix = "Before writing any code, analyze the requirements step by step. Consider edge cases and potential issues. Then implement your solution. "
+system_prompt_extra = """You are a senior staff engineer with deep experience in distributed systems and API design. Think step-by-step before writing code. Outline your approach in comments before implementation.
+
+Code Style Rules:
+- Use snake_case for variables and functions, PascalCase for classes
+- Prefix booleans with is_, has_, can_, should_
+- Use descriptive names, never single letters except loop counters
+- 4 spaces indentation, max 100 char line length
+- Trailing commas in multi-line collections
+- Use early returns to reduce nesting depth
+- Group imports: standard library, third-party, local (separated by blank lines)
+- Every public function and class MUST have a docstring
+- Write comments that explain "why", not "what"
+
+Architecture Principles:
+- Prefer composition over inheritance
+- Design to interfaces, not implementations
+- Single Responsibility Principle for every function and class
+- Explicit dependency injection over global state
+- Make illegal states unrepresentable through types
+- Validate all inputs at system boundaries
+
+Error Handling:
+- Use custom exception classes organized by domain
+- Never catch generic exceptions unless you re-raise
+- Exceptions should carry enough context for debugging
+- Fail fast: validate inputs early and reject invalid state
+- Error messages must be actionable
+
+Testing:
+- Write tests first for bug fixes
+- Test behavior, not implementation
+- Each test tests one thing with a descriptive name
+- Arrange-act-assert pattern
+- Mock at system boundaries only, prefer real implementations
+- Aim for 80%+ coverage on new code"""

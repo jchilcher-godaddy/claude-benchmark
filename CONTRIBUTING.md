@@ -3,7 +3,7 @@
 ## Development Setup
 
 ```bash
-git clone https://github.com/jchilcher/claude-benchmark.git
+git clone https://github.com/jchilcher-godaddy/claude-benchmark.git
 cd claude-benchmark
 python -m venv .venv
 source .venv/bin/activate

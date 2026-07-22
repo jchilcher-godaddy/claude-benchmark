@@ -22,6 +22,7 @@ BEDROCK_MODEL_MAP: dict[str, str] = {
     "sonnet": "us.anthropic.claude-sonnet-4-6",
     "haiku": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
     "opus": "us.anthropic.claude-opus-4-6-v1",
+    "opus-4-7": "us.anthropic.claude-opus-4-7-v1",
 }
 
 # Short model name -> standard Anthropic model ID (direct API)
@@ -29,13 +30,15 @@ ANTHROPIC_MODEL_MAP: dict[str, str] = {
     "sonnet": "claude-sonnet-4-6",
     "haiku": "claude-haiku-4-5-20251001",
     "opus": "claude-opus-4-6",
+    "opus-4-7": "claude-opus-4-7",
 }
 
-# Short model name -> GoCode model ID (OpenAI-compatible proxy)
-GOCODE_MODEL_MAP: dict[str, str] = {
+# Short model name -> Proxy model ID (OpenAI-compatible proxy)
+PROXY_MODEL_MAP: dict[str, str] = {
     "sonnet": "claude-sonnet-4-5-20250929",
     "haiku": "claude-haiku-4-5-20251001",
     "opus": "claude-opus-4-6",
+    "opus-4-7": "claude-opus-4-7",
 }
 
 
@@ -65,15 +68,15 @@ def create_client(use_direct_api: bool = False) -> anthropic.Anthropic | anthrop
     return anthropic.AnthropicBedrock()
 
 
-def create_gocode_client():
-    """Create an OpenAI client pointed at GoCode with cert-based JWT auth.
+def create_proxy_client():
+    """Create an OpenAI client pointed at proxy with cert-based JWT auth.
 
     Returns:
         An openai.OpenAI client instance.
     """
     import openai
 
-    from claude_benchmark.execution.gocode_auth import get_token_manager
+    from claude_benchmark.execution.proxy_auth import get_token_manager
 
     mgr = get_token_manager()
     token = mgr.get_token()
@@ -81,7 +84,7 @@ def create_gocode_client():
 
 
 def resolve_model_id(
-    short_name: str, use_direct_api: bool = False, use_gocode: bool = False
+    short_name: str, use_direct_api: bool = False, use_proxy: bool = False
 ) -> str:
     """Map a short model name to the appropriate model ID.
 
@@ -89,13 +92,13 @@ def resolve_model_id(
         short_name: Short model name (e.g. "sonnet", "haiku", "opus").
         use_direct_api: If True, return standard Anthropic model ID.
             If False, return Bedrock model ID.
-        use_gocode: If True, return GoCode model ID.
+        use_proxy: If True, return Proxy model ID.
 
     Returns:
         The resolved model ID string, or short_name unchanged if not mapped.
     """
-    if use_gocode:
-        return GOCODE_MODEL_MAP.get(short_name, short_name)
+    if use_proxy:
+        return PROXY_MODEL_MAP.get(short_name, short_name)
     model_map = ANTHROPIC_MODEL_MAP if use_direct_api else BEDROCK_MODEL_MAP
     return model_map.get(short_name, short_name)
 

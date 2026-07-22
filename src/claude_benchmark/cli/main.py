@@ -8,7 +8,10 @@ from claude_benchmark.cli.commands.export import export_data
 from claude_benchmark.cli.commands.intake import intake
 from claude_benchmark.cli.commands.report import report
 from claude_benchmark.cli.commands.rescore import rescore
+from claude_benchmark.cli.commands.rigor import rigor
 from claude_benchmark.cli.commands.run import run
+from claude_benchmark.cli.commands.run_accounting import run_accounting
+from claude_benchmark.cli.commands.sensitivity import sensitivity
 from claude_benchmark.cli.new_task import new_task
 from claude_benchmark.cli.profiles import list_profiles
 
@@ -24,6 +27,9 @@ app.command("export")(export_data)
 app.command()(rescore)
 app.command()(intake)
 app.command()(compare)
+app.command()(rigor)
+app.command()(sensitivity)
+app.command("run-accounting")(run_accounting)
 app.add_typer(catalog_app)
 
 

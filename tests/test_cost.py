@@ -12,6 +12,8 @@ from claude_benchmark.execution.cost import (
     JUDGE_MODEL,
     MODEL_PRICING,
     CostTracker,
+    compute_cost,
+    cost_breakdown,
     estimate_suite_cost,
 )
 
@@ -276,3 +278,114 @@ class TestMultiTurnCostEstimation:
         cost_default = tracker.estimate_total_cost(run_default, include_judge=False)
         assert cost_none == pytest.approx(cost_default)
         assert cost_empty == pytest.approx(cost_default)
+
+
+class TestComputeCostWithCache:
+    """compute_cost prices all four token categories independently."""
+
+    def test_sonnet_full_breakdown(self) -> None:
+        # Sonnet: $3 in / $15 out / $3.75 cw / $0.30 cr
+        # 1M each = 3 + 15 + 3.75 + 0.30 = $22.05
+        cost = compute_cost(
+            input_tokens=1_000_000,
+            output_tokens=1_000_000,
+            cache_creation_input_tokens=1_000_000,
+            cache_read_input_tokens=1_000_000,
+            model="sonnet",
+        )
+        assert cost == pytest.approx(22.05)
+
+    def test_haiku_full_breakdown(self) -> None:
+        # Haiku: $1 in / $5 out / $1.25 cw / $0.10 cr
+        # 1M each = 1 + 5 + 1.25 + 0.10 = $7.35
+        cost = compute_cost(
+            input_tokens=1_000_000,
+            output_tokens=1_000_000,
+            cache_creation_input_tokens=1_000_000,
+            cache_read_input_tokens=1_000_000,
+            model="haiku",
+        )
+        assert cost == pytest.approx(7.35)
+
+    def test_opus_full_breakdown(self) -> None:
+        # Opus: $5 in / $25 out / $6.25 cw / $0.50 cr
+        # 1M each = 5 + 25 + 6.25 + 0.50 = $36.75
+        cost = compute_cost(
+            input_tokens=1_000_000,
+            output_tokens=1_000_000,
+            cache_creation_input_tokens=1_000_000,
+            cache_read_input_tokens=1_000_000,
+            model="opus",
+        )
+        assert cost == pytest.approx(36.75)
+
+    def test_cache_write_is_125pct_of_input(self) -> None:
+        for model in ("haiku", "sonnet", "opus"):
+            input_price = MODEL_PRICING[model]["input"]
+            assert MODEL_PRICING[model]["cache_write"] == pytest.approx(
+                input_price * 1.25
+            )
+
+    def test_cache_read_is_10pct_of_input(self) -> None:
+        for model in ("haiku", "sonnet", "opus"):
+            input_price = MODEL_PRICING[model]["input"]
+            assert MODEL_PRICING[model]["cache_read"] == pytest.approx(
+                input_price * 0.10
+            )
+
+    def test_no_cache_matches_old_pricing(self) -> None:
+        # When cache fields are 0, compute_cost should match the simple
+        # input + output formula (regression check for backward compat).
+        cost = compute_cost(
+            input_tokens=4000, output_tokens=2000, model="sonnet"
+        )
+        expected = (4000 / 1_000_000) * 3.0 + (2000 / 1_000_000) * 15.0
+        assert cost == pytest.approx(expected)
+
+    def test_unknown_model_falls_back_to_sonnet(self) -> None:
+        cost_unknown = compute_cost(
+            input_tokens=1_000_000,
+            cache_creation_input_tokens=1_000_000,
+            model="not-a-real-model",
+        )
+        cost_sonnet = compute_cost(
+            input_tokens=1_000_000,
+            cache_creation_input_tokens=1_000_000,
+            model="sonnet",
+        )
+        assert cost_unknown == pytest.approx(cost_sonnet)
+
+
+class TestCostBreakdown:
+    """cost_breakdown returns per-category totals that sum to compute_cost."""
+
+    def test_breakdown_keys(self) -> None:
+        bd = cost_breakdown(input_tokens=1, output_tokens=1, model="sonnet")
+        assert set(bd.keys()) == {"fresh_input", "output", "cache_write", "cache_read"}
+
+    def test_breakdown_sums_to_total(self) -> None:
+        kwargs = dict(
+            input_tokens=4000,
+            output_tokens=2000,
+            cache_creation_input_tokens=10_000,
+            cache_read_input_tokens=50_000,
+            model="sonnet",
+        )
+        total = compute_cost(**kwargs)
+        bd = cost_breakdown(**kwargs)
+        assert sum(bd.values()) == pytest.approx(total)
+
+    def test_breakdown_proportions_match_anthropic_pricing(self) -> None:
+        # 1M each. Sonnet: 3 / 15 / 3.75 / 0.30 = $22.05 total
+        # Output should be 15/22.05 ≈ 68% of cost
+        bd = cost_breakdown(
+            input_tokens=1_000_000,
+            output_tokens=1_000_000,
+            cache_creation_input_tokens=1_000_000,
+            cache_read_input_tokens=1_000_000,
+            model="sonnet",
+        )
+        total = sum(bd.values())
+        assert bd["output"] / total == pytest.approx(15 / 22.05, abs=1e-4)
+        assert bd["cache_write"] / total == pytest.approx(3.75 / 22.05, abs=1e-4)
+        assert bd["cache_read"] / total == pytest.approx(0.30 / 22.05, abs=1e-4)

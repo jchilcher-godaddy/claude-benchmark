@@ -315,17 +315,34 @@ def run(
         help="Use direct Anthropic API instead of AWS Bedrock. "
         "Requires ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY env vars.",
     ),
+    judge_model: Optional[str] = typer.Option(
+        None,
+        "--judge-model",
+        help=(
+            "LLM judge spec. Defaults to 'haiku'. Use 'gpt-4o' or "
+            "'openai:<model-id>' for OpenAI; 'gemini-2.5-pro' or "
+            "'gemini:<model-id>' for Google. Cross-family judges require "
+            "OPENAI_API_KEY / GOOGLE_API_KEY."
+        ),
+    ),
 ) -> None:
     """Run benchmark tasks against CLAUDE.md profiles with parallel execution."""
+    if not skip_llm_judge:
+        from claude_benchmark.cli.judge_validation import validate_judge_spec
+
+        judge_error = validate_judge_spec(judge_model)
+        if judge_error:
+            console.print(f"[red]Error:[/red] {judge_error}")
+            raise typer.Exit(1)
     if direct_api:
-        from claude_benchmark.execution.gocode_auth import is_gocode_configured
+        from claude_benchmark.execution.proxy_auth import is_proxy_configured
 
-        if is_gocode_configured():
-            from claude_benchmark.execution.gocode_auth import validate_gocode_credentials
+        if is_proxy_configured():
+            from claude_benchmark.execution.proxy_auth import validate_proxy_credentials
 
-            cred_error = validate_gocode_credentials()
+            cred_error = validate_proxy_credentials()
             if cred_error:
-                console.print(f"[red]Error:[/red] GoCode credential check failed: {cred_error}")
+                console.print(f"[red]Error:[/red] Proxy credential check failed: {cred_error}")
                 raise typer.Exit(1)
         else:
             from claude_benchmark.execution.client import validate_direct_api_env
@@ -539,6 +556,7 @@ def run(
                 strict=strict_scoring, progress=progress_cb,
                 llm_concurrency=effective_judge_concurrency,
                 static_concurrency=effective_static_concurrency,
+                judge_model=judge_model,
             )
         results, aggregation = dashboard.run_scoring_with_display(_do_scoring)
     else:
@@ -547,6 +565,7 @@ def run(
             strict=strict_scoring, progress=log_output,
             llm_concurrency=effective_judge_concurrency,
             static_concurrency=effective_static_concurrency,
+            judge_model=judge_model,
         )
     progress_output = dashboard if is_tty else log_output  # type: ignore[possibly-undefined]
 

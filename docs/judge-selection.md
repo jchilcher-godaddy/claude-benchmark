@@ -107,6 +107,8 @@ Re-run `cb calibrate` if:
 - The builtin task set changes substantially (new reference solutions)
 - You add custom criteria that might change model sensitivity
 - You observe unexpected scoring patterns in experiment results
+- After human-rater validation, to compare per-criterion human-judge agreement
+- After a cross-family judge run, to verify Haiku's ranking holds when using GPT-4o or Gemini
 
 ```bash
 # Quick check with one task
@@ -115,6 +117,18 @@ cb calibrate --task code-gen-01 --reps 1 --model haiku
 # Full calibration (saves JSON report)
 cb calibrate --output calibration-report.json
 ```
+
+---
+
+## Limitations of the Calibration Method
+
+**The calibration gradient is synthetic, not drawn from real model outputs.** The three quality tiers (gold, mild, severe) are produced by programmatic degradation of reference solutions: stripping docstrings, renaming variables to single letters, removing type hints, flattening try/except blocks. This is a controlled signal, not a sample of LLM outputs at varying quality. The high discrimination score (d=2.03) reflects Haiku's ability to separate this specific synthetic gradient. Whether that discrimination transfers to real model outputs — where quality differences are more subtle and multi-dimensional — has not been verified. The calibration establishes a necessary condition for judge utility, not a sufficient one.
+
+**No expert-human-rater study has been conducted.** The judge has not been validated against assessments by professional software engineers or domain experts. Human-judge agreement is the standard validity check for LLM-as-judge systems and has not been performed here. This is the single largest validity gap and the recommended next step before any external publication of findings. Results from a human-rater study may revise the per-criterion weights or the choice of judge model.
+
+**Haiku is in the same model family as the subjects.** The primary benchmark subjects are Sonnet and Opus, which are in the same Claude family as Haiku. While the calibration demonstrates determinism and discrimination, in-family bias — where Haiku's aesthetic or stylistic preferences align with Sonnet/Opus outputs in ways that diverge from human preferences — cannot be ruled out. Cross-family judge support (`docs/cross-family-judges.md`) allows rescoring a sampled subset with GPT-4o or Gemini to check for sign-stability of key effects.
+
+**Calibration sample size is small.** The calibration study used 27 samples (9 tasks × 3 tiers) scored 5 times each for Haiku and Sonnet, and 3 times for Opus, totaling 351 API calls. The Sonnet-judge variance estimate (0.126) is based on this small sample and may understate true variability. The discrimination and tier-correlation estimates carry meaningful uncertainty that is not reflected in the summary table.
 
 ## Source Code Reference
 

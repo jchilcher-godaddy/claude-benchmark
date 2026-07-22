@@ -21,10 +21,10 @@ import anyio
 
 from claude_benchmark.execution.client import (
     create_client,
-    create_gocode_client,
+    create_proxy_client,
     resolve_model_id,
 )
-from claude_benchmark.execution.cost import MODEL_PRICING
+from claude_benchmark.execution.cost import MODEL_PRICING, compute_cost
 from claude_benchmark.execution.parallel import BenchmarkRun, RunResult
 
 logger = logging.getLogger(__name__)
@@ -178,10 +178,13 @@ def _run_anthropic_tool_loop(
     assistant/tool messages until the model stops requesting tools or the
     iteration limit is reached.
 
-    Returns (input_tokens, output_tokens) accumulated during this turn.
+    Returns (input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens)
+    accumulated during this turn.
     """
     turn_input = 0
     turn_output = 0
+    turn_cache_create = 0
+    turn_cache_read = 0
 
     for _ in range(_MAX_TOOL_ITERATIONS):
         for attempt in range(_RATE_LIMIT_MAX_RETRIES + 1):
@@ -209,6 +212,8 @@ def _run_anthropic_tool_loop(
 
         turn_input += response.usage.input_tokens
         turn_output += response.usage.output_tokens
+        turn_cache_create += getattr(response.usage, "cache_creation_input_tokens", 0) or 0
+        turn_cache_read += getattr(response.usage, "cache_read_input_tokens", 0) or 0
 
         tool_uses = [b for b in response.content if b.type == "tool_use"]
 
@@ -249,7 +254,7 @@ def _run_anthropic_tool_loop(
         messages.append({"role": "assistant", "content": response.content})
         messages.append({"role": "user", "content": tool_results})
 
-    return turn_input, turn_output
+    return turn_input, turn_output, turn_cache_create, turn_cache_read
 
 
 def _execute_via_api_sync(
@@ -273,27 +278,33 @@ def _execute_via_api_sync(
     messages = [{"role": "user", "content": task_prompt}]
     total_input = 0
     total_output = 0
+    total_cache_create = 0
+    total_cache_read = 0
     turn_count = 1
 
     try:
         # Initial turn
-        inp, out = _run_anthropic_tool_loop(
+        inp, out, cc, cr = _run_anthropic_tool_loop(
             client, model_id, system_prompt, messages,
             run.temperature, work_dir, run.result_key,
         )
         total_input += inp
         total_output += out
+        total_cache_create += cc
+        total_cache_read += cr
 
         # Follow-up turns
         for follow_up in run.follow_up_prompts or []:
             turn_count += 1
             messages.append({"role": "user", "content": follow_up})
-            inp, out = _run_anthropic_tool_loop(
+            inp, out, cc, cr = _run_anthropic_tool_loop(
                 client, model_id, system_prompt, messages,
                 run.temperature, work_dir, run.result_key,
             )
             total_input += inp
             total_output += out
+            total_cache_create += cc
+            total_cache_read += cr
 
         # Copy files from work_dir to output_dir
         for item in work_dir.iterdir():
@@ -303,25 +314,34 @@ def _execute_via_api_sync(
                 shutil.copytree(item, output_dir / item.name, dirs_exist_ok=True)
 
         duration = time.monotonic() - start_time
-        total_tokens = total_input + total_output
+        total_tokens = total_input + total_output + total_cache_create + total_cache_read
 
-        pricing = MODEL_PRICING.get(run.model, MODEL_PRICING["sonnet"])
-        cost = (
-            (total_input / 1_000_000) * pricing["input"]
-            + (total_output / 1_000_000) * pricing["output"]
+        cost = compute_cost(
+            input_tokens=total_input,
+            output_tokens=total_output,
+            cache_creation_input_tokens=total_cache_create,
+            cache_read_input_tokens=total_cache_read,
+            model=run.model,
         )
 
-        return RunResult(
+        result = RunResult(
             run=run,
             status="success",
             output_dir=output_dir,
             input_tokens=total_input,
             output_tokens=total_output,
+            cache_creation_input_tokens=total_cache_create,
+            cache_read_input_tokens=total_cache_read,
             total_tokens=total_tokens,
             cost=cost,
             duration_seconds=duration,
             turn_count=turn_count,
         )
+        # Record the resolved provider model ID so a later reader can
+        # tell which snapshot a short alias ("haiku", "sonnet") mapped
+        # to at run time.
+        result.model_snapshot = model_id
+        return result
 
     except Exception as exc:
         duration = time.monotonic() - start_time
@@ -337,7 +357,7 @@ def _execute_via_api_sync(
         )
 
 
-def _run_gocode_tool_loop(
+def _run_proxy_tool_loop(
     client,
     model_id: str,
     messages: list[dict],
@@ -345,17 +365,20 @@ def _run_gocode_tool_loop(
     work_dir: Path,
     result_key: str,
 ) -> tuple[int, int]:
-    """Run the tool-iteration loop for one conversation turn (GoCode/OpenAI API).
+    """Run the tool-iteration loop for one conversation turn (proxy/OpenAI API).
 
-    Returns (input_tokens, output_tokens) accumulated during this turn.
-    The client is returned in case it was refreshed during auth retry.
+    Returns (input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens)
+    accumulated during this turn. The client is returned in case it was refreshed
+    during auth retry.
     """
     import openai
 
-    from claude_benchmark.execution.gocode_auth import get_token_manager
+    from claude_benchmark.execution.proxy_auth import get_token_manager
 
     turn_input = 0
     turn_output = 0
+    turn_cache_create = 0
+    turn_cache_read = 0
 
     for _ in range(_MAX_TOOL_ITERATIONS):
         for attempt in range(_RATE_LIMIT_MAX_RETRIES + 1):
@@ -373,7 +396,7 @@ def _run_gocode_tool_loop(
             except openai.AuthenticationError:
                 mgr = get_token_manager()
                 mgr.invalidate()
-                client = create_gocode_client()
+                client = create_proxy_client()
                 if attempt >= _RATE_LIMIT_MAX_RETRIES:
                     raise
             except openai.RateLimitError:
@@ -399,6 +422,32 @@ def _run_gocode_tool_loop(
         if response.usage:
             turn_input += response.usage.prompt_tokens
             turn_output += response.usage.completion_tokens
+            # LiteLLM/OpenAI-compat proxies may pass Anthropic cache fields
+            # through `usage` even though the typed schema doesn't expose them.
+            # Access defensively: getattr first (Pydantic model_extra), then
+            # __dict__, then prompt_tokens_details.cached_tokens (OpenAI shape).
+            cc = getattr(response.usage, "cache_creation_input_tokens", None)
+            cr = getattr(response.usage, "cache_read_input_tokens", None)
+            if cc is None or cr is None:
+                extra = getattr(response.usage, "model_extra", None) or {}
+                if cc is None:
+                    cc = extra.get("cache_creation_input_tokens")
+                if cr is None:
+                    cr = extra.get("cache_read_input_tokens")
+            if cr is None:
+                details = getattr(response.usage, "prompt_tokens_details", None)
+                if details is not None:
+                    cr = getattr(details, "cached_tokens", None)
+
+            def _to_int(v: object) -> int:
+                if isinstance(v, bool):
+                    return 0
+                if isinstance(v, (int, float)):
+                    return int(v)
+                return 0
+
+            turn_cache_create += _to_int(cc)
+            turn_cache_read += _to_int(cr)
 
         if choice.finish_reason != "tool_calls" or not choice.message.tool_calls:
             # Append the final assistant message so follow-up turns see it
@@ -441,23 +490,23 @@ def _run_gocode_tool_loop(
                     "content": f"Unknown tool: {tool_call.function.name}",
                 })
 
-    return turn_input, turn_output
+    return turn_input, turn_output, turn_cache_create, turn_cache_read
 
 
-def _execute_via_gocode_sync(
+def _execute_via_proxy_sync(
     run: BenchmarkRun,
     work_dir: Path,
     output_dir: Path,
     task_prompt: str,
     system_prompt: str,
 ) -> RunResult:
-    """Execute a run via GoCode (OpenAI-compatible) API with cert-based JWT auth.
+    """Execute a run via proxy (OpenAI-compatible) API with cert-based JWT auth.
 
     Supports multi-turn conversations via run.follow_up_prompts.
     """
     start_time = time.monotonic()
-    model_id = resolve_model_id(run.model, use_gocode=True)
-    client = create_gocode_client()
+    model_id = resolve_model_id(run.model, use_proxy=True)
+    client = create_proxy_client()
 
     messages: list[dict] = []
     if system_prompt:
@@ -466,25 +515,31 @@ def _execute_via_gocode_sync(
 
     total_input = 0
     total_output = 0
+    total_cache_create = 0
+    total_cache_read = 0
     turn_count = 1
 
     try:
         # Initial turn
-        inp, out = _run_gocode_tool_loop(
+        inp, out, cc, cr = _run_proxy_tool_loop(
             client, model_id, messages, run.temperature, work_dir, run.result_key,
         )
         total_input += inp
         total_output += out
+        total_cache_create += cc
+        total_cache_read += cr
 
         # Follow-up turns
         for follow_up in run.follow_up_prompts or []:
             turn_count += 1
             messages.append({"role": "user", "content": follow_up})
-            inp, out = _run_gocode_tool_loop(
+            inp, out, cc, cr = _run_proxy_tool_loop(
                 client, model_id, messages, run.temperature, work_dir, run.result_key,
             )
             total_input += inp
             total_output += out
+            total_cache_create += cc
+            total_cache_read += cr
 
         for item in work_dir.iterdir():
             if item.is_file():
@@ -493,30 +548,36 @@ def _execute_via_gocode_sync(
                 shutil.copytree(item, output_dir / item.name, dirs_exist_ok=True)
 
         duration = time.monotonic() - start_time
-        total_tokens = total_input + total_output
-        pricing = MODEL_PRICING.get(run.model, MODEL_PRICING["sonnet"])
-        cost = (
-            (total_input / 1_000_000) * pricing["input"]
-            + (total_output / 1_000_000) * pricing["output"]
+        total_tokens = total_input + total_output + total_cache_create + total_cache_read
+        cost = compute_cost(
+            input_tokens=total_input,
+            output_tokens=total_output,
+            cache_creation_input_tokens=total_cache_create,
+            cache_read_input_tokens=total_cache_read,
+            model=run.model,
         )
 
-        return RunResult(
+        result = RunResult(
             run=run,
             status="success",
             output_dir=output_dir,
             input_tokens=total_input,
             output_tokens=total_output,
+            cache_creation_input_tokens=total_cache_create,
+            cache_read_input_tokens=total_cache_read,
             total_tokens=total_tokens,
             cost=cost,
             duration_seconds=duration,
             turn_count=turn_count,
         )
+        result.model_snapshot = model_id
+        return result
 
     except Exception as exc:
         duration = time.monotonic() - start_time
         error_msg = str(exc)
         if is_auth_error(exc):
-            error_msg = f"gocode_auth_failed: {exc}"
+            error_msg = f"proxy_auth_failed: {exc}"
         return RunResult(
             run=run,
             status="failure",
@@ -703,6 +764,8 @@ async def execute_single_run(run: BenchmarkRun) -> RunResult:
 
                 input_tokens = 0
                 output_tokens = 0
+                cache_create = 0
+                cache_read = 0
                 cost = 0.0
                 try:
                     output_data = json.loads(stdout_text)
@@ -710,20 +773,26 @@ async def execute_single_run(run: BenchmarkRun) -> RunResult:
                         usage = output_data.get("usage", {})
                         input_tokens = usage.get("input_tokens", 0)
                         output_tokens = usage.get("output_tokens", 0)
+                        cache_create = usage.get("cache_creation_input_tokens", 0) or 0
+                        cache_read = usage.get("cache_read_input_tokens", 0) or 0
                 except (json.JSONDecodeError, TypeError):
                     pass
 
-                if input_tokens or output_tokens:
-                    pricing = MODEL_PRICING.get(run.model, MODEL_PRICING["sonnet"])
-                    cost = (
-                        (input_tokens / 1_000_000) * pricing["input"]
-                        + (output_tokens / 1_000_000) * pricing["output"]
+                if input_tokens or output_tokens or cache_create or cache_read:
+                    cost = compute_cost(
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                        cache_creation_input_tokens=cache_create,
+                        cache_read_input_tokens=cache_read,
+                        model=run.model,
                     )
 
                 return RunResult(
                     run=run, status="success", output_dir=output_dir,
                     input_tokens=input_tokens, output_tokens=output_tokens,
-                    total_tokens=input_tokens + output_tokens,
+                    cache_creation_input_tokens=cache_create,
+                    cache_read_input_tokens=cache_read,
+                    total_tokens=input_tokens + output_tokens + cache_create + cache_read,
                     cost=cost, duration_seconds=duration,
                 )
         except Exception as exc:
@@ -759,11 +828,11 @@ async def execute_single_run(run: BenchmarkRun) -> RunResult:
         if run.prompt_prefix:
             api_task_prompt = run.prompt_prefix + api_task_prompt
         try:
-            from claude_benchmark.execution.gocode_auth import is_gocode_configured
+            from claude_benchmark.execution.proxy_auth import is_proxy_configured
 
-            if run.use_direct_api and is_gocode_configured():
+            if run.use_direct_api and is_proxy_configured():
                 return await anyio.to_thread.run_sync(
-                    lambda: _execute_via_gocode_sync(
+                    lambda: _execute_via_proxy_sync(
                         run, work_dir, output_dir, api_task_prompt, system_prompt
                     )
                 )
@@ -842,6 +911,8 @@ async def execute_single_run(run: BenchmarkRun) -> RunResult:
             # Parse token usage from JSON output if available
             input_tokens = 0
             output_tokens = 0
+            cache_create = 0
+            cache_read = 0
             total_tokens = 0
             cost = 0.0
 
@@ -851,16 +922,22 @@ async def execute_single_run(run: BenchmarkRun) -> RunResult:
                     usage = output_data.get("usage", {})
                     input_tokens = usage.get("input_tokens", 0)
                     output_tokens = usage.get("output_tokens", 0)
-                    total_tokens = input_tokens + output_tokens
+                    cache_create = usage.get("cache_creation_input_tokens", 0) or 0
+                    cache_read = usage.get("cache_read_input_tokens", 0) or 0
+                    total_tokens = (
+                        input_tokens + output_tokens + cache_create + cache_read
+                    )
             except (json.JSONDecodeError, TypeError):
                 pass  # Non-JSON output, metrics unavailable
 
             # Compute cost from token usage
-            if input_tokens or output_tokens:
-                pricing = MODEL_PRICING.get(run.model, MODEL_PRICING["sonnet"])
-                cost = (
-                    (input_tokens / 1_000_000) * pricing["input"]
-                    + (output_tokens / 1_000_000) * pricing["output"]
+            if input_tokens or output_tokens or cache_create or cache_read:
+                cost = compute_cost(
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    cache_creation_input_tokens=cache_create,
+                    cache_read_input_tokens=cache_read,
+                    model=run.model,
                 )
 
             return RunResult(
@@ -869,6 +946,8 @@ async def execute_single_run(run: BenchmarkRun) -> RunResult:
                 output_dir=output_dir,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
+                cache_creation_input_tokens=cache_create,
+                cache_read_input_tokens=cache_read,
                 total_tokens=total_tokens,
                 cost=cost,
                 duration_seconds=duration,

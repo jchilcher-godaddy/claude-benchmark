@@ -294,3 +294,75 @@ class TestCostWeightedEfficiency:
 
         assert output_heavy.cost_usd > input_heavy.cost_usd
         assert input_heavy.points_per_dollar > output_heavy.points_per_dollar
+
+
+class TestCacheTokenCosts:
+    """compute_token_efficiency factors cache_creation/cache_read into cost."""
+
+    def test_cache_write_increases_cost(self) -> None:
+        no_cache = compute_token_efficiency(
+            composite_score=90.0,
+            claudemd_context_tokens=0,
+            task_io_tokens=6000,
+            input_tokens=4000,
+            output_tokens=2000,
+            model="sonnet",
+        )
+        with_cache = compute_token_efficiency(
+            composite_score=90.0,
+            claudemd_context_tokens=0,
+            task_io_tokens=6000,
+            input_tokens=4000,
+            output_tokens=2000,
+            cache_creation_input_tokens=10000,
+            model="sonnet",
+        )
+        # 10K cache_write at $3.75/MTok = +$0.0375
+        assert with_cache.cost_usd > no_cache.cost_usd
+        assert with_cache.cost_usd - no_cache.cost_usd == round(
+            (10000 / 1_000_000) * 3.75, 6
+        )
+
+    def test_cache_read_cheaper_than_fresh_input(self) -> None:
+        # Same total token volume, but routed through cache_read vs fresh
+        fresh = compute_token_efficiency(
+            composite_score=90.0,
+            claudemd_context_tokens=0,
+            task_io_tokens=6000,
+            input_tokens=100000,
+            output_tokens=2000,
+            model="sonnet",
+        )
+        cached = compute_token_efficiency(
+            composite_score=90.0,
+            claudemd_context_tokens=0,
+            task_io_tokens=6000,
+            input_tokens=0,
+            output_tokens=2000,
+            cache_read_input_tokens=100000,
+            model="sonnet",
+        )
+        # Same response quality, much cheaper via cache_read (10x cheaper)
+        assert cached.cost_usd < fresh.cost_usd
+        assert cached.points_per_dollar > fresh.points_per_dollar
+
+    def test_breakdown_populated_when_cache_present(self) -> None:
+        result = compute_token_efficiency(
+            composite_score=90.0,
+            claudemd_context_tokens=0,
+            task_io_tokens=6000,
+            input_tokens=4000,
+            output_tokens=2000,
+            cache_creation_input_tokens=10000,
+            cache_read_input_tokens=50000,
+            model="sonnet",
+        )
+        assert result.cache_creation_input_tokens == 10000
+        assert result.cache_read_input_tokens == 50000
+        assert set(result.cost_breakdown_usd.keys()) == {
+            "fresh_input", "output", "cache_write", "cache_read"
+        }
+        # Breakdown should sum to cost_usd (within rounding)
+        breakdown_sum = sum(result.cost_breakdown_usd.values())
+        assert abs(breakdown_sum - result.cost_usd) < 1e-4
+

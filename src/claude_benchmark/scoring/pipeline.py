@@ -146,8 +146,13 @@ def _score_llm_single(
     result: RunResult,
     task_def: object,
     strict: bool,
+    judge_model: str | None = None,
 ) -> tuple[int, object]:
     """Score a single result with LLM judge (includes retry logic).
+
+    Args:
+        judge_model: Optional cross-family judge spec (e.g. ``gpt-4o``,
+            ``gemini-2.5-pro``). Defaults to the legacy Haiku path.
 
     Returns:
         Tuple of (index, llm_score_or_None).
@@ -169,6 +174,7 @@ def _score_llm_single(
                 time.sleep(backoff[attempt])
             llm_score = LLMJudgeScorer(
                 use_direct_api=result.run.use_direct_api,
+                judge_model=judge_model,
             ).score(
                 result.output_dir,
                 task_def.description,
@@ -243,6 +249,7 @@ def score_run(
     task_dir: Path,
     skip_llm: bool = False,
     strict: bool = False,
+    judge_model: str | None = None,
 ) -> dict:
     """Score a single benchmark run result.
 
@@ -323,6 +330,7 @@ def score_run(
                     time.sleep(backoff[attempt])
                 llm_score = LLMJudgeScorer(
                     use_direct_api=result.run.use_direct_api,
+                    judge_model=judge_model,
                 ).score(
                     result.output_dir,
                     task_def.description,
@@ -391,6 +399,12 @@ def score_run(
                 result.total_tokens,
                 input_tokens=result.input_tokens,
                 output_tokens=result.output_tokens,
+                cache_creation_input_tokens=getattr(
+                    result, "cache_creation_input_tokens", 0
+                ),
+                cache_read_input_tokens=getattr(
+                    result, "cache_read_input_tokens", 0
+                ),
                 model=result.run.model,
             )
             scores["token_efficiency"] = efficiency.model_dump()
@@ -409,6 +423,7 @@ def score_all_runs(
     progress: ScoringProgressCallback | None = None,
     llm_concurrency: int | None = None,
     static_concurrency: int | None = None,
+    judge_model: str | None = None,
 ) -> tuple[list[RunResult], dict[str, dict[str, AggregateStats]]]:
     """Score all successful benchmark results in batch phases.
 
@@ -484,7 +499,9 @@ def score_all_runs(
         executor_params = {"max_workers": effective_llm}
         with concurrent.futures.ThreadPoolExecutor(**executor_params) as executor:
             futures = {
-                executor.submit(_score_llm_single, i, r, task_defs[i], strict): i
+                executor.submit(
+                    _score_llm_single, i, r, task_defs[i], strict, judge_model,
+                ): i
                 for i, r in enumerate(successful)
             }
             for future in concurrent.futures.as_completed(futures):
@@ -562,6 +579,12 @@ def score_all_runs(
                     result.total_tokens,
                     input_tokens=result.input_tokens,
                     output_tokens=result.output_tokens,
+                    cache_creation_input_tokens=getattr(
+                        result, "cache_creation_input_tokens", 0
+                    ),
+                    cache_read_input_tokens=getattr(
+                        result, "cache_read_input_tokens", 0
+                    ),
                     model=result.run.model,
                 )
                 scores["token_efficiency"] = efficiency.model_dump()

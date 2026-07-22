@@ -26,6 +26,10 @@ class RunResult(BaseModel):
     token_count: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
+    cache_creation_input_tokens: int = 0
+    cache_read_input_tokens: int = 0
+    cost_usd: float = 0.0
+    cost_breakdown_usd: dict[str, float] = Field(default_factory=dict)
     code_output: str = ""
     success: bool = True
     error: Optional[str] = None
@@ -143,6 +147,9 @@ class BenchmarkResults(BaseModel):
                         "token_count": run.token_count,
                         "input_tokens": run.input_tokens,
                         "output_tokens": run.output_tokens,
+                        "cache_creation_input_tokens": run.cache_creation_input_tokens,
+                        "cache_read_input_tokens": run.cache_read_input_tokens,
+                        "cost_usd": run.cost_usd,
                         "code_output": run.code_output,
                     }
                     if run.variant_label:

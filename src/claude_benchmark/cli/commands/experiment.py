@@ -20,6 +20,12 @@ from claude_benchmark.execution.preview import confirm_or_abort, show_dry_run
 from claude_benchmark.execution.resume import detect_completed_runs, filter_remaining_runs
 from claude_benchmark.experiments.loader import expand_experiment, load_experiment
 from claude_benchmark.profiles.loader import discover_profiles, resolve_profile
+from claude_benchmark.reproducibility import (
+    capture_environment,
+    generate_run_seed,
+    hash_judge_prompt,
+    hash_task_set,
+)
 from claude_benchmark.tasks.registry import TaskRegistry
 
 console = Console()
@@ -99,6 +105,83 @@ def _write_manifest(
         json.dump(manifest, f, indent=2)
 
 
+def _write_reproducibility(
+    results_dir: Path,
+    experiment_name: str,
+    config_path: Path,
+    base_seed: int = 42,
+) -> None:
+    """Write reproducibility.json alongside manifest.json.
+
+    Captures task-set hash, judge prompt hash, and execution environment
+    so a reader can verify (or diagnose deviations from) the corpus that
+    produced this experiment. Best-effort: a probe failure here must not
+    abort the experiment.
+
+    Args:
+        results_dir: The experiment results directory.
+        experiment_name: Name of the experiment (recorded for traceability).
+        config_path: Path to the experiment TOML (recorded as a relpath
+            when possible, else absolute).
+        base_seed: Base seed value recorded so per-run seeds can be
+            reconstructed externally.
+    """
+    repro_path = results_dir / "reproducibility.json"
+    repro_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Resolve a sensible tasks root: prefer the repo's ``tasks/`` next to
+    # this file's package, otherwise fall back to ``./tasks`` from cwd.
+    tasks_root: Path | None = None
+    candidate = Path(__file__).resolve().parents[4] / "tasks"
+    if candidate.is_dir():
+        tasks_root = candidate
+    elif Path("tasks").is_dir():
+        tasks_root = Path("tasks").resolve()
+
+    payload: dict = {
+        "schema_version": "1.0",
+        "timestamp": datetime.now().isoformat(),
+        "experiment_name": experiment_name,
+        "experiment_config_path": str(config_path),
+        "base_seed": base_seed,
+        "seed_recipe": "sha256(f'{base_seed}:{experiment_id}:{run_key}')[:8] as big-endian uint",
+        "model_seed_supported": False,
+        "model_seed_note": (
+            "The Anthropic API does not accept a sampling seed. The seeds "
+            "recorded in per-run JSONs are intent-only; identical seeds "
+            "do not guarantee identical model output."
+        ),
+    }
+
+    try:
+        if tasks_root is not None:
+            payload["task_set"] = hash_task_set(tasks_root)
+            payload["task_set"]["root"] = str(tasks_root)
+        else:
+            payload["task_set"] = {"error": "tasks root not found"}
+    except Exception as exc:
+        payload["task_set"] = {"error": f"hash_task_set failed: {exc}"}
+
+    try:
+        payload["judge_prompt"] = hash_judge_prompt()
+    except Exception as exc:
+        payload["judge_prompt"] = {"error": f"hash_judge_prompt failed: {exc}"}
+
+    try:
+        payload["environment"] = capture_environment()
+    except Exception as exc:
+        payload["environment"] = {"error": f"capture_environment failed: {exc}"}
+
+    try:
+        with open(repro_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, sort_keys=True)
+    except OSError as exc:
+        # Don't break the experiment over a provenance file failure.
+        console.print(
+            f"[yellow]Warning:[/yellow] could not write reproducibility.json: {exc}"
+        )
+
+
 def experiment(
     config_path: Path = typer.Argument(
         ...,
@@ -162,6 +245,16 @@ def experiment(
         help="Use direct Anthropic API instead of AWS Bedrock. "
         "Requires ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY env vars.",
     ),
+    judge_model: Optional[str] = typer.Option(
+        None,
+        "--judge-model",
+        help=(
+            "LLM judge spec. Defaults to 'haiku'. Use 'gpt-4o' or "
+            "'openai:<model-id>' for OpenAI; 'gemini-2.5-pro' or "
+            "'gemini:<model-id>' for Google. Cross-family judges require "
+            "OPENAI_API_KEY / GOOGLE_API_KEY."
+        ),
+    ),
 ) -> None:
     """Run an experiment defined in a TOML configuration file.
 
@@ -169,14 +262,14 @@ def experiment(
     across tasks, profiles, and models with statistical replication.
     """
     if direct_api:
-        from claude_benchmark.execution.gocode_auth import is_gocode_configured
+        from claude_benchmark.execution.proxy_auth import is_proxy_configured
 
-        if is_gocode_configured():
-            from claude_benchmark.execution.gocode_auth import validate_gocode_credentials
+        if is_proxy_configured():
+            from claude_benchmark.execution.proxy_auth import validate_proxy_credentials
 
-            cred_error = validate_gocode_credentials()
+            cred_error = validate_proxy_credentials()
             if cred_error:
-                console.print(f"[red]Error:[/red] GoCode credential check failed: {cred_error}")
+                console.print(f"[red]Error:[/red] Proxy credential check failed: {cred_error}")
                 raise typer.Exit(1)
         else:
             from claude_benchmark.execution.client import validate_direct_api_env
@@ -201,6 +294,15 @@ def experiment(
             else:
                 console.print("[red]Cannot proceed without valid AWS credentials.[/red]")
                 raise typer.Exit(1)
+
+    # Validate judge spec early (fail fast on missing API key)
+    if not skip_llm_judge:
+        from claude_benchmark.cli.judge_validation import validate_judge_spec
+
+        judge_error = validate_judge_spec(judge_model)
+        if judge_error:
+            console.print(f"[red]Error:[/red] {judge_error}")
+            raise typer.Exit(1)
 
     # 1. Load experiment config
     if not config_path.exists():
@@ -305,6 +407,30 @@ def experiment(
     # 11. If not --yes, prompt for confirmation
     if not yes:
         confirm_or_abort()
+
+    # 11b. Write reproducibility.json (task-set hash, judge prompt hash,
+    # environment capture). Done *before* runs execute so the provenance
+    # exists on disk even if the experiment crashes or is cancelled.
+    # Idempotent: safe to overwrite on resume since inputs are identical
+    # for a given config_path / repo state.
+    results_dir.mkdir(parents=True, exist_ok=True)
+    _write_reproducibility(
+        results_dir=results_dir,
+        experiment_name=config.name,
+        config_path=config_path,
+    )
+
+    # 11c. Stamp every run with a deterministic seed derived from its
+    # result_key. The Anthropic API does not accept a sampling seed, so
+    # this seed is intent-only — it governs harness-side randomness
+    # (orchestrator retries, padding selection) and is recorded for
+    # provenance. See docs/reproducibility.md.
+    experiment_seed_id = f"{config.name}:{results_dir.name}"
+    for r in runs:
+        # Attach as a dynamic attribute; downstream code that wants the
+        # seed can read ``run.seed``. We avoid changing the BenchmarkRun
+        # dataclass signature so existing tests/pickles stay valid.
+        r.seed = generate_run_seed(experiment_seed_id, r.result_key)
 
     # 12. Execute runs
     start_time = time.monotonic()
@@ -428,6 +554,7 @@ def experiment(
                 progress=progress_cb,
                 llm_concurrency=effective_judge_concurrency,
                 static_concurrency=effective_static_concurrency,
+                judge_model=judge_model,
             )
 
         results, aggregation = dashboard.run_scoring_with_display(_do_scoring)
@@ -439,6 +566,7 @@ def experiment(
             progress=log_output,
             llm_concurrency=effective_judge_concurrency,
             static_concurrency=effective_static_concurrency,
+            judge_model=judge_model,
         )
     progress_output = dashboard if is_tty else log_output  # type: ignore[possibly-undefined]
 
@@ -466,6 +594,7 @@ def experiment(
                 strict=strict_scoring,
                 llm_concurrency=effective_judge_concurrency,
                 static_concurrency=effective_static_concurrency,
+                judge_model=judge_model,
             )
             for r in rescore_results:
                 if r.scores:

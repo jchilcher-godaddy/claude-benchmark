@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability in claude-benchmark, please report it responsibly.
 
-**Email:** Open a [GitHub Security Advisory](https://github.com/jchilcher/claude-benchmark/security/advisories/new) (preferred) or email the maintainer directly.
+**Email:** Open a GitHub Security Advisory (preferred) or email the maintainer directly.
 
 **Please do not** open a public GitHub issue for security vulnerabilities.
 

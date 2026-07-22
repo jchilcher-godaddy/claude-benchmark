@@ -23,6 +23,9 @@ tasks/builtin/*/solution.py
 # Personal memory/journal
 memory/
 
+# Claude Code local config
+.claude/
+
 # OS files
 .DS_Store
 Thumbs.db
@@ -43,6 +46,8 @@ Thumbs.db
 *.bak
 *.orig
 *.backup
+# Microsoft Office lock files (created while a doc is open)
+~$*
 
 # Logs
 *.log

@@ -214,6 +214,7 @@ def _rescore_single(
     use_direct_api: bool = False,
     judge_concurrency: int | None = None,
     static_concurrency: int | None = None,
+    judge_model: str | None = None,
 ) -> None:
     """Rescore a single results directory."""
     if not results_dir.exists():
@@ -281,6 +282,7 @@ def _rescore_single(
         strict=strict_scoring,
         llm_concurrency=judge_concurrency,
         static_concurrency=static_concurrency,
+        judge_model=judge_model,
     )
 
     # Write scores back to disk
@@ -355,6 +357,16 @@ def rescore(
         "--static-concurrency",
         help="Number of parallel static scoring workers. Auto-detected from system specs if not set.",
     ),
+    judge_model: Optional[str] = typer.Option(
+        None,
+        "--judge-model",
+        help=(
+            "LLM judge spec. Defaults to 'haiku'. Use 'gpt-4o' or "
+            "'openai:<model-id>' for OpenAI; 'gemini-2.5-pro' or "
+            "'gemini:<model-id>' for Google. Cross-family judges require "
+            "OPENAI_API_KEY / GOOGLE_API_KEY."
+        ),
+    ),
 ) -> None:
     """Rescore existing benchmark results that are missing scores.
 
@@ -364,14 +376,14 @@ def rescore(
     Accepts one or more results directories.
     """
     if direct_api:
-        from claude_benchmark.execution.gocode_auth import is_gocode_configured
+        from claude_benchmark.execution.proxy_auth import is_proxy_configured
 
-        if is_gocode_configured():
-            from claude_benchmark.execution.gocode_auth import validate_gocode_credentials
+        if is_proxy_configured():
+            from claude_benchmark.execution.proxy_auth import validate_proxy_credentials
 
-            cred_error = validate_gocode_credentials()
+            cred_error = validate_proxy_credentials()
             if cred_error:
-                console.print(f"[red]Error:[/red] GoCode credential check failed: {cred_error}")
+                console.print(f"[red]Error:[/red] Proxy credential check failed: {cred_error}")
                 raise typer.Exit(1)
         else:
             from claude_benchmark.execution.client import validate_direct_api_env
@@ -397,6 +409,15 @@ def rescore(
                 console.print("[red]Cannot proceed without valid AWS credentials.[/red]")
                 raise typer.Exit(1)
 
+    # Validate cross-family judge spec early
+    if not skip_llm_judge:
+        from claude_benchmark.cli.judge_validation import validate_judge_spec
+
+        judge_error = validate_judge_spec(judge_model)
+        if judge_error:
+            console.print(f"[red]Error:[/red] {judge_error}")
+            raise typer.Exit(1)
+
     # Discover tasks and profiles once for all directories
     task_dirs = discover_all_tasks()
     profile_paths = discover_all_profiles()
@@ -414,4 +435,5 @@ def rescore(
             use_direct_api=direct_api,
             judge_concurrency=judge_concurrency,
             static_concurrency=static_concurrency,
+            judge_model=judge_model,
         )

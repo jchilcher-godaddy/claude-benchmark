@@ -45,7 +45,10 @@ class AggregateResult(BaseModel):
     wall_clock: Optional[StatsSummary] = None
     input_tokens: Optional[StatsSummary] = None
     output_tokens: Optional[StatsSummary] = None
+    cache_creation_tokens: Optional[StatsSummary] = None
+    cache_read_tokens: Optional[StatsSummary] = None
     cost_usd: Optional[StatsSummary] = None
+    cost_breakdown_usd: Optional[dict[str, float]] = None
     failed_details: list[str] = Field(default_factory=list)
 
 

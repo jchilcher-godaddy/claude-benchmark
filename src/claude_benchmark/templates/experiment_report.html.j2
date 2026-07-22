@@ -230,8 +230,11 @@ section { scroll-margin-top: 1rem; }
             <th>Power</th>
             <th>Significant?</th>
             <th>N</th>
-            <th title="Mean input tokens per run">Inp Tok</th>
+            <th title="Mean fresh input tokens per run">Inp Tok</th>
             <th title="Mean output tokens per run">Out Tok</th>
+            <th title="Mean cache write tokens per run">CW Tok</th>
+            <th title="Mean cache read tokens per run">CR Tok</th>
+            <th title="Spend mix: fresh / output / cache_write / cache_read (%)">Spend Mix</th>
             <th title="Mean cost per run in USD">$/Run</th>
             <th title="Cost difference vs control">Cost Delta</th>
             <th title="Statistically significant cost difference?">Cost Sig?</th>
@@ -261,6 +264,13 @@ section { scroll-margin-top: 1rem; }
             <td style="font-size:0.8rem;color:#718096">{{ row.n_variant }} vs {{ row.n_control }}</td>
             <td style="font-size:0.82rem">{% if row.mean_input_tokens %}{{ '{:,.0f}'.format(row.mean_input_tokens) }}{% else %}-{% endif %}</td>
             <td style="font-size:0.82rem">{% if row.mean_output_tokens %}{{ '{:,.0f}'.format(row.mean_output_tokens) }}{% else %}-{% endif %}</td>
+            <td style="font-size:0.82rem">{% if row.mean_cache_creation_tokens %}{{ '{:,.0f}'.format(row.mean_cache_creation_tokens) }}{% else %}-{% endif %}</td>
+            <td style="font-size:0.82rem">{% if row.mean_cache_read_tokens %}{{ '{:,.0f}'.format(row.mean_cache_read_tokens) }}{% else %}-{% endif %}</td>
+            <td style="font-size:0.78rem;color:#475569">
+              {% if row.cost_mix_pct %}
+                {{ '%.0f'|format(row.cost_mix_pct.get('fresh_input', 0)) }}/{{ '%.0f'|format(row.cost_mix_pct.get('output', 0)) }}/{{ '%.0f'|format(row.cost_mix_pct.get('cache_write', 0)) }}/{{ '%.0f'|format(row.cost_mix_pct.get('cache_read', 0)) }}
+              {% else %}-{% endif %}
+            </td>
             <td style="font-size:0.82rem">{% if row.mean_cost %}${{ '%.4f'|format(row.mean_cost) }}{% else %}-{% endif %}</td>
             <td style="font-size:0.82rem" class="{% if row.cost_delta < 0 %}delta-positive{% elif row.cost_delta > 0 %}delta-negative{% endif %}">
               {% if row.cost_delta %}{{ '%+.4f'|format(row.cost_delta) }}{% else %}-{% endif %}

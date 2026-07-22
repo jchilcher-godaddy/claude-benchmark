@@ -371,26 +371,51 @@ class ExperimentReportGenerator:
         self, results: BenchmarkResults,
     ) -> dict[str, float]:
         """Extract total cost in USD per variant using model-specific pricing."""
+        from claude_benchmark.execution.cost import compute_cost
+
         costs: dict[str, float] = {}
         for pid, pr in results.profiles.items():
             total_cost = 0.0
             for tr in pr.tasks.values():
                 for run in tr.runs:
-                    pricing = MODEL_PRICING.get(run.model, MODEL_PRICING.get("sonnet", {}))
-                    total_cost += (
-                        (run.input_tokens / 1_000_000) * pricing.get("input", 0)
-                        + (run.output_tokens / 1_000_000) * pricing.get("output", 0)
+                    total_cost += compute_cost(
+                        input_tokens=run.input_tokens,
+                        output_tokens=run.output_tokens,
+                        cache_creation_input_tokens=getattr(
+                            run, "cache_creation_input_tokens", 0
+                        ),
+                        cache_read_input_tokens=getattr(
+                            run, "cache_read_input_tokens", 0
+                        ),
+                        model=run.model,
                     )
             costs[pid] = total_cost
         return costs
 
     @staticmethod
     def _run_cost(run: Any) -> float:
-        """Compute USD cost for a single run."""
-        pricing = MODEL_PRICING.get(run.model, MODEL_PRICING.get("sonnet", {}))
-        return (
-            (run.input_tokens / 1_000_000) * pricing.get("input", 0)
-            + (run.output_tokens / 1_000_000) * pricing.get("output", 0)
+        """Compute USD cost for a single run, including cache categories."""
+        from claude_benchmark.execution.cost import compute_cost
+
+        return compute_cost(
+            input_tokens=run.input_tokens,
+            output_tokens=run.output_tokens,
+            cache_creation_input_tokens=getattr(run, "cache_creation_input_tokens", 0),
+            cache_read_input_tokens=getattr(run, "cache_read_input_tokens", 0),
+            model=run.model,
+        )
+
+    @staticmethod
+    def _run_cost_breakdown(run: Any) -> dict[str, float]:
+        """Per-category USD breakdown for a single run."""
+        from claude_benchmark.execution.cost import cost_breakdown
+
+        return cost_breakdown(
+            input_tokens=run.input_tokens,
+            output_tokens=run.output_tokens,
+            cache_creation_input_tokens=getattr(run, "cache_creation_input_tokens", 0),
+            cache_read_input_tokens=getattr(run, "cache_read_input_tokens", 0),
+            model=run.model,
         )
 
     def _extract_variant_cost_stats(
@@ -399,26 +424,42 @@ class ExperimentReportGenerator:
         """Extract per-variant cost and token statistics.
 
         Returns {variant: {n_runs, mean_input_tokens, mean_output_tokens,
-        mean_cost_per_run, total_cost}}.
+        mean_cache_creation_tokens, mean_cache_read_tokens, mean_cost_per_run,
+        total_cost, cost_mix_pct (dict), total_cost_breakdown (dict)}}.
         """
         stats: dict[str, dict[str, float]] = {}
         for pid, pr in results.profiles.items():
             total_input = 0
             total_output = 0
+            total_cache_create = 0
+            total_cache_read = 0
             total_cost = 0.0
+            cat_totals = {"fresh_input": 0.0, "output": 0.0, "cache_write": 0.0, "cache_read": 0.0}
             n = 0
             for tr in pr.tasks.values():
                 for run in tr.runs:
                     total_input += run.input_tokens
                     total_output += run.output_tokens
-                    total_cost += self._run_cost(run)
+                    total_cache_create += getattr(run, "cache_creation_input_tokens", 0)
+                    total_cache_read += getattr(run, "cache_read_input_tokens", 0)
+                    bd = self._run_cost_breakdown(run)
+                    for k, v in bd.items():
+                        cat_totals[k] += v
+                    total_cost += sum(bd.values())
                     n += 1
+            cost_mix_pct = {}
+            if total_cost > 0:
+                cost_mix_pct = {k: 100.0 * v / total_cost for k, v in cat_totals.items()}
             stats[pid] = {
                 "n_runs": n,
                 "mean_input_tokens": total_input / n if n else 0,
                 "mean_output_tokens": total_output / n if n else 0,
+                "mean_cache_creation_tokens": total_cache_create / n if n else 0,
+                "mean_cache_read_tokens": total_cache_read / n if n else 0,
                 "mean_cost_per_run": total_cost / n if n else 0,
                 "total_cost": total_cost,
+                "total_cost_breakdown": cat_totals,
+                "cost_mix_pct": cost_mix_pct,
             }
         return stats
 
@@ -616,6 +657,9 @@ class ExperimentReportGenerator:
         """Compute cost comparison fields for one variant vs control."""
         v_mean_input = variant_stats.get("mean_input_tokens", 0)
         v_mean_output = variant_stats.get("mean_output_tokens", 0)
+        v_mean_cache_create = variant_stats.get("mean_cache_creation_tokens", 0)
+        v_mean_cache_read = variant_stats.get("mean_cache_read_tokens", 0)
+        v_cost_mix = variant_stats.get("cost_mix_pct", {}) or {}
         v_mean_cost = variant_stats.get("mean_cost_per_run", 0)
         c_mean_cost = control_stats.get("mean_cost_per_run", 0)
 
@@ -643,6 +687,11 @@ class ExperimentReportGenerator:
         return {
             "mean_input_tokens": round(v_mean_input, 0),
             "mean_output_tokens": round(v_mean_output, 0),
+            "mean_cache_creation_tokens": round(v_mean_cache_create, 0),
+            "mean_cache_read_tokens": round(v_mean_cache_read, 0),
+            "cost_mix_pct": {
+                k: round(v, 1) for k, v in v_cost_mix.items()
+            },
             "mean_cost": round(v_mean_cost, 6),
             "control_mean_cost": round(c_mean_cost, 6),
             "cost_delta": round(cost_delta, 6),

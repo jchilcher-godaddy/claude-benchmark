@@ -118,13 +118,28 @@ The judge uses structured JSON output (`--json-schema`) to force well-formed res
 
 ## Token Efficiency (separate metric)
 
-Token efficiency measures quality relative to token cost. It is reported alongside the composite score but is **not** folded into it.
+Token efficiency measures quality relative to cost. It is reported alongside the composite score but is **not** folded into it.
+
+### Primary: points_per_dollar (cost-weighted)
+
+```
+cost_usd = (input_tokens / 1M) * model_input_price + (output_tokens / 1M) * model_output_price
+points_per_dollar = composite_score / cost_usd
+```
+
+Higher is better. This accounts for the fact that output tokens cost 5x more than input tokens across all models. Model-specific pricing is applied automatically (Haiku: $1/$5, Sonnet: $3/$15, Opus: $5/$25 per MTok input/output).
+
+### Secondary: points_per_1k_tokens (raw)
 
 ```
 points_per_1k_tokens = (composite_score / total_tokens) * 1000
 ```
 
-Higher is better. Token counts are split into two components:
+Retained for backward compatibility. Treats all tokens equally regardless of direction or model, so it understates the cost of verbose output and overstates the cost of large input contexts.
+
+### Token breakdown
+
+Token counts are split into two components:
 - **CLAUDE.md context tokens**: tokens consumed by the system prompt / CLAUDE.md content
 - **Task I/O tokens**: tokens consumed by the task prompt and model response
 
@@ -190,3 +205,33 @@ Custom criteria are scored on the same 1-5 scale and averaged together with the 
 | Token efficiency | `src/claude_benchmark/scoring/token_efficiency.py` |
 | Pydantic models | `src/claude_benchmark/scoring/models.py` |
 | Scoring pipeline orchestration | `src/claude_benchmark/scoring/pipeline.py` |
+
+---
+
+## Limitations
+
+**Composite weights are author-specified, not empirically derived.** The 50/50 static/LLM split and the 50/30/20 within-static weighting reflect the author's judgment about relative importance, not an optimization against ground-truth quality assessments. A sensitivity analysis is available via `claude-benchmark sensitivity` (see Stream 2 tooling). Findings that hinge on close composite-score comparisons should be confirmed against the individual sub-scores.
+
+**The 1-5 Likert-to-100 mapping assumes equal-interval scaling.** Treating Likert responses as a continuous interval scale is contested in measurement theory. For borderline findings (effect sizes under ~2 points), confirm using the raw Likert distribution — Wilcoxon signed-rank or ordinal regression is more appropriate than comparing linearized means.
+
+**Test pass rate weights all tests equally regardless of difficulty.** A single-assertion test for a trivial helper and a multi-assertion integration test for a complex function count the same. This may inflate pass-rate scores for tasks where the test suite is unbalanced.
+
+**Lint score is calibrated to Python.** The lint score formula is derived from Ruff, a Python linter. For Go, JavaScript, and C# tasks, the lint sub-score uses language-appropriate tools (see language-specific scorer files `lang_*.py`), but the 50/30/20 weighting was tuned on Python experiments. Cross-language lint scores are not directly comparable to Python lint scores.
+
+**Cyclomatic complexity via Radon is Python-only.** For non-Python languages, language-specific parsers in the `lang_*.py` scorer files compute equivalent metrics, but the piecewise linear mapping to 0-100 was defined against Radon's grade thresholds and may not be well-calibrated for those parsers' output distributions.
+
+**Token efficiency uses Anthropic list pricing.** Cost figures use published list prices: Haiku $1/$5, Sonnet $3/$15, Opus $5/$25 per MTok input/output. Actual costs may differ due to enterprise agreements, prompt caching discounts, batch API pricing, or proxy-layer markup. Cost figures in experiment reports and the cheat sheet are list-price approximations and should not be cited as actualized savings.
+
+---
+
+## Pre-registration and Multiple Comparisons
+
+None of the 21 historical experiments in this benchmark were pre-registered. Hypotheses were formed before running each experiment, but were not registered with an independent registry (OSF or equivalent) prior to data collection. All findings should be treated as exploratory until replicated under pre-registration. Per-finding classification is in `docs/findings-classification.md`; the pre-registration template is in `docs/pre-registration-template.md`.
+
+For multiple comparisons across the full experiment family, the recommended correction procedures are:
+
+- **Holm-Bonferroni** (familywise error rate control) for primary contrasts — the handful of findings that inform published guidance
+- **Benjamini-Hochberg** (false discovery rate control) for secondary and exploratory contrasts
+
+The `claude-benchmark rigor` command (Stream 1 tooling) applies both procedures to a specified set of comparisons and reports adjusted p-values alongside the original ones.
+

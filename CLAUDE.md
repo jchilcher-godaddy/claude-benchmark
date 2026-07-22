@@ -72,18 +72,28 @@ From 21 completed experiments (~212,000 runs):
 - **Don't threaten, tip, or pressure Claude** — growth-mindset is the only positive emotional framing (+1.88). Life-or-death -3.33 (Sonnet collapses -9.2 to 65.96), tip-incentive -3.16. Consequence framing inflates tokens 69% with worse quality (15,120 runs)
 - **Compressed instructions outperform verbose** — compressed rules (+3.36) beat verbose rules (+2.16) at 20% fewer tokens. Code-adapted (compress prose, preserve code markers) is the quality/cost sweet spot at 51.83 score/kTok. "Answer concisely" (2 tokens) outperforms 89-token structured caveman rules (15,120 runs)
 
-## Running Experiments (GoCode / Direct API)
+## Running Experiments
+
+### Standard (Anthropic API)
 
 ```bash
-# 1. Set cert paths for mTLS auth against your OpenAI-compatible proxy
-export GOCODE_CERT_PATH=~/.certificates/your-cert.crt
-export GOCODE_KEY_PATH=~/.certificates/your-cert.key
+export ANTHROPIC_API_KEY=sk-...
+claude-benchmark experiment experiments/<name>.toml --direct-api -c 50 -y
+```
 
-# 2. Optionally override SSO/API endpoints (defaults to example.com placeholders)
-export GOCODE_SSO_URL_DEV=https://your-sso.example.com/v1/secure/api/token
-export GOCODE_API_URL_DEV=https://your-api-proxy.example.com/v1
+### Enterprise Proxy (Optional)
 
-# 3. Run experiment via direct API with high concurrency
+For organizations using an OpenAI-compatible proxy with mTLS authentication:
+
+```bash
+# Set cert paths for mTLS auth
+export PROXY_CERT_PATH=~/.certificates/your-cert.crt
+export PROXY_KEY_PATH=~/.certificates/your-cert.key
+
+# Override SSO/API endpoints
+export PROXY_SSO_URL_DEV=https://your-sso.example.com/v1/secure/api/token
+export PROXY_API_URL_DEV=https://your-api.example.com/v1
+
 claude-benchmark experiment experiments/<name>.toml --direct-api -c 50 -y
 ```
 

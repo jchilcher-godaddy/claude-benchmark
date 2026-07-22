@@ -18,7 +18,7 @@ from pathlib import Path
 import anthropic
 from pydantic import ValidationError
 
-from claude_benchmark.execution.client import create_client, create_gocode_client, resolve_model_id
+from claude_benchmark.execution.client import create_client, create_proxy_client, resolve_model_id
 
 from .errors import LLMJudgeError
 from .models import LLMCriterionScore, LLMScore
@@ -53,10 +53,37 @@ class LLMJudgeScorer:
         self,
         model: str | None = None,
         use_direct_api: bool = False,
+        judge_model: str | None = None,
     ) -> None:
-        self.model = model or DEFAULT_JUDGE_MODEL
+        # ``judge_model`` is the new provider-abstracted spec (haiku, sonnet,
+        # opus, gpt-4o, gemini-2.5-pro, openai:..., gemini:...). It supersedes
+        # ``model`` when both are passed but defaults to ``model`` for
+        # backwards compatibility.
+        spec = judge_model or model or DEFAULT_JUDGE_MODEL
+        self.model = spec
         self.use_direct_api = use_direct_api
         self._logger = logging.getLogger(__name__)
+        self._provider = self._resolve_provider(spec)
+
+    def _resolve_provider(self, spec: str):
+        """Return a JudgeProvider for non-Anthropic specs, else None.
+
+        Anthropic specs (haiku/sonnet/opus/claude-*) keep the legacy
+        in-class call path untouched. Cross-family specs route through
+        the provider registry.
+        """
+        from .judges.registry import (
+            _ANTHROPIC_ALIASES,
+            get_judge,
+        )
+
+        lower = spec.lower()
+        if lower in _ANTHROPIC_ALIASES or lower.startswith("claude-"):
+            return None
+        # Anthropic explicit prefix also keeps legacy path
+        if lower.startswith("anthropic:"):
+            return None
+        return get_judge(spec)
 
     def _parse_response(
         self,
@@ -132,11 +159,15 @@ class LLMJudgeScorer:
         average = total / len(criterion_scores)
         normalized = (average - 1) * 25.0
 
+        provider_name = self._provider.provider if self._provider else "anthropic"
+        provider_model = self._provider.model_id if self._provider else self.model
         return LLMScore(
             criteria=criterion_scores,
             average=round(average, 2),
             normalized=round(normalized, 2),
             model_used=self.model,
+            judge_provider=provider_name,
+            judge_model_id=provider_model,
         )
 
     def judge_code(
@@ -186,7 +217,13 @@ class LLMJudgeScorer:
             language=language,
         )
 
-        # First attempt — prefer GoCode > direct API > CLI
+        # Cross-family judge path (OpenAI, Gemini): route through the
+        # JudgeProvider abstraction. Anthropic specs continue to use the
+        # legacy CLI/direct/proxy chain below.
+        if self._provider is not None:
+            return self._judge_via_provider(user_prompt, expected_names)
+
+        # First attempt — prefer proxy > direct API > CLI
         call_fn = self._select_call_fn()
         try:
             response_text = call_fn(user_prompt)
@@ -225,21 +262,70 @@ class LLMJudgeScorer:
                 retry_attempted=True,
             ) from exc
 
+    def _judge_via_provider(
+        self,
+        user_prompt: str,
+        expected_names: list[str],
+    ) -> LLMScore:
+        """Run the judge through a non-Anthropic JudgeProvider.
+
+        Performs one call plus one retry with an explicit reminder if the
+        first response doesn't validate. Mirrors the retry behavior of
+        the legacy Anthropic path.
+        """
+        from .judges.base import JudgeError
+
+        provider = self._provider
+        assert provider is not None  # narrow for type-checkers
+
+        try:
+            evaluations = provider.score(
+                user_prompt, JUDGE_SYSTEM_PROMPT, JUDGE_OUTPUT_SCHEMA
+            )
+            criterion_scores = self._parse_response(
+                json.dumps({"evaluations": evaluations}), expected_names
+            )
+            return self._compute_llm_score(criterion_scores)
+        except (JudgeError, json.JSONDecodeError, ValueError, ValidationError) as exc:
+            self._logger.warning(
+                "First %s judge attempt failed: %s. Retrying with explicit prompt.",
+                provider.provider, exc,
+            )
+
+        retry_prompt = (
+            user_prompt
+            + "\n\nIMPORTANT: Return ONLY valid JSON matching the exact schema "
+            "above. Each criterion must have integer score 1-5."
+        )
+        try:
+            evaluations = provider.score(
+                retry_prompt, JUDGE_SYSTEM_PROMPT, JUDGE_OUTPUT_SCHEMA
+            )
+            criterion_scores = self._parse_response(
+                json.dumps({"evaluations": evaluations}), expected_names
+            )
+            return self._compute_llm_score(criterion_scores)
+        except (JudgeError, json.JSONDecodeError, ValueError, ValidationError) as exc:
+            raise LLMJudgeError(
+                f"{provider.provider} judge failed after retry: {exc}",
+                retry_attempted=True,
+            ) from exc
+
     def _select_call_fn(self):
         """Select the best available API call function.
 
-        Priority: GoCode (if direct_api + GoCode configured) > direct API > CLI.
+        Priority: proxy (if direct_api + proxy configured) > direct API > CLI.
         Matches the routing logic in worker.py.
         """
         if self.use_direct_api:
-            from claude_benchmark.execution.gocode_auth import is_gocode_configured
-            if is_gocode_configured():
-                self._logger.debug("LLM judge using GoCode path")
-                return self._call_api_gocode
+            from claude_benchmark.execution.proxy_auth import is_proxy_configured
+            if is_proxy_configured():
+                self._logger.debug("LLM judge using proxy path")
+                return self._call_api_proxy
         return self._call_api_direct
 
-    def _call_api_gocode(self, user_prompt: str) -> str:
-        """Call GoCode (OpenAI-compatible) API with temperature=0 for deterministic judging.
+    def _call_api_proxy(self, user_prompt: str) -> str:
+        """Call proxy (OpenAI-compatible) API with temperature=0 for deterministic judging.
 
         Returns:
             A JSON string containing the ``evaluations`` array.
@@ -247,10 +333,10 @@ class LLMJudgeScorer:
         Raises:
             LLMJudgeError: If the API call fails or credentials are unavailable.
         """
-        model_id = resolve_model_id(self.model, use_gocode=True)
+        model_id = resolve_model_id(self.model, use_proxy=True)
 
         try:
-            client = create_gocode_client()
+            client = create_proxy_client()
             messages: list[dict] = [
                 {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
@@ -262,11 +348,11 @@ class LLMJudgeScorer:
                 messages=messages,
             )
         except Exception as exc:
-            raise LLMJudgeError(f"GoCode API call failed: {exc}") from exc
+            raise LLMJudgeError(f"proxy API call failed: {exc}") from exc
 
         choice = response.choices[0] if response.choices else None
         if not choice or not choice.message or not choice.message.content:
-            raise LLMJudgeError("GoCode API returned no content")
+            raise LLMJudgeError("proxy API returned no content")
 
         return self._extract_json(choice.message.content)
 

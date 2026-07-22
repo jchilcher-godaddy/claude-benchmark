@@ -9,14 +9,71 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 # Model pricing per million tokens (as of Feb 2026)
-# Haiku 4.5:  $1/MTok input,  $5/MTok output
-# Sonnet 4.6: $3/MTok input, $15/MTok output
-# Opus 4.6:   $5/MTok input, $25/MTok output
+# cache_write is 1.25x input price (5-minute TTL); cache_read is 0.10x input.
+# Haiku 4.5:  $1/MTok input,  $5/MTok output, $1.25 cache_write, $0.10 cache_read
+# Sonnet 4.6: $3/MTok input, $15/MTok output, $3.75 cache_write, $0.30 cache_read
+# Opus 4.6:   $5/MTok input, $25/MTok output, $6.25 cache_write, $0.50 cache_read
 MODEL_PRICING: dict[str, dict[str, float]] = {
-    "haiku": {"input": 1.00, "output": 5.00},
-    "sonnet": {"input": 3.00, "output": 15.00},
-    "opus": {"input": 5.00, "output": 25.00},
+    "haiku": {"input": 1.00, "output": 5.00, "cache_write": 1.25, "cache_read": 0.10},
+    "sonnet": {"input": 3.00, "output": 15.00, "cache_write": 3.75, "cache_read": 0.30},
+    "opus": {"input": 5.00, "output": 25.00, "cache_write": 6.25, "cache_read": 0.50},
+    "opus-4-7": {"input": 5.00, "output": 25.00, "cache_write": 6.25, "cache_read": 0.50},
 }
+
+
+def compute_cost(
+    *,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    cache_creation_input_tokens: int = 0,
+    cache_read_input_tokens: int = 0,
+    model: str = "sonnet",
+) -> float:
+    """Compute total USD cost from a usage breakdown.
+
+    All four token categories are priced separately:
+        fresh_input × input_price
+      + cache_creation × cache_write_price
+      + cache_read × cache_read_price
+      + output × output_price
+
+    Falls back to sonnet pricing when *model* is unknown. cache_write/cache_read
+    keys default to 1.25x/0.10x of input price for older entries that haven't
+    been backfilled.
+    """
+    pricing = MODEL_PRICING.get(model, MODEL_PRICING["sonnet"])
+    input_price = pricing.get("input", 0.0)
+    output_price = pricing.get("output", 0.0)
+    cache_write_price = pricing.get("cache_write", input_price * 1.25)
+    cache_read_price = pricing.get("cache_read", input_price * 0.10)
+    return (
+        (input_tokens / 1_000_000) * input_price
+        + (output_tokens / 1_000_000) * output_price
+        + (cache_creation_input_tokens / 1_000_000) * cache_write_price
+        + (cache_read_input_tokens / 1_000_000) * cache_read_price
+    )
+
+
+def cost_breakdown(
+    *,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    cache_creation_input_tokens: int = 0,
+    cache_read_input_tokens: int = 0,
+    model: str = "sonnet",
+) -> dict[str, float]:
+    """Return USD cost broken down by category for spend-mix reporting."""
+    pricing = MODEL_PRICING.get(model, MODEL_PRICING["sonnet"])
+    input_price = pricing.get("input", 0.0)
+    output_price = pricing.get("output", 0.0)
+    cache_write_price = pricing.get("cache_write", input_price * 1.25)
+    cache_read_price = pricing.get("cache_read", input_price * 0.10)
+    return {
+        "fresh_input": (input_tokens / 1_000_000) * input_price,
+        "output": (output_tokens / 1_000_000) * output_price,
+        "cache_write": (cache_creation_input_tokens / 1_000_000) * cache_write_price,
+        "cache_read": (cache_read_input_tokens / 1_000_000) * cache_read_price,
+    }
 
 # LLM judge token estimates (conservative).
 # Input: system prompt (~600 tok) + user prompt with code (~2400 tok) = ~3000 tok

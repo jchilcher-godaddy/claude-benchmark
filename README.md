@@ -1,6 +1,5 @@
 # claude-benchmark
 
-![CI](https://github.com/jchilcher/claude-benchmark/actions/workflows/ci.yml/badge.svg)
 
 A CLI tool for benchmarking CLAUDE.md configurations against standardized coding tasks. Test how well your CLAUDE.md instructions guide AI code generation across bug fixes, code generation, refactoring, and instruction-following scenarios.
 
@@ -9,6 +8,29 @@ A CLI tool for benchmarking CLAUDE.md configurations against standardized coding
 - Python 3.11+
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and configured
 - `ANTHROPIC_API_KEY` environment variable set
+
+### Cross-language scoring tools (optional)
+
+Required for scoring Go, JavaScript, and C# tasks. Python tasks use pytest/ruff/radon which are installed automatically.
+
+**Go:**
+```bash
+# Install Go: https://go.dev/doc/install
+brew install golangci-lint                                       # linter
+go install github.com/fzipp/gocyclo/cmd/gocyclo@latest          # complexity
+export PATH="$HOME/go/bin:$PATH"                                 # add to ~/.zshrc
+```
+
+**JavaScript:**
+```bash
+npm install -g eslint jest
+```
+
+**C#:**
+```bash
+# Install .NET SDK: https://dotnet.microsoft.com/download
+# dotnet test, dotnet format are included with the SDK
+```
 
 ## Installation
 
@@ -78,6 +100,21 @@ See [docs/scoring-methodology.md](docs/scoring-methodology.md) for detailed form
 - **code-gen** -- Generate code from scratch given a specification
 - **refactor** -- Improve existing code while preserving behavior
 - **instruction** -- Follow specific coding rules from both prompt and CLAUDE.md
+
+### Languages
+
+The benchmark includes tasks for **Python**, **Go**, **JavaScript**, and **C#**:
+
+```
+tasks/builtin/
+├── bug-fix-01/        # Python
+├── bug-fix-01-go/     # Go
+├── bug-fix-01-js/     # JavaScript  
+├── bug-fix-01-cs/     # C#
+└── ...
+```
+
+Cross-language experiments are in `experiments/cross-language.toml` and `experiments/cot-cross-language.toml`.
 
 See `examples/` for sample CLAUDE.md files to get started.
 

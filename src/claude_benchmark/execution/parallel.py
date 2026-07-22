@@ -82,6 +82,8 @@ class RunResult:
     output_dir: Path | None = None
     input_tokens: int = 0
     output_tokens: int = 0
+    cache_creation_input_tokens: int = 0
+    cache_read_input_tokens: int = 0
     total_tokens: int = 0
     cost: float = 0.0
     duration_seconds: float = 0.0
@@ -101,6 +103,8 @@ class RunResult:
             "output_dir": str(self.output_dir) if self.output_dir else None,
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
+            "cache_creation_input_tokens": self.cache_creation_input_tokens,
+            "cache_read_input_tokens": self.cache_read_input_tokens,
             "total_tokens": self.total_tokens,
             "cost": self.cost,
             "duration_seconds": self.duration_seconds,
@@ -112,6 +116,16 @@ class RunResult:
             d["temperature"] = self.run.temperature
         if self.turn_count > 1:
             d["turn_count"] = self.turn_count
+        # Reproducibility provenance (additive; absent on legacy runs).
+        # ``seed`` is the deterministic intent-only seed (see
+        # docs/reproducibility.md). ``model_snapshot`` is the resolved
+        # provider model ID when the harness was able to capture it.
+        seed = getattr(self.run, "seed", None)
+        if seed is not None:
+            d["seed"] = seed
+        snapshot = getattr(self, "model_snapshot", None)
+        if snapshot:
+            d["model_snapshot"] = snapshot
         return d
 
     @classmethod
